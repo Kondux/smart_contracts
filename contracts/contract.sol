@@ -22,7 +22,6 @@ contract Kondux is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Roya
     address public thiscontract;
     string public baseURI;
     uint96 public denominator;
-    bool public onlyOwnerApprove;
 
     mapping (uint256 => uint256) public indexDna;
 
@@ -31,19 +30,6 @@ contract Kondux is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Roya
     constructor(string memory _name, string memory _symbol, address signer) ERC721(_name, _symbol) TimeLock(signer) {
         thiscontract = address(this);
         onlyOwnerApprove = true;
-    }
-
-    modifier onlyOwnerApproveControl() {
-        require(getOnlyOwnerApprove() == false, "Only owner can receive approval");
-        _;
-    }
-
-    function getOnlyOwnerApprove() public view returns (bool) {
-        return onlyOwnerApprove;
-    }
-
-    function setOnlyOwnerApprove(bool _approval) public onlyOwner {
-        onlyOwnerApprove = _approval;
     }
 
     function changeDenominator(uint96 _denominator) public onlyOwner returns (uint96) {
@@ -83,7 +69,7 @@ contract Kondux is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Roya
         _unpause();
     }
 
-    function safeMint(address to, uint256 dna) public onlyOwner  {
+    function safeMint(address to, uint256 dna) public onlyOwner authorized {
         uint256 tokenId = _tokenIdCounter.current();
         _setDna(tokenId, dna);
         _tokenIdCounter.increment();
