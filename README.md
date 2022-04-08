@@ -1,1 +1,1 @@
-# smart_contracts
+# kondux-contracts

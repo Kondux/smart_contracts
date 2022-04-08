@@ -39,6 +39,8 @@ build/Release
 
 # Dependency directories
 node_modules/
+artifacts/
+cache/
 jspm_packages/
 
 # TypeScript v1 declaration files
@@ -102,3 +104,5 @@ dist
 
 # TernJS port file
 .tern-port
+
+verify_address.txt
