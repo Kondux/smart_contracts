@@ -9,9 +9,8 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Royalty.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
-import "./timelock.sol";
 
-contract Kondux is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Royalty, TimeLock {
+contract Kondux is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Royalty, Ownable {
     event BaseURIChanged(string baseURI);
     event Received(address sender, uint value);
     event DnaChanged(uint256 tokenID, uint256 dna);
@@ -19,7 +18,6 @@ contract Kondux is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Roya
     using Counters for Counters.Counter;
 
 
-    address public thiscontract;
     string public baseURI;
     uint96 public denominator;
 
@@ -27,9 +25,7 @@ contract Kondux is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Roya
 
     Counters.Counter private _tokenIdCounter;
 
-    constructor(string memory _name, string memory _symbol, address signer) ERC721(_name, _symbol) TimeLock(signer) {
-        thiscontract = address(this);
-        onlyOwnerApprove = true;
+    constructor(string memory _name, string memory _symbol) ERC721(_name, _symbol) {
     }
 
     function changeDenominator(uint96 _denominator) public onlyOwner returns (uint96) {
@@ -44,10 +40,6 @@ contract Kondux is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Roya
 
     function setTokenRoyalty(uint256 tokenId,address receiver,uint96 feeNumerator) public onlyOwner {
         _setTokenRoyalty(tokenId, receiver, feeNumerator);
-    }
-
-    function _baseURI() internal view override returns (string memory) {
-        return baseURI;
     }
 
     function setBaseURI(string memory _newURI) external onlyOwner returns (string memory) {
@@ -69,7 +61,7 @@ contract Kondux is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Roya
         _unpause();
     }
 
-    function safeMint(address to, uint256 dna) public onlyOwner authorized {
+    function safeMint(address to, uint256 dna) public onlyOwner {
         uint256 tokenId = _tokenIdCounter.current();
         _setDna(tokenId, dna);
         _tokenIdCounter.increment();
@@ -80,13 +72,16 @@ contract Kondux is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Roya
         _setDna(_tokenID, _dna);
     }
 
+    // Internal functions //
+
+    function _baseURI() internal view override returns (string memory) {
+        return baseURI;
+    }
+
     function _setDna(uint256 _tokenID, uint256 _dna) internal onlyOwner {
         indexDna[_tokenID] = _dna;
         emit DnaChanged(_tokenID, _dna);
     }
-
-
-    // Internal functions //
 
     function _beforeTokenTransfer(address from, address to, uint256 tokenId)
         internal
