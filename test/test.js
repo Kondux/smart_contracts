@@ -42,8 +42,8 @@ describe("BaseURI setup", async function () {
 
     describe("New base URI if second account", async function () {
       it("Should be reverted", async function () {
-        const newBaseURI = await kondux.connect(second).setBaseURI(baseURIString);
-        await expect(newBaseURI.wait()).to.be.reverted;
+        const newBaseURI = kondux.connect(second).setBaseURI(baseURIString);
+        await expect(newBaseURI).to.be.reverted;
       });
     });
 
@@ -77,15 +77,12 @@ describe ("Mint NFT", async function () {
     await newBaseURI.wait();    
    
     describe ("Owner Mint NFT", async function () {
-      it("Owner Should'n mint NFT", async function(){        
-        const minted = await kondux.safeMint(ownerAddress,dna);
-        await expect(minted.wait()).to.be.reverted;      
-      });
+  
       it("Owner Should mint NFT", async function () {       
         const minted = await kondux.safeMint(ownerAddress,dna);
         await minted.wait();
 
-        expect(await kondux.totalSupply()).to.equal(2);
+        expect(await kondux.totalSupply()).to.equal(1);
         expect(await kondux.tokenURI(0)).to.equal(baseURIString + 0);
         expect(await kondux.tokenOfOwnerByIndex(ownerAddress, 0)).to.equal(0);
         expect(await kondux.indexDna(0)).to.equal(dna);
@@ -96,7 +93,7 @@ describe ("Mint NFT", async function () {
         const minted = await kondux.safeMint(secondAddress,dna);
         await minted.wait();
 
-        expect(await kondux.totalSupply()).to.equal(3);
+        expect(await kondux.totalSupply()).to.equal(2);
         expect(await kondux.tokenURI(1)).to.equal(baseURIString + 1);
         expect(await kondux.tokenOfOwnerByIndex(secondAddress, 0)).to.equal(1);
         expect(await kondux.indexDna(1)).to.equal(dna);
@@ -113,8 +110,8 @@ describe ("Mint NFT", async function () {
 
       describe ("Second account Mint NFT", async function () {
         it("Second Shouldn't mint NFT", async function () {
-          const minted = await kondux.connect(second).safeMint(ownerAddress,dna);
-          await expect(minted.wait()).to.be.reverted;
+          const minted = kondux.connect(second).safeMint(ownerAddress,dna);
+          await expect(minted).to.be.reverted;
         });
       });
       
@@ -155,8 +152,8 @@ describe ("NFT Royalty", async function () {
     const secondAddress = await second.getAddress();
     const Kondux = await ethers.getContractFactory("Kondux");
     const kondux = await Kondux.deploy("Kondux NFT", "KDX");
-    const denominator = await kondux.connect(second).changeDenominator(100);
-    await expect(denominator.wait()).to.be.reverted;
+    const denominator = kondux.connect(second).changeDenominator(100);
+    await expect(denominator).to.be.reverted;
   });
 
   it("Should not set defaultRoyalty", async function () {
@@ -164,8 +161,8 @@ describe ("NFT Royalty", async function () {
     const secondAddress = await second.getAddress();
     const Kondux = await ethers.getContractFactory("Kondux");
     const kondux = await Kondux.deploy("Kondux NFT", "KDX");
-    const setDefaultRoyalty = await kondux.connect(second).setDefaultRoyalty(secondAddress,50);
-    await expect(setDefaultRoyalty.wait()).to.be.reverted;
+    const setDefaultRoyalty = kondux.connect(second).setDefaultRoyalty(secondAddress,50);
+    await expect(setDefaultRoyalty).to.be.reverted;
   });
 });
 
@@ -199,8 +196,8 @@ describe ("Burn NFT", async function () {
     
     describe ("Second burn NFT", async function () {
       it("Second Shouldn't NFT burn", async function () {
-        const burned = await kondux.connect(second).burn(0);
-        await expect(burned.wait()).to.be.reverted;
+        const burned = kondux.connect(second).burn(0);
+        await expect(burned).to.be.reverted;
       });
     });
   });
@@ -212,7 +209,8 @@ describe('Send Ether to contract', async function () {
     const secondAddress = await second.getAddress();
     const Kondux = await ethers.getContractFactory("Kondux");
     const kondux = await Kondux.deploy("Kondux NFT", "KDX");
-    await expect(owner.sendTransaction({to: kondux.address, value: ethers.utils.parseEther("1.0")})).to.be.reverted;
+    const tranfer = owner.sendTransaction({to: kondux.address, value: ethers.utils.parseEther("1.0")});
+    await expect(tranfer).to.be.reverted;
   });
 });
 

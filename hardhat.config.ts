@@ -67,7 +67,7 @@ const config: HardhatUserConfig = {
             // interval: 20000 // milliseconds
           },
           chainId: chainIds.hardhat,
-          loggingEnabled: true,
+          loggingEnabled: process.env.EVM_LOGGING === "true",
       },
       fuji: {
           url: `https://avalanche--fuji--rpc.datahub.figment.io/apikey/${DATAHUB_API_KEY}/ext/bc/C/rpc`,
