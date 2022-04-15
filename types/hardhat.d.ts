@@ -72,6 +72,10 @@ declare module "hardhat/types/runtime" {
       name: "Kondux",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Kondux__factory>;
+    getContractFactory(
+      name: "Kondux",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Kondux__factory>;
 
     getContractAt(
       name: "Ownable",
@@ -143,6 +147,11 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.IERC165>;
+    getContractAt(
+      name: "Kondux",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Kondux>;
     getContractAt(
       name: "Kondux",
       address: string,

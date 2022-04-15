@@ -1,6 +1,6 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
-import { CONTRACTS } from "../constants";
+import { CONTRACTS, CONFIGURATION } from "../constants";
 
 const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const { deployments, getNamedAccounts } = hre;
@@ -10,8 +10,8 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     await deploy(CONTRACTS.kondux, {
         from: deployer,
         args: [
-            "Kondux NFT",
-            "KONDUX"
+            CONFIGURATION.erc721,
+            CONFIGURATION.ticker,
         ],
         log: true,
         skipIfAlreadyDeployed: true,
