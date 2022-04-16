@@ -66,7 +66,7 @@ const config: HardhatUserConfig = {
             auto: true,
             // interval: 20000 // milliseconds
           },
-          chainId: chainIds.hardhat,
+          chainId: chainIds.hardhat,          
           loggingEnabled: process.env.EVM_LOGGING === "true",
       },
       fuji: {
