@@ -34,5 +34,11 @@ export type { ERC165 } from "./@openzeppelin/contracts/utils/introspection/ERC16
 export { ERC165__factory } from "./factories/@openzeppelin/contracts/utils/introspection/ERC165__factory";
 export type { IERC165 } from "./@openzeppelin/contracts/utils/introspection/IERC165";
 export { IERC165__factory } from "./factories/@openzeppelin/contracts/utils/introspection/IERC165__factory";
-export type { Kondux } from "./contracts/contract.sol/Kondux";
-export { Kondux__factory } from "./factories/contracts/contract.sol/Kondux__factory";
+export type { Authority } from "./contracts/Authority";
+export { Authority__factory } from "./factories/contracts/Authority__factory";
+export type { IAuthority } from "./contracts/interfaces/IAuthority";
+export { IAuthority__factory } from "./factories/contracts/interfaces/IAuthority__factory";
+export type { Kondux } from "./contracts/Kondux_NFT.sol/Kondux";
+export { Kondux__factory } from "./factories/contracts/Kondux_NFT.sol/Kondux__factory";
+export type { AccessControlled } from "./contracts/types/AccessControlled";
+export { AccessControlled__factory } from "./factories/contracts/types/AccessControlled__factory";

@@ -3,6 +3,7 @@ import { DeployFunction } from "hardhat-deploy/types";
 import { waitFor } from "../txHelper";
 import { CONTRACTS, CONFIGURATION } from "../constants";
 import {
+    Authority__factory,
     Kondux__factory,
 } from "../../types";
 
@@ -12,17 +13,20 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const { deployer } = await getNamedAccounts();
     const signer = await ethers.provider.getSigner(deployer);
 
-    console.log("Account balance:", ethers.utils.formatEther((await signer.getBalance()).toString()) + " ETH");
+    console.log(await signer.getAddress(), "account balance:", ethers.utils.formatEther((await signer.getBalance()).toString()), "ETH");
 
+    const authorityDeployment = await deployments.get(CONTRACTS.authority);
     const konduxNFTDeployment = await deployments.get(CONTRACTS.kondux);
     
-    const kondux = Kondux__factory.connect(konduxNFTDeployment.address, signer);
+    const authority = await Authority__factory.connect(authorityDeployment.address, signer);
+    console.log("Authority Governor Address:", await authority.governor());
+
+    const kondux = await Kondux__factory.connect(konduxNFTDeployment.address, signer);
 
     // Step 1: Set base URI
     await waitFor(kondux.setBaseURI(CONFIGURATION.baseURI, { from: deployer }));
     console.log("Setup -- kondux.setBaseURI: set baseURI to " + CONFIGURATION.baseURI);
 
-    
 
     
 };

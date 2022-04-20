@@ -2,4 +2,6 @@
 /* tslint:disable */
 /* eslint-disable */
 export * as konduxNftSol from "./Kondux_NFT.sol";
-export * as contractSol from "./contract.sol";
+export * as interfaces from "./interfaces";
+export * as types from "./types";
+export { Authority__factory } from "./Authority__factory";

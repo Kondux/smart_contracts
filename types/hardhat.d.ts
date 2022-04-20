@@ -69,13 +69,21 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IERC165__factory>;
     getContractFactory(
-      name: "Kondux",
+      name: "Authority",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.Kondux__factory>;
+    ): Promise<Contracts.Authority__factory>;
+    getContractFactory(
+      name: "IAuthority",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IAuthority__factory>;
     getContractFactory(
       name: "Kondux",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Kondux__factory>;
+    getContractFactory(
+      name: "AccessControlled",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.AccessControlled__factory>;
 
     getContractAt(
       name: "Ownable",
@@ -148,15 +156,25 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.IERC165>;
     getContractAt(
-      name: "Kondux",
+      name: "Authority",
       address: string,
       signer?: ethers.Signer
-    ): Promise<Contracts.Kondux>;
+    ): Promise<Contracts.Authority>;
+    getContractAt(
+      name: "IAuthority",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IAuthority>;
     getContractAt(
       name: "Kondux",
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.Kondux>;
+    getContractAt(
+      name: "AccessControlled",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.AccessControlled>;
 
     // default types
     getContractFactory(

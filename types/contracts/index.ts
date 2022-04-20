@@ -3,5 +3,8 @@
 /* eslint-disable */
 import type * as konduxNftSol from "./Kondux_NFT.sol";
 export type { konduxNftSol };
-import type * as contractSol from "./contract.sol";
-export type { contractSol };
+import type * as interfaces from "./interfaces";
+export type { interfaces };
+import type * as types from "./types";
+export type { types };
+export type { Authority } from "./Authority";

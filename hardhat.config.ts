@@ -71,7 +71,7 @@ const config: HardhatUserConfig = {
       },
       fuji: {
           url: `https://avalanche--fuji--rpc.datahub.figment.io/apikey/${DATAHUB_API_KEY}/ext/bc/C/rpc`,
-          accounts: [`0x${FUJI_PRIVATE_KEY}`],
+          accounts: [deployerPK, tokenOwnerPK],
           gasPrice: 25000000000, //225000000000
                                 // 25000000000
           // gas: 10001,
@@ -79,7 +79,7 @@ const config: HardhatUserConfig = {
         },
       avalanche: {
           url: `https://avalanche--mainnet--rpc.datahub.figment.io/apikey/${DATAHUB_API_KEY}/ext/bc/C/rpc`,
-          accounts: [`0x${FUJI_PRIVATE_KEY}`],
+          accounts: [deployerPK, tokenOwnerPK],
           gasPrice: 25000000000,
         },
       // Uncomment for testing. Commented due to CI issues
