@@ -1,27 +1,54 @@
 const { expect } = require("chai");
 const { ethers, waffle } = require("hardhat");
 const provider = waffle.provider;
+
+import {
+  Authority,
+  Authority__factory,
+} from "../types";
  
 describe("Token contract", function () {
+  let authority: Authority;
+  beforeEach(async function () {
+    const [owner] = await ethers.getSigners();
+    const onwerAddress = await owner.getAddress();
+    authority = await new Authority__factory(owner).deploy(
+      onwerAddress,
+      onwerAddress,
+      onwerAddress,
+      onwerAddress
+    );
+  });
   it("Deployment should assign the total supply of tokens to the owner", async function () {
     const [owner, second] = await ethers.getSigners();
     const secondAddress = await second.getAddress();
     const onwerAddress = await owner.getAddress();
     const Kondux = await ethers.getContractFactory("Kondux");
-    const kondux = await Kondux.deploy("Kondux NFT", "KDX");
+    const kondux = await Kondux.deploy("Kondux NFT", "KDX", authority.address);
     const ownerBalance = await kondux.balanceOf(onwerAddress);
     expect(await kondux.totalSupply()).to.equal(ownerBalance);
   });
 });
 
 describe("BaseURI setup", async function () {
+  let authority: Authority;
+  beforeEach(async function () {
+    const [owner] = await ethers.getSigners();
+    const onwerAddress = await owner.getAddress();
+    authority = await new Authority__factory(owner).deploy(
+      onwerAddress,
+      onwerAddress,
+      onwerAddress,
+      onwerAddress
+    );
+  });
   it("BaseURI should start blank, will be changed later", async function () {
     const [owner, second] = await ethers.getSigners();
     const secondAddress = await second.getAddress();
 
     const Kondux = await ethers.getContractFactory("Kondux");
 
-    const kondux = await Kondux.deploy("Kondux NFT", "KDX");
+    const kondux = await Kondux.deploy("Kondux NFT", "KDX", authority.address);
 
     const baseURI = await kondux.baseURI();
     describe("Blank base URI", async function () {
@@ -51,22 +78,44 @@ describe("BaseURI setup", async function () {
 });
 
 describe("Zero NFT", async function () {
+  let authority: Authority;
+  beforeEach(async function () {
+    const [owner] = await ethers.getSigners();
+    const onwerAddress = await owner.getAddress();
+    authority = await new Authority__factory(owner).deploy(
+      onwerAddress,
+      onwerAddress,
+      onwerAddress,
+      onwerAddress
+    );
+  });
   it("Shouldn't have any NFT after deployment", async function () {
     const [owner, second] = await ethers.getSigners();
     const secondAddress = await second.getAddress();
 
     const Kondux = await ethers.getContractFactory("Kondux");
-    const kondux = await Kondux.deploy("Kondux NFT", "KDX");
+    const kondux = await Kondux.deploy("Kondux NFT", "KDX", authority.address);
     expect(await kondux.totalSupply()).to.equal(0);
   });
 });
 
 describe ("Mint NFT", async function () {
+  let authority: Authority;
+  beforeEach(async function () {
+    const [owner] = await ethers.getSigners();
+    const onwerAddress = await owner.getAddress();
+    authority = await new Authority__factory(owner).deploy(
+      onwerAddress,
+      onwerAddress,
+      onwerAddress,
+      onwerAddress
+    );
+  });
   it("Should test mint NFT", async function () {
     const [owner, second] = await ethers.getSigners();
     const secondAddress = await second.getAddress();
     const Kondux = await ethers.getContractFactory("Kondux");
-    const kondux = await Kondux.deploy("Kondux NFT", "KDX");
+    const kondux = await Kondux.deploy("Kondux NFT", "KDX", authority.address);
     const ownerAddress =  await owner.getAddress();
     const chainid = (await provider.getNetwork()).chainId;
     const {randomBytes} = await import('crypto');
@@ -120,11 +169,22 @@ describe ("Mint NFT", async function () {
 });
 
 describe ("NFT Royalty", async function () {
+  let authority: Authority;
+  beforeEach(async function () {
+    const [owner] = await ethers.getSigners();
+    const onwerAddress = await owner.getAddress();
+    authority = await new Authority__factory(owner).deploy(
+      onwerAddress,
+      onwerAddress,
+      onwerAddress,
+      onwerAddress
+    );
+  });
   it("Should set NFT", async function () {
     const [owner, second] = await ethers.getSigners();
     const secondAddress = await second.getAddress();
     const Kondux = await ethers.getContractFactory("Kondux");
-    const kondux = await Kondux.deploy("Kondux NFT", "KDX");
+    const kondux = await Kondux.deploy("Kondux NFT", "KDX", authority.address);
     const ownerAddress =  await owner.getAddress();
     const {randomBytes} = await import('crypto');
     const dna = randomBytes(32);
@@ -151,7 +211,7 @@ describe ("NFT Royalty", async function () {
     const [owner, second] = await ethers.getSigners();
     const secondAddress = await second.getAddress();
     const Kondux = await ethers.getContractFactory("Kondux");
-    const kondux = await Kondux.deploy("Kondux NFT", "KDX");
+    const kondux = await Kondux.deploy("Kondux NFT", "KDX", authority.address);
     const denominator = kondux.connect(second).changeDenominator(100);
     await expect(denominator).to.be.reverted;
   });
@@ -160,18 +220,29 @@ describe ("NFT Royalty", async function () {
     const [owner, second] = await ethers.getSigners();
     const secondAddress = await second.getAddress();
     const Kondux = await ethers.getContractFactory("Kondux");
-    const kondux = await Kondux.deploy("Kondux NFT", "KDX");
+    const kondux = await Kondux.deploy("Kondux NFT", "KDX", authority.address);
     const setDefaultRoyalty = kondux.connect(second).setDefaultRoyalty(secondAddress,50);
     await expect(setDefaultRoyalty).to.be.reverted;
   });
 });
 
 describe ("Burn NFT", async function () {
+  let authority: Authority;
+  beforeEach(async function () {
+    const [owner] = await ethers.getSigners();
+    const onwerAddress = await owner.getAddress();
+    authority = await new Authority__factory(owner).deploy(
+      onwerAddress,
+      onwerAddress,
+      onwerAddress,
+      onwerAddress
+    );
+  });
   it("Should test NFT burn", async function () {
     const [owner, second] = await ethers.getSigners();
     const secondAddress = await second.getAddress();
     const Kondux = await ethers.getContractFactory("Kondux");
-    const kondux = await Kondux.deploy("Kondux NFT", "KDX");
+    const kondux = await Kondux.deploy("Kondux NFT", "KDX", authority.address);
     const ownerAddress =  await owner.getAddress();
 
     const {randomBytes} = await import('crypto');
@@ -204,11 +275,22 @@ describe ("Burn NFT", async function () {
 });
 
 describe('Send Ether to contract', async function () {
+  let authority: Authority;
+  beforeEach(async function () {
+    const [owner] = await ethers.getSigners();
+    const onwerAddress = await owner.getAddress();
+    authority = await new Authority__factory(owner).deploy(
+      onwerAddress,
+      onwerAddress,
+      onwerAddress,
+      onwerAddress
+    );
+  });
   it('Should reject the tranfer', async function () {
     const [owner, second] = await ethers.getSigners();
     const secondAddress = await second.getAddress();
     const Kondux = await ethers.getContractFactory("Kondux");
-    const kondux = await Kondux.deploy("Kondux NFT", "KDX");
+    const kondux = await Kondux.deploy("Kondux NFT", "KDX", authority.address);
     const tranfer = owner.sendTransaction({to: kondux.address, value: ethers.utils.parseEther("1.0")});
     await expect(tranfer).to.be.reverted;
   });
