@@ -43,7 +43,10 @@ npx hardhat deploy --network rinkeby
 ## Test: 
 npx hardhat test
 
-#Clean artifacts (doesn't need to be versioned):
+# Generate typescript files
+npx hardhat typechain
+
+# Clean artifacts (doesn't need to be versioned):
 npx hardhat clean
 ```
 
