@@ -8,21 +8,20 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const { deployer } = await getNamedAccounts();
 
     const authorityDeployment = await deployments.get(CONTRACTS.authority);
+    const konduxDeployment = await deployments.get(CONTRACTS.kondux);
 
-
-    await deploy(CONTRACTS.kondux, {
+    await deploy(CONTRACTS.minter, {
         from: deployer,
         args: [
-            CONFIGURATION.erc721,
-            CONFIGURATION.ticker,
-            authorityDeployment.address
+            authorityDeployment.address,
+            konduxDeployment.address
         ],
         log: true,
         skipIfAlreadyDeployed: true,
     });
 };
 
-func.tags = [CONTRACTS.kondux, "NFT", "production"];
-func.dependencies = [CONTRACTS.authority];
+func.tags = [CONTRACTS.minter, "NFT", "production"];
+func.dependencies = [CONTRACTS.authority, CONTRACTS.kondux];
 
 export default func;
