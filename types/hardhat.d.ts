@@ -77,9 +77,17 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IAuthority__factory>;
     getContractFactory(
+      name: "IKondux",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IKondux__factory>;
+    getContractFactory(
       name: "Kondux",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Kondux__factory>;
+    getContractFactory(
+      name: "Minter",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Minter__factory>;
     getContractFactory(
       name: "AccessControlled",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -166,10 +174,20 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.IAuthority>;
     getContractAt(
+      name: "IKondux",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IKondux>;
+    getContractAt(
       name: "Kondux",
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.Kondux>;
+    getContractAt(
+      name: "Minter",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Minter>;
     getContractAt(
       name: "AccessControlled",
       address: string,

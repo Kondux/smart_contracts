@@ -2,3 +2,4 @@
 /* tslint:disable */
 /* eslint-disable */
 export type { IAuthority } from "./IAuthority";
+export type { IKondux } from "./IKondux";

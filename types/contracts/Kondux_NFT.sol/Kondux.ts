@@ -30,6 +30,7 @@ export interface KonduxInterface extends utils.Interface {
   functions: {
     "approve(address,uint256)": FunctionFragment;
     "authority()": FunctionFragment;
+    "automaticMint(address)": FunctionFragment;
     "balanceOf(address)": FunctionFragment;
     "baseURI()": FunctionFragment;
     "burn(uint256)": FunctionFragment;
@@ -38,6 +39,7 @@ export interface KonduxInterface extends utils.Interface {
     "getApproved(uint256)": FunctionFragment;
     "indexDna(uint256)": FunctionFragment;
     "isApprovedForAll(address,address)": FunctionFragment;
+    "minter()": FunctionFragment;
     "name()": FunctionFragment;
     "ownerOf(uint256)": FunctionFragment;
     "pause()": FunctionFragment;
@@ -51,6 +53,7 @@ export interface KonduxInterface extends utils.Interface {
     "setBaseURI(string)": FunctionFragment;
     "setDefaultRoyalty(address,uint96)": FunctionFragment;
     "setDna(uint256,uint256)": FunctionFragment;
+    "setMinter(address)": FunctionFragment;
     "setTokenRoyalty(uint256,address,uint96)": FunctionFragment;
     "supportsInterface(bytes4)": FunctionFragment;
     "symbol()": FunctionFragment;
@@ -66,6 +69,7 @@ export interface KonduxInterface extends utils.Interface {
     nameOrSignatureOrTopic:
       | "approve"
       | "authority"
+      | "automaticMint"
       | "balanceOf"
       | "baseURI"
       | "burn"
@@ -74,6 +78,7 @@ export interface KonduxInterface extends utils.Interface {
       | "getApproved"
       | "indexDna"
       | "isApprovedForAll"
+      | "minter"
       | "name"
       | "ownerOf"
       | "pause"
@@ -87,6 +92,7 @@ export interface KonduxInterface extends utils.Interface {
       | "setBaseURI"
       | "setDefaultRoyalty"
       | "setDna"
+      | "setMinter"
       | "setTokenRoyalty"
       | "supportsInterface"
       | "symbol"
@@ -103,6 +109,10 @@ export interface KonduxInterface extends utils.Interface {
     values: [string, BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "authority", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "automaticMint",
+    values: [string]
+  ): string;
   encodeFunctionData(functionFragment: "balanceOf", values: [string]): string;
   encodeFunctionData(functionFragment: "baseURI", values?: undefined): string;
   encodeFunctionData(functionFragment: "burn", values: [BigNumberish]): string;
@@ -126,6 +136,7 @@ export interface KonduxInterface extends utils.Interface {
     functionFragment: "isApprovedForAll",
     values: [string, string]
   ): string;
+  encodeFunctionData(functionFragment: "minter", values?: undefined): string;
   encodeFunctionData(functionFragment: "name", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "ownerOf",
@@ -166,6 +177,7 @@ export interface KonduxInterface extends utils.Interface {
     functionFragment: "setDna",
     values: [BigNumberish, BigNumberish]
   ): string;
+  encodeFunctionData(functionFragment: "setMinter", values: [string]): string;
   encodeFunctionData(
     functionFragment: "setTokenRoyalty",
     values: [BigNumberish, string, BigNumberish]
@@ -199,6 +211,10 @@ export interface KonduxInterface extends utils.Interface {
 
   decodeFunctionResult(functionFragment: "approve", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "authority", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "automaticMint",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "balanceOf", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "baseURI", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "burn", data: BytesLike): Result;
@@ -219,6 +235,7 @@ export interface KonduxInterface extends utils.Interface {
     functionFragment: "isApprovedForAll",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "minter", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "name", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "ownerOf", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "pause", data: BytesLike): Result;
@@ -250,6 +267,7 @@ export interface KonduxInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "setDna", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "setMinter", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "setTokenRoyalty",
     data: BytesLike
@@ -442,6 +460,11 @@ export interface Kondux extends BaseContract {
 
     authority(overrides?: CallOverrides): Promise<[string]>;
 
+    automaticMint(
+      to: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
     balanceOf(owner: string, overrides?: CallOverrides): Promise<[BigNumber]>;
 
     baseURI(overrides?: CallOverrides): Promise<[string]>;
@@ -473,6 +496,8 @@ export interface Kondux extends BaseContract {
       operator: string,
       overrides?: CallOverrides
     ): Promise<[boolean]>;
+
+    minter(overrides?: CallOverrides): Promise<[string]>;
 
     name(overrides?: CallOverrides): Promise<[string]>;
 
@@ -542,6 +567,11 @@ export interface Kondux extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
+    setMinter(
+      _minter: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
     setTokenRoyalty(
       tokenId: BigNumberish,
       receiver: string,
@@ -594,6 +624,11 @@ export interface Kondux extends BaseContract {
 
   authority(overrides?: CallOverrides): Promise<string>;
 
+  automaticMint(
+    to: string,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   balanceOf(owner: string, overrides?: CallOverrides): Promise<BigNumber>;
 
   baseURI(overrides?: CallOverrides): Promise<string>;
@@ -622,6 +657,8 @@ export interface Kondux extends BaseContract {
     operator: string,
     overrides?: CallOverrides
   ): Promise<boolean>;
+
+  minter(overrides?: CallOverrides): Promise<string>;
 
   name(overrides?: CallOverrides): Promise<string>;
 
@@ -688,6 +725,11 @@ export interface Kondux extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
+  setMinter(
+    _minter: string,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   setTokenRoyalty(
     tokenId: BigNumberish,
     receiver: string,
@@ -737,6 +779,8 @@ export interface Kondux extends BaseContract {
 
     authority(overrides?: CallOverrides): Promise<string>;
 
+    automaticMint(to: string, overrides?: CallOverrides): Promise<void>;
+
     balanceOf(owner: string, overrides?: CallOverrides): Promise<BigNumber>;
 
     baseURI(overrides?: CallOverrides): Promise<string>;
@@ -762,6 +806,8 @@ export interface Kondux extends BaseContract {
       operator: string,
       overrides?: CallOverrides
     ): Promise<boolean>;
+
+    minter(overrides?: CallOverrides): Promise<string>;
 
     name(overrides?: CallOverrides): Promise<string>;
 
@@ -822,6 +868,8 @@ export interface Kondux extends BaseContract {
       _dna: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
+
+    setMinter(_minter: string, overrides?: CallOverrides): Promise<void>;
 
     setTokenRoyalty(
       tokenId: BigNumberish,
@@ -935,6 +983,11 @@ export interface Kondux extends BaseContract {
 
     authority(overrides?: CallOverrides): Promise<BigNumber>;
 
+    automaticMint(
+      to: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
     balanceOf(owner: string, overrides?: CallOverrides): Promise<BigNumber>;
 
     baseURI(overrides?: CallOverrides): Promise<BigNumber>;
@@ -963,6 +1016,8 @@ export interface Kondux extends BaseContract {
       operator: string,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
+
+    minter(overrides?: CallOverrides): Promise<BigNumber>;
 
     name(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -1032,6 +1087,11 @@ export interface Kondux extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
+    setMinter(
+      _minter: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
     setTokenRoyalty(
       tokenId: BigNumberish,
       receiver: string,
@@ -1085,6 +1145,11 @@ export interface Kondux extends BaseContract {
 
     authority(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    automaticMint(
+      to: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
     balanceOf(
       owner: string,
       overrides?: CallOverrides
@@ -1119,6 +1184,8 @@ export interface Kondux extends BaseContract {
       operator: string,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
+
+    minter(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     name(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
@@ -1185,6 +1252,11 @@ export interface Kondux extends BaseContract {
     setDna(
       _tokenID: BigNumberish,
       _dna: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setMinter(
+      _minter: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 

@@ -2,3 +2,4 @@
 /* tslint:disable */
 /* eslint-disable */
 export { IAuthority__factory } from "./IAuthority__factory";
+export { IKondux__factory } from "./IKondux__factory";

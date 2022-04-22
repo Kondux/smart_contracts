@@ -8,3 +8,4 @@ export type { interfaces };
 import type * as types from "./types";
 export type { types };
 export type { Authority } from "./Authority";
+export type { Minter } from "./Minter";

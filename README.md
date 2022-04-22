@@ -61,4 +61,5 @@ npx hardhat clean
 ## 📖 Guides
 
 ### Contracts
+- [Rinkeby Addresses](.docs/deployments/rinkeby.md)
 - [Kondux NFT DNA](./docs/guides/nft_dna.md)
