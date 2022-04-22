@@ -286,14 +286,25 @@ describe('Send Ether to contract', async function () {
       onwerAddress
     );
   });
-  it('Should reject the tranfer', async function () {
+  it('Should reject the transfer', async function () {
     const [owner, second] = await ethers.getSigners();
     const secondAddress = await second.getAddress();
     const Kondux = await ethers.getContractFactory("Kondux");
     const kondux = await Kondux.deploy("Kondux NFT", "KDX", authority.address);
-    const tranfer = owner.sendTransaction({to: kondux.address, value: ethers.utils.parseEther("1.0")});
-    await expect(tranfer).to.be.reverted;
+    const transfer = second.sendTransaction({to: kondux.address, value: ethers.utils.parseEther("1.0")});
+    await expect(transfer).to.be.reverted;
+    describe("Sending Ether to Minter should mint NFT", async function () {
+      it("Minter should mint NFT", async function () {
+        expect(await kondux.totalSupply()).to.equal(0);
+        const Minter = await ethers.getContractFactory("Minter");
+        const minter = await Minter.deploy(authority.address, kondux.address);
+        const setMinter = await kondux.setMinter(minter.address);
+        await setMinter.wait();
+        const mintTransfer = await second.sendTransaction({to: minter.address, value: ethers.utils.parseEther("1.0")});
+        await mintTransfer.wait();
+        expect(await kondux.totalSupply()).to.equal(1);
+        expect(await kondux.balanceOf(secondAddress)).to.equal(1);
+      });
+    });
   });
 });
-
-
