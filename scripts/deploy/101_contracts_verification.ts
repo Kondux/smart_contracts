@@ -17,19 +17,45 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
 
     console.log("Account balance:", ethers.utils.formatEther((await signer.getBalance()).toString()) + " ETH");
 
-    const konduxNFTDeployment = await deployments.get(CONTRACTS.kondux);     
+    const authorityDeployment = await deployments.get(CONTRACTS.authority);
+    const konduxNFTDeployment = await deployments.get(CONTRACTS.kondux);
+    const minterDeployment = await deployments.get(CONTRACTS.minter);  
     
     const network = await ethers.provider.getNetwork();
+
+    const deployerAddress =  signer.getAddress();
     
     if (network.chainId !== CONFIGURATION.hardhatChainId) {
         try {
             console.log("Sleepin' for 30 seconds to wait for the chain to be ready...");
             await delay(30e3); // 30 seconds delay to allow the network to be synced
             await hre.run("verify:verify", {
+                address: authorityDeployment.address,
+                constructorArguments: [
+                    deployer,
+                    deployer,
+                    deployer,
+                    deployer
+                ],
+            });
+            console.log("Verified -- Authority");
+        } catch (error) {
+            if (error instanceof NomicLabsHardhatPluginError) {
+                // specific error
+                console.log("Error verifying -- Authority");
+                console.log(error.message);
+            } else {
+                throw error; // let others bubble up
+            }                      
+        }
+
+        try {
+            await hre.run("verify:verify", {
                 address: konduxNFTDeployment.address,
                 constructorArguments: [
                     CONFIGURATION.erc721,
                     CONFIGURATION.ticker,
+                    authorityDeployment.address
                 ],
             });
             console.log("Verified -- kondux");
@@ -42,13 +68,29 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
                 throw error; // let others bubble up
             }                      
         }
-    }
-    
 
-    
+        try {
+            await hre.run("verify:verify", {
+                address: minterDeployment.address,
+                constructorArguments: [
+                    authorityDeployment.address,
+                    konduxNFTDeployment.address,
+                ],
+            });
+            console.log("Verified -- minter");
+        } catch (error) {
+            if (error instanceof NomicLabsHardhatPluginError) {
+                // specific error
+                console.log("Error verifying -- minter");
+                console.log(error.message);
+            } else {
+                throw error; // let others bubble up
+            }                      
+        }
+    }    
 };
 
 func.tags = ["verify"];
-func.dependencies = [CONTRACTS.kondux];
+func.dependencies = [CONTRACTS.kondux, CONTRACTS.minter, CONTRACTS.authority];
 
 export default func;
