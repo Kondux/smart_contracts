@@ -12,6 +12,8 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 
 import "./types/AccessControlled.sol";
 
+import "hardhat/console.sol";
+
 
 contract Kondux is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Royalty, AccessControlled {
     event BaseURIChanged(string baseURI);
@@ -23,10 +25,17 @@ contract Kondux is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Roya
 
     string public baseURI;
     uint96 public denominator;
+    address public minter;
 
     mapping (uint256 => uint256) public indexDna;
 
     Counters.Counter private _tokenIdCounter;
+
+    modifier minterOnly {
+        require(msg.sender == minter, "Only minter can call this function");
+        _;    
+        
+    }
 
     constructor(string memory _name, string memory _symbol, address _authority) 
         ERC721(_name, _symbol) 
@@ -68,8 +77,26 @@ contract Kondux is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Roya
 
     function safeMint(address to, uint256 dna) public onlyGovernor {
         uint256 tokenId = _tokenIdCounter.current();
-        _setDna(tokenId, dna);
         _tokenIdCounter.increment();
+        _setDna(tokenId, dna);
+        _safeMint(to, tokenId);
+    }
+
+    function automaticMint(address to) external minterOnly {
+        uint256 tokenId = _tokenIdCounter.current();
+        console.log("automaticMint: tokenId: ");
+        console.log(tokenId);
+        _tokenIdCounter.increment();
+        console.log("automaticMint: tokenId: ");
+        console.log(_tokenIdCounter.current());
+        uint256 dna = _random();
+        console.log("automaticMint: dna: ");
+        console.logBytes32(bytes32(dna));
+        _setDna(tokenId, dna);
+        console.log("DNA");
+        console.logBytes32(bytes32(indexDna[tokenId]));
+        console.log("to", to);
+        console.log("tokenId", tokenId);
         _safeMint(to, tokenId);
     }
 
@@ -77,13 +104,21 @@ contract Kondux is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Roya
         _setDna(_tokenID, _dna);
     }
 
+    function setMinter(address _minter) public onlyGovernor {
+        minter = _minter;
+    }
+
     // Internal functions //
+
+    function _random() internal view returns(uint){
+        return uint(keccak256(abi.encodePacked(block.difficulty, block.timestamp, block.number, block.coinbase)));
+    }
 
     function _baseURI() internal view override returns (string memory) {
         return baseURI;
     }
 
-    function _setDna(uint256 _tokenID, uint256 _dna) internal onlyGovernor {
+    function _setDna(uint256 _tokenID, uint256 _dna) internal {
         indexDna[_tokenID] = _dna;
         emit DnaChanged(_tokenID, _dna);
     }
