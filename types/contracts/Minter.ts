@@ -33,6 +33,7 @@ export interface MinterInterface extends utils.Interface {
     "price()": FunctionFragment;
     "setAuthority(address)": FunctionFragment;
     "setPrice(uint256)": FunctionFragment;
+    "unsafeMint()": FunctionFragment;
   };
 
   getFunction(
@@ -42,6 +43,7 @@ export interface MinterInterface extends utils.Interface {
       | "price"
       | "setAuthority"
       | "setPrice"
+      | "unsafeMint"
   ): FunctionFragment;
 
   encodeFunctionData(functionFragment: "authority", values?: undefined): string;
@@ -55,6 +57,10 @@ export interface MinterInterface extends utils.Interface {
     functionFragment: "setPrice",
     values: [BigNumberish]
   ): string;
+  encodeFunctionData(
+    functionFragment: "unsafeMint",
+    values?: undefined
+  ): string;
 
   decodeFunctionResult(functionFragment: "authority", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "kondux", data: BytesLike): Result;
@@ -64,6 +70,7 @@ export interface MinterInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "setPrice", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "unsafeMint", data: BytesLike): Result;
 
   events: {
     "AuthorityUpdated(address)": EventFragment;
@@ -125,6 +132,10 @@ export interface Minter extends BaseContract {
       _price: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
+
+    unsafeMint(
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
   };
 
   authority(overrides?: CallOverrides): Promise<string>;
@@ -143,6 +154,10 @@ export interface Minter extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
+  unsafeMint(
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   callStatic: {
     authority(overrides?: CallOverrides): Promise<string>;
 
@@ -156,6 +171,8 @@ export interface Minter extends BaseContract {
     ): Promise<void>;
 
     setPrice(_price: BigNumberish, overrides?: CallOverrides): Promise<void>;
+
+    unsafeMint(overrides?: CallOverrides): Promise<BigNumber>;
   };
 
   filters: {
@@ -179,6 +196,10 @@ export interface Minter extends BaseContract {
       _price: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
+
+    unsafeMint(
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
   };
 
   populateTransaction: {
@@ -195,6 +216,10 @@ export interface Minter extends BaseContract {
 
     setPrice(
       _price: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    unsafeMint(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
   };

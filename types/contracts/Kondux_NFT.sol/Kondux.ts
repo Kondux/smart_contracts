@@ -779,7 +779,7 @@ export interface Kondux extends BaseContract {
 
     authority(overrides?: CallOverrides): Promise<string>;
 
-    automaticMint(to: string, overrides?: CallOverrides): Promise<void>;
+    automaticMint(to: string, overrides?: CallOverrides): Promise<BigNumber>;
 
     balanceOf(owner: string, overrides?: CallOverrides): Promise<BigNumber>;
 

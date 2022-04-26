@@ -82,7 +82,7 @@ contract Kondux is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Roya
         _safeMint(to, tokenId);
     }
 
-    function automaticMint(address to) external minterOnly {
+    function automaticMint(address to) external minterOnly returns (uint256) {
         uint256 tokenId = _tokenIdCounter.current();
         console.log("automaticMint: tokenId: ");
         console.log(tokenId);
@@ -98,6 +98,7 @@ contract Kondux is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Roya
         console.log("to", to);
         console.log("tokenId", tokenId);
         _safeMint(to, tokenId);
+        return tokenId;
     }
 
     function setDna(uint256 _tokenID, uint256 _dna) public onlyGovernor {

@@ -240,7 +240,7 @@ export interface IKondux extends BaseContract {
   ): Promise<ContractTransaction>;
 
   callStatic: {
-    automaticMint(to: string, overrides?: CallOverrides): Promise<void>;
+    automaticMint(to: string, overrides?: CallOverrides): Promise<BigNumber>;
 
     changeDenominator(
       _denominator: BigNumberish,

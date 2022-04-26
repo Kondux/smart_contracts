@@ -27,6 +27,13 @@ contract Minter is AccessControlled {
         _mint();
     }
 
+    function unsafeMint() public returns (uint256) {
+        uint256 id = _unsafeMint();
+        return id;
+
+    }
+        
+
     function setPrice(uint256 _price) public onlyGovernor {
         console.log("setPrice", _price);
         price = _price;
@@ -38,6 +45,11 @@ contract Minter is AccessControlled {
         require(msg.value >= price, "Not enought ether");
         console.log("_mint", msg.sender, msg.value, price);
         kondux.automaticMint(msg.sender);
+    }
+
+    function _unsafeMint() internal returns (uint256) {
+        uint256 id = kondux.automaticMint(msg.sender);
+        return id;
     }
 
 }

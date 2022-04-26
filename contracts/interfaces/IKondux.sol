@@ -23,6 +23,6 @@ interface IKondux {
 
     function setMinter(address _minter) external;
 
-    function automaticMint(address to) external;
+    function automaticMint(address to) external returns (uint256);
 
 }
