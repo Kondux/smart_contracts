@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
-
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "./interfaces/IKondux.sol";
-
 import "./types/AccessControlled.sol";
-
 import "hardhat/console.sol";
 
 contract Minter is AccessControlled {
 
     uint256 public price;
+
+    bytes32 public root;
 
     IKondux public immutable kondux;
 
@@ -31,12 +31,21 @@ contract Minter is AccessControlled {
         uint256 id = _unsafeMint();
         return id;
 
-    }
-        
+    }        
 
     function setPrice(uint256 _price) public onlyGovernor {
         console.log("setPrice", _price);
         price = _price;
+    }
+
+    function checkValidity(bytes32[] calldata _merkleProof) public returns (uint256) {
+        bytes32 leaf = keccak256(abi.encodePacked(msg.sender));
+        require(MerkleProof.verify(_merkleProof, root, leaf), "Incorrect proof");
+        return _unsafeMint();
+    }
+
+    function setRoot(bytes32 _root) public onlyGovernor {
+        root = _root;
     }
 
     // ** INTERNAL FUNCTIONS **
