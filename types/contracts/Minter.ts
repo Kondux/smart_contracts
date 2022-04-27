@@ -29,7 +29,6 @@ import type {
 export interface MinterInterface extends utils.Interface {
   functions: {
     "authority()": FunctionFragment;
-    "checkValidity(bytes32[])": FunctionFragment;
     "kondux()": FunctionFragment;
     "price()": FunctionFragment;
     "root()": FunctionFragment;
@@ -37,12 +36,12 @@ export interface MinterInterface extends utils.Interface {
     "setPrice(uint256)": FunctionFragment;
     "setRoot(bytes32)": FunctionFragment;
     "unsafeMint()": FunctionFragment;
+    "whitelistMint(bytes32[])": FunctionFragment;
   };
 
   getFunction(
     nameOrSignatureOrTopic:
       | "authority"
-      | "checkValidity"
       | "kondux"
       | "price"
       | "root"
@@ -50,13 +49,10 @@ export interface MinterInterface extends utils.Interface {
       | "setPrice"
       | "setRoot"
       | "unsafeMint"
+      | "whitelistMint"
   ): FunctionFragment;
 
   encodeFunctionData(functionFragment: "authority", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "checkValidity",
-    values: [BytesLike[]]
-  ): string;
   encodeFunctionData(functionFragment: "kondux", values?: undefined): string;
   encodeFunctionData(functionFragment: "price", values?: undefined): string;
   encodeFunctionData(functionFragment: "root", values?: undefined): string;
@@ -73,12 +69,12 @@ export interface MinterInterface extends utils.Interface {
     functionFragment: "unsafeMint",
     values?: undefined
   ): string;
+  encodeFunctionData(
+    functionFragment: "whitelistMint",
+    values: [BytesLike[]]
+  ): string;
 
   decodeFunctionResult(functionFragment: "authority", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "checkValidity",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(functionFragment: "kondux", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "price", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "root", data: BytesLike): Result;
@@ -89,6 +85,10 @@ export interface MinterInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "setPrice", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "setRoot", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "unsafeMint", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "whitelistMint",
+    data: BytesLike
+  ): Result;
 
   events: {
     "AuthorityUpdated(address)": EventFragment;
@@ -137,11 +137,6 @@ export interface Minter extends BaseContract {
   functions: {
     authority(overrides?: CallOverrides): Promise<[string]>;
 
-    checkValidity(
-      _merkleProof: BytesLike[],
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
     kondux(overrides?: CallOverrides): Promise<[string]>;
 
     price(overrides?: CallOverrides): Promise<[BigNumber]>;
@@ -166,14 +161,14 @@ export interface Minter extends BaseContract {
     unsafeMint(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
+
+    whitelistMint(
+      _merkleProof: BytesLike[],
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
   };
 
   authority(overrides?: CallOverrides): Promise<string>;
-
-  checkValidity(
-    _merkleProof: BytesLike[],
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
 
   kondux(overrides?: CallOverrides): Promise<string>;
 
@@ -200,13 +195,13 @@ export interface Minter extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
+  whitelistMint(
+    _merkleProof: BytesLike[],
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   callStatic: {
     authority(overrides?: CallOverrides): Promise<string>;
-
-    checkValidity(
-      _merkleProof: BytesLike[],
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
 
     kondux(overrides?: CallOverrides): Promise<string>;
 
@@ -224,6 +219,11 @@ export interface Minter extends BaseContract {
     setRoot(_root: BytesLike, overrides?: CallOverrides): Promise<void>;
 
     unsafeMint(overrides?: CallOverrides): Promise<BigNumber>;
+
+    whitelistMint(
+      _merkleProof: BytesLike[],
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
   };
 
   filters: {
@@ -233,11 +233,6 @@ export interface Minter extends BaseContract {
 
   estimateGas: {
     authority(overrides?: CallOverrides): Promise<BigNumber>;
-
-    checkValidity(
-      _merkleProof: BytesLike[],
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
 
     kondux(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -263,15 +258,15 @@ export interface Minter extends BaseContract {
     unsafeMint(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
+
+    whitelistMint(
+      _merkleProof: BytesLike[],
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
   };
 
   populateTransaction: {
     authority(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    checkValidity(
-      _merkleProof: BytesLike[],
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
 
     kondux(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
@@ -295,6 +290,11 @@ export interface Minter extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     unsafeMint(
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    whitelistMint(
+      _merkleProof: BytesLike[],
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
   };

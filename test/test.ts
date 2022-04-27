@@ -343,13 +343,13 @@ describe("WhiteList", async function () {
     expect(await kondux.balanceOf(ownerAddress)).to.equal(0);
     expect(await kondux.balanceOf(secondAddress)).to.equal(0);
 
-    const whiteList = await minter.checkValidity(merkleProof);
+    const whiteList = await minter.whitelistMint(merkleProof);
     await whiteList.wait();
     expect(await kondux.totalSupply()).to.equal(1);
     expect(await kondux.balanceOf(ownerAddress)).to.equal(1);
     expect(await kondux.balanceOf(secondAddress)).to.equal(0);
 
-    const whiteList2 = minter.connect(second).checkValidity(merkleProof);
+    const whiteList2 = minter.connect(second).whitelistMint(merkleProof);
     await expect(whiteList2).to.be.reverted;
     expect(await kondux.totalSupply()).to.equal(1);
     expect(await kondux.balanceOf(ownerAddress)).to.equal(1);

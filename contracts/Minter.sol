@@ -38,7 +38,7 @@ contract Minter is AccessControlled {
         price = _price;
     }
 
-    function checkValidity(bytes32[] calldata _merkleProof) public returns (uint256) {
+    function whitelistMint(bytes32[] calldata _merkleProof) public returns (uint256) {
         bytes32 leaf = keccak256(abi.encodePacked(msg.sender));
         require(MerkleProof.verify(_merkleProof, root, leaf), "Incorrect proof");
         return _unsafeMint();

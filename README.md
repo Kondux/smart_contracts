@@ -60,6 +60,20 @@ npx hardhat clean
 
 ## 📖 Guides
 
+### Whitelist Minting
+1. Get the user's address from the frontend with Metamask
+
+2. Send to Merkle Proof Server
+```
+http(s)://yourdomain/:address/proof
+```
+    Return: Proof is a JSON object with the array of proofs
+
+3. Get the Merkle Proof Array from the server and send to the contract
+```
+contract.whitelistMint(proof)
+```
+
 ### Contracts
 - [Rinkeby Addresses](./docs/deployments/rinkeby.md)
 - [Kondux NFT DNA](./docs/guides/nft_dna.md)
