@@ -5,6 +5,8 @@ const provider = waffle.provider;
 import {
   Authority,
   Authority__factory,
+  Kondux,
+  Minter,
 } from "../types";
  
 describe("Token contract", function () {
@@ -306,5 +308,51 @@ describe('Send Ether to contract', async function () {
         expect(await kondux.balanceOf(secondAddress)).to.equal(1);
       });
     });
+  });
+});
+
+describe("WhiteList", async function () {
+  let authority: Authority;
+  let kondux: Kondux;
+  let minter: Minter;
+  const merkleProof = ["0xd8bed27f99ada543e3099439ea776b13b9deae301391f18c4cf9f191a201f2b5","0x0811888f707a155a69954b94074980d09e1fc7dddcf0efe1ddc6a39b99d05f9c","0x9437a772596137d3a133885f116ae67bd11177940cb3992a0f3a0aa6f90a36e7"];
+  beforeEach(async function () {
+    const [owner] = await ethers.getSigners();
+    const onwerAddress = await owner.getAddress();
+    authority = await new Authority__factory(owner).deploy(
+      onwerAddress,
+      onwerAddress,
+      onwerAddress,
+      onwerAddress
+    );
+    const Kondux = await ethers.getContractFactory("Kondux");
+    kondux = await Kondux.deploy("Kondux NFT", "KDX", authority.address);
+    const Minter = await ethers.getContractFactory("Minter");
+    minter = await Minter.deploy(authority.address, kondux.address);
+    const setMinter = await kondux.setMinter(minter.address);
+    await setMinter.wait();
+    const root = await minter.setRoot("0x09d6d1856fc7fe679bc4ba95045ff67408d0bb274594180f0afffa6f46e5132d");
+    await root.wait();
+  });
+  it("Should test WhiteList minting", async function () {	
+    const [owner, second] = await ethers.getSigners();
+    const secondAddress = await second.getAddress();
+    const ownerAddress =  await owner.getAddress();
+ 
+    expect(await kondux.totalSupply()).to.equal(0);
+    expect(await kondux.balanceOf(ownerAddress)).to.equal(0);
+    expect(await kondux.balanceOf(secondAddress)).to.equal(0);
+
+    const whiteList = await minter.checkValidity(merkleProof);
+    await whiteList.wait();
+    expect(await kondux.totalSupply()).to.equal(1);
+    expect(await kondux.balanceOf(ownerAddress)).to.equal(1);
+    expect(await kondux.balanceOf(secondAddress)).to.equal(0);
+
+    const whiteList2 = minter.connect(second).checkValidity(merkleProof);
+    await expect(whiteList2).to.be.reverted;
+    expect(await kondux.totalSupply()).to.equal(1);
+    expect(await kondux.balanceOf(ownerAddress)).to.equal(1);
+    expect(await kondux.balanceOf(secondAddress)).to.equal(0);
   });
 });
