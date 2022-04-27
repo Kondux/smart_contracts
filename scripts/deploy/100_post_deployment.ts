@@ -34,6 +34,10 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     await waitFor(kondux.setMinter(minter.address));
     console.log("Setup -- kondux.setMinter: set minter to " + minter.address);
 
+    // Step 3: Merkle root
+    await waitFor(minter.setRoot(CONFIGURATION.merkleRoot));
+    console.log("Setup -- minter.setRoot: set merkle root to " + await minter.root());
+
     // Step 2: Set initial price
     await waitFor(minter.setPrice(CONFIGURATION.initialPrice));
     console.log("Setup -- minter.setPrice: set initial price to " + CONFIGURATION.initialPrice);
