@@ -1,6 +1,6 @@
 # Rinkeby Addresses
 
- - [Authority](https://rinkeby.etherscan.io/address/0xf7f1f386f5852dcd2482873698cf0c5a385dd51c#readContract)
- - [Kondux_NFT](https://rinkeby.etherscan.io/address/0x3d78aD9ABf1Db4127D6e4D416cE75A8DB1777fD1#readContract)
- - [Minter](https://rinkeby.etherscan.io/address/0x01181FBa372C8996aF8C74307Ea6454E6A5D78C1#readContract)
+ - [Authority](https://rinkeby.etherscan.io/address/0x462Ec7316805414a2226Fd19492Ad0D70493E795#readContract)
+ - [Kondux_NFT](https://rinkeby.etherscan.io/address/0x946A8345d15d1ea90096f462479973C7999c678C#readContract)
+ - [Minter](https://rinkeby.etherscan.io/address/0x3f610D051f1F83d32B8eA787f60D1d021BA12C93#readContract)
 

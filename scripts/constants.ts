@@ -10,5 +10,5 @@ export const CONFIGURATION: Record<string, any> = {
   ticker: "KONDUX",
   baseURI: "https://metadata.kondux.io/v1/", 
   initialPrice: "1" + "0".repeat(15), // in wei
-  merkleRoot: "0x09d6d1856fc7fe679bc4ba95045ff67408d0bb274594180f0afffa6f46e5132d", 
+  merkleRoot: "https://h7af1y611a.execute-api.us-east-1.amazonaws.com/root", 
 };
