@@ -64,12 +64,12 @@ npx hardhat clean
 1. Get the user's address from the frontend with Metamask
 
 2. Send to Merkle Proof Server
-```
-http(s)://yourdomain/:address/proof
-```
+   
+[https://h7af1y611a.execute-api.us-east-1.amazonaws.com/:address/proof](https://h7af1y611a.execute-api.us-east-1.amazonaws.com/0x7c1b53c6e9fecd6112a3b156457ac6aba1135f82/proof)
+
     Return: Proof is a JSON object with the array of proofs
 
-3. Get the Merkle Proof Array from the server and send to the contract
+1. Get the Merkle Proof Array from the server and send to the contract
 ```
 contract.whitelistMint(proof)
 ```
