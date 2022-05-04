@@ -4,15 +4,12 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Royalty.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 import "./types/AccessControlled.sol";
-
-import "hardhat/console.sol";
 
 
 contract Kondux is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Royalty, AccessControlled {
@@ -84,19 +81,13 @@ contract Kondux is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Roya
 
     function automaticMint(address to) external minterOnly returns (uint256) {
         uint256 tokenId = _tokenIdCounter.current();
-        console.log("automaticMint: tokenId: ");
-        console.log(tokenId);
+
         _tokenIdCounter.increment();
-        console.log("automaticMint: tokenId: ");
-        console.log(_tokenIdCounter.current());
+  
         uint256 dna = _random();
-        console.log("automaticMint: dna: ");
-        console.logBytes32(bytes32(dna));
+  
         _setDna(tokenId, dna);
-        console.log("DNA");
-        console.logBytes32(bytes32(indexDna[tokenId]));
-        console.log("to", to);
-        console.log("tokenId", tokenId);
+  
         _safeMint(to, tokenId);
         return tokenId;
     }
