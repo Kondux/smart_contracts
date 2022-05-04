@@ -78,6 +78,6 @@ contract.whitelistMint(proof)
 - [Rinkeby Addresses](./docs/deployments/rinkeby.md)
 
 ### Documentation
-- [Kondux DAO](./docs/deployments/kondux_dao.md)
+- [Kondux DAO](./docs/guides/kondux_dao.md)
 - [Kondux NFT DNA](./docs/guides/nft_dna.md)
 - [Royalty Reward](./docs/guides/royalty_reward.md)
