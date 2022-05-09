@@ -96,6 +96,11 @@ contract Kondux is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Roya
         _setDna(_tokenID, _dna);
     }
 
+    function getDna (uint256 _tokenID) public view returns (uint256) {
+        require(_exists(_tokenID), "ERC721Metadata: URI query for nonexistent token");
+        return indexDna[_tokenID];
+    }
+
     function setMinter(address _minter) public onlyGovernor {
         minter = _minter;
     }
