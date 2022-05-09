@@ -45,6 +45,7 @@ jobs:
         
   deploy:
     runs-on: ubuntu-latest
+    needs: test
     strategy:
       matrix:
         node-version: [16.x]
@@ -68,5 +69,7 @@ jobs:
         echo ETHERSCAN_API_KEY=${{ secrets.ETHERSCAN_API_KEY }} >> .env        
 
     - name: deploy
-      run: npx hardhat deploy --network rinkeby
+      run: |
+        npm ci
+        npx hardhat deploy --network rinkeby
     
