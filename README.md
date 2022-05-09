@@ -3,6 +3,9 @@
 
 This is the main Kondux smart contract development repository.
 
+![Kondux Smart Contracts CI](https://github.com/Kondux/smart_contracts/actions/workflows/node.js.yml/badge.svg)
+
+
 ## 🔧 Setting up local development
 
 ### Requirements

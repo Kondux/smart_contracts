@@ -3,7 +3,7 @@
 
 
 
-name: Node.js CI
+name: Kondux Smart Contracts CI
 
 on:
   push:
