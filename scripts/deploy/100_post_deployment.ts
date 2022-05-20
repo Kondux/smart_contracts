@@ -1,6 +1,6 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
-import fetch from 'node-fetch';
+import axios from "axios";
 import { waitFor } from "../txHelper";
 import { CONTRACTS, CONFIGURATION } from "../constants";
 import {
@@ -32,16 +32,15 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     console.log("Setup -- kondux.setBaseURI: set baseURI to " + CONFIGURATION.baseURI);
 
     // Step 2: Set Minter
-    await waitFor(kondux.setMinter(minter.address));
-    console.log("Setup -- kondux.setMinter: set minter to " + minter.address);
+    await waitFor(kondux.setMinter(minterDeployment.address));
+    console.log("Setup -- kondux.setMinter: set minter to " + minterDeployment.address);
 
     // Step 3: Merkle root
-    const response = await fetch(CONFIGURATION.merkleRoot);
-    const data: any = await response.json();
+    const { data } = await axios.get(CONFIGURATION.merkleRoot);  
     await waitFor(minter.setRoot(data.root));
     console.log("Setup -- minter.setRoot: set merkle root to " + await minter.root());
 
-    // Step 2: Set initial price
+    // Step 4: Set initial price
     await waitFor(minter.setPrice(CONFIGURATION.initialPrice));
     console.log("Setup -- minter.setPrice: set initial price to " + CONFIGURATION.initialPrice);
     

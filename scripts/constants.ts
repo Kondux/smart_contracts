@@ -2,6 +2,8 @@ export const CONTRACTS: Record<string, string> = {
   kondux: "Kondux",
   authority: "Authority",
   minter: "Minter",
+  marketplace: "Marketplace",
+  konduxMarketplace: "KonduxMarketplace",
 };
 
 export const CONFIGURATION: Record<string, any> = {
