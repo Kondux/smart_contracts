@@ -19,7 +19,9 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
 
     const authorityDeployment = await deployments.get(CONTRACTS.authority);
     const konduxNFTDeployment = await deployments.get(CONTRACTS.kondux);
-    const minterDeployment = await deployments.get(CONTRACTS.minter);  
+    const minterDeployment = await deployments.get(CONTRACTS.minter);
+    const marketplaceDeployment = await deployments.get(CONTRACTS.marketplace);  
+  
     
     const network = await ethers.provider.getNetwork();
 
@@ -87,10 +89,28 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
                 throw error; // let others bubble up
             }                      
         }
+
+        try {
+            await hre.run("verify:verify", {
+                address: marketplaceDeployment.address,
+                constructorArguments: [
+                    authorityDeployment.address,
+                ],
+            });
+            console.log("Verified -- marketplace");
+        } catch (error) {
+            if (error instanceof NomicLabsHardhatPluginError) {
+                // specific error
+                console.log("Error verifying -- marketplace");
+                console.log(error.message);
+            } else {
+                throw error; // let others bubble up
+            }                      
+        }
     }    
 };
 
 func.tags = ["verify"];
-func.dependencies = [CONTRACTS.kondux, CONTRACTS.minter, CONTRACTS.authority];
+func.dependencies = [CONTRACTS.kondux, CONTRACTS.minter, CONTRACTS.authority, CONTRACTS.marketplace];
 
 export default func;
