@@ -3,3 +3,5 @@
 /* eslint-disable */
 export { IAuthority__factory } from "./IAuthority__factory";
 export { IKondux__factory } from "./IKondux__factory";
+export { IMarketplace__factory } from "./IMarketplace__factory";
+export { INFTContract__factory } from "./INFTContract__factory";

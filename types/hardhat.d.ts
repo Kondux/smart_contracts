@@ -29,6 +29,22 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ERC2981__factory>;
     getContractFactory(
+      name: "ERC1155",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ERC1155__factory>;
+    getContractFactory(
+      name: "IERC1155MetadataURI",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IERC1155MetadataURI__factory>;
+    getContractFactory(
+      name: "IERC1155",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IERC1155__factory>;
+    getContractFactory(
+      name: "IERC1155Receiver",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IERC1155Receiver__factory>;
+    getContractFactory(
       name: "ERC721",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ERC721__factory>;
@@ -73,6 +89,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Authority__factory>;
     getContractFactory(
+      name: "MarketplaceFeeCollector",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.MarketplaceFeeCollector__factory>;
+    getContractFactory(
       name: "IAuthority",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IAuthority__factory>;
@@ -81,13 +101,33 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IKondux__factory>;
     getContractFactory(
+      name: "IMarketplace",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IMarketplace__factory>;
+    getContractFactory(
+      name: "INFTContract",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.INFTContract__factory>;
+    getContractFactory(
       name: "Kondux",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Kondux__factory>;
     getContractFactory(
+      name: "Marketplace",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Marketplace__factory>;
+    getContractFactory(
       name: "Minter",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Minter__factory>;
+    getContractFactory(
+      name: "E1155",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.E1155__factory>;
+    getContractFactory(
+      name: "E721",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.E721__factory>;
     getContractFactory(
       name: "AccessControlled",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -113,6 +153,26 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.ERC2981>;
+    getContractAt(
+      name: "ERC1155",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ERC1155>;
+    getContractAt(
+      name: "IERC1155MetadataURI",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IERC1155MetadataURI>;
+    getContractAt(
+      name: "IERC1155",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IERC1155>;
+    getContractAt(
+      name: "IERC1155Receiver",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IERC1155Receiver>;
     getContractAt(
       name: "ERC721",
       address: string,
@@ -169,6 +229,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.Authority>;
     getContractAt(
+      name: "MarketplaceFeeCollector",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.MarketplaceFeeCollector>;
+    getContractAt(
       name: "IAuthority",
       address: string,
       signer?: ethers.Signer
@@ -179,15 +244,40 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.IKondux>;
     getContractAt(
+      name: "IMarketplace",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IMarketplace>;
+    getContractAt(
+      name: "INFTContract",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.INFTContract>;
+    getContractAt(
       name: "Kondux",
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.Kondux>;
     getContractAt(
+      name: "Marketplace",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Marketplace>;
+    getContractAt(
       name: "Minter",
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.Minter>;
+    getContractAt(
+      name: "E1155",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.E1155>;
+    getContractAt(
+      name: "E721",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.E721>;
     getContractAt(
       name: "AccessControlled",
       address: string,

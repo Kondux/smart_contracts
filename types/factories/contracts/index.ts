@@ -2,7 +2,10 @@
 /* tslint:disable */
 /* eslint-disable */
 export * as konduxNftSol from "./Kondux_NFT.sol";
+export * as extensions from "./extensions";
 export * as interfaces from "./interfaces";
+export * as tests from "./tests";
 export * as types from "./types";
 export { Authority__factory } from "./Authority__factory";
+export { Marketplace__factory } from "./Marketplace__factory";
 export { Minter__factory } from "./Minter__factory";

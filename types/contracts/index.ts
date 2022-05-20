@@ -3,9 +3,14 @@
 /* eslint-disable */
 import type * as konduxNftSol from "./Kondux_NFT.sol";
 export type { konduxNftSol };
+import type * as extensions from "./extensions";
+export type { extensions };
 import type * as interfaces from "./interfaces";
 export type { interfaces };
+import type * as tests from "./tests";
+export type { tests };
 import type * as types from "./types";
 export type { types };
 export type { Authority } from "./Authority";
+export type { Marketplace } from "./Marketplace";
 export type { Minter } from "./Minter";
