@@ -3,7 +3,7 @@ pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 
-contract E1155 is ERC1155 {
+contract KonduxERC1155 is ERC1155 {
     uint256 private tokenId;
 
     constructor() ERC1155("https://kondux.io/{id}.json") {}

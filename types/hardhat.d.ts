@@ -45,6 +45,18 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IERC1155Receiver__factory>;
     getContractFactory(
+      name: "ERC20",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ERC20__factory>;
+    getContractFactory(
+      name: "IERC20Metadata",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IERC20Metadata__factory>;
+    getContractFactory(
+      name: "IERC20",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IERC20__factory>;
+    getContractFactory(
       name: "ERC721",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ERC721__factory>;
@@ -121,6 +133,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Minter__factory>;
     getContractFactory(
+      name: "Staking",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Staking__factory>;
+    getContractFactory(
       name: "E1155",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.E1155__factory>;
@@ -128,6 +144,18 @@ declare module "hardhat/types/runtime" {
       name: "E721",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.E721__factory>;
+    getContractFactory(
+      name: "KonduxERC1155",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.KonduxERC1155__factory>;
+    getContractFactory(
+      name: "KonduxERC20",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.KonduxERC20__factory>;
+    getContractFactory(
+      name: "KonduxERC721",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.KonduxERC721__factory>;
     getContractFactory(
       name: "AccessControlled",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -173,6 +201,21 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.IERC1155Receiver>;
+    getContractAt(
+      name: "ERC20",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ERC20>;
+    getContractAt(
+      name: "IERC20Metadata",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IERC20Metadata>;
+    getContractAt(
+      name: "IERC20",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IERC20>;
     getContractAt(
       name: "ERC721",
       address: string,
@@ -269,6 +312,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.Minter>;
     getContractAt(
+      name: "Staking",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Staking>;
+    getContractAt(
       name: "E1155",
       address: string,
       signer?: ethers.Signer
@@ -278,6 +326,21 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.E721>;
+    getContractAt(
+      name: "KonduxERC1155",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.KonduxERC1155>;
+    getContractAt(
+      name: "KonduxERC20",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.KonduxERC20>;
+    getContractAt(
+      name: "KonduxERC721",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.KonduxERC721>;
     getContractAt(
       name: "AccessControlled",
       address: string,

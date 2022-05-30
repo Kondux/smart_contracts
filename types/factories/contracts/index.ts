@@ -9,3 +9,4 @@ export * as types from "./types";
 export { Authority__factory } from "./Authority__factory";
 export { Marketplace__factory } from "./Marketplace__factory";
 export { Minter__factory } from "./Minter__factory";
+export { Staking__factory } from "./Staking__factory";

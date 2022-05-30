@@ -3,3 +3,6 @@
 /* eslint-disable */
 export { E1155__factory } from "./E1155__factory";
 export { E721__factory } from "./E721__factory";
+export { KonduxERC1155__factory } from "./KonduxERC1155__factory";
+export { KonduxERC20__factory } from "./KonduxERC20__factory";
+export { KonduxERC721__factory } from "./KonduxERC721__factory";

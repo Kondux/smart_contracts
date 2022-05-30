@@ -3,3 +3,6 @@
 /* eslint-disable */
 export type { E1155 } from "./E1155";
 export type { E721 } from "./E721";
+export type { KonduxERC1155 } from "./KonduxERC1155";
+export type { KonduxERC20 } from "./KonduxERC20";
+export type { KonduxERC721 } from "./KonduxERC721";

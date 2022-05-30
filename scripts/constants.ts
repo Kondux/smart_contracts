@@ -4,6 +4,10 @@ export const CONTRACTS: Record<string, string> = {
   minter: "Minter",
   marketplace: "Marketplace",
   konduxMarketplace: "KonduxMarketplace",
+  staking: "Staking",
+  konduxERC20: "KonduxERC20",
+  konduxERC721: "KonduxERC721",
+  konduxERC1155: "KonduxERC1155",
 };
 
 export const CONFIGURATION: Record<string, any> = {
