@@ -121,6 +121,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.INFTContract__factory>;
     getContractFactory(
+      name: "ITreasury",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ITreasury__factory>;
+    getContractFactory(
       name: "Kondux",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Kondux__factory>;
@@ -137,14 +141,6 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Staking__factory>;
     getContractFactory(
-      name: "E1155",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.E1155__factory>;
-    getContractFactory(
-      name: "E721",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.E721__factory>;
-    getContractFactory(
       name: "KonduxERC1155",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.KonduxERC1155__factory>;
@@ -156,6 +152,10 @@ declare module "hardhat/types/runtime" {
       name: "KonduxERC721",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.KonduxERC721__factory>;
+    getContractFactory(
+      name: "Treasury",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Treasury__factory>;
     getContractFactory(
       name: "AccessControlled",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -297,6 +297,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.INFTContract>;
     getContractAt(
+      name: "ITreasury",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ITreasury>;
+    getContractAt(
       name: "Kondux",
       address: string,
       signer?: ethers.Signer
@@ -317,16 +322,6 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.Staking>;
     getContractAt(
-      name: "E1155",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.E1155>;
-    getContractAt(
-      name: "E721",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.E721>;
-    getContractAt(
       name: "KonduxERC1155",
       address: string,
       signer?: ethers.Signer
@@ -341,6 +336,11 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.KonduxERC721>;
+    getContractAt(
+      name: "Treasury",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Treasury>;
     getContractAt(
       name: "AccessControlled",
       address: string,

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "./interfaces/IKondux.sol";
+import "./interfaces/ITreasury.sol";
 import "./types/AccessControlled.sol";
 
 contract Minter is AccessControlled {
@@ -10,14 +11,17 @@ contract Minter is AccessControlled {
     bytes32 public root;
 
     IKondux public immutable kondux;
+    ITreasury public immutable treasury;
 
-    constructor(address _authority, address _kondux) 
+    constructor(address _authority, address _kondux, address _vault) 
         AccessControlled(IAuthority(_authority)) {        
             require(_kondux != address(0), "Kondux address is not set");
             kondux = IKondux(_kondux);
+            treasury = ITreasury(_vault);
     }
 
     receive() external payable {
+        treasury.depositEther(msg.value);
         _mint();
     }
 
@@ -45,6 +49,8 @@ contract Minter is AccessControlled {
 
     function _mint() internal {
         require(msg.value >= price, "Not enought ether");
+        //transfer ether to vault
+        treasury.deposit(msg.value, address(0));
         kondux.automaticMint(msg.sender);
     }
 

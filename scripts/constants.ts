@@ -8,6 +8,7 @@ export const CONTRACTS: Record<string, string> = {
   konduxERC20: "KonduxERC20",
   konduxERC721: "KonduxERC721",
   konduxERC1155: "KonduxERC1155",
+  treasury: "Treasury",
 };
 
 export const CONFIGURATION: Record<string, any> = {

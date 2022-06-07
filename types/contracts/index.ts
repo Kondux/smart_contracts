@@ -15,3 +15,4 @@ export type { Authority } from "./Authority";
 export type { Marketplace } from "./Marketplace";
 export type { Minter } from "./Minter";
 export type { Staking } from "./Staking";
+export type { Treasury } from "./Treasury";

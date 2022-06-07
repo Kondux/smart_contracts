@@ -1,0 +1,22 @@
+//SPDX-License-Identifier: MIT
+pragma solidity >=0.8.9;
+
+interface ITreasury {
+    function deposit(
+        uint256 _amount,
+        address _token
+    ) external;
+
+    function depositEther(
+        uint256 _amount
+    ) external payable;
+
+    function withdraw(
+        uint256 _amount,
+        address _token
+    ) external;
+
+    function withdrawEther(
+        uint256 _amount
+    ) external;
+}

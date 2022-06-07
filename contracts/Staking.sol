@@ -2,9 +2,7 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
 import "./types/AccessControlled.sol";
-
 
 contract Staking is AccessControlled {
     // Staker info

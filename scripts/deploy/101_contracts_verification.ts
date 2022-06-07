@@ -21,7 +21,8 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const konduxNFTDeployment = await deployments.get(CONTRACTS.kondux);
     const minterDeployment = await deployments.get(CONTRACTS.minter);
     const marketplaceDeployment = await deployments.get(CONTRACTS.marketplace);  
-  
+    const stakingDeployment = await deployments.get(CONTRACTS.staking);
+    const treasuryDeployment = await deployments.get(CONTRACTS.treasury);
     
     const network = await ethers.provider.getNetwork();
 
@@ -102,6 +103,42 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
             if (error instanceof NomicLabsHardhatPluginError) {
                 // specific error
                 console.log("Error verifying -- marketplace");
+                console.log(error.message);
+            } else {
+                throw error; // let others bubble up
+            }                      
+        }
+
+        try {
+            await hre.run("verify:verify", {
+                address: stakingDeployment.address,
+                constructorArguments: [
+                    authorityDeployment.address,
+                ],
+            });
+            console.log("Verified -- staking");
+        } catch (error) {
+            if (error instanceof NomicLabsHardhatPluginError) {
+                // specific error
+                console.log("Error verifying -- staking");
+                console.log(error.message);
+            } else {
+                throw error; // let others bubble up
+            }                      
+        }
+
+        try {
+            await hre.run("verify:verify", {
+                address: treasuryDeployment.address,
+                constructorArguments: [
+                    authorityDeployment.address,
+                ],
+            });
+            console.log("Verified -- treasury");
+        } catch (error) {
+            if (error instanceof NomicLabsHardhatPluginError) {
+                // specific error
+                console.log("Error verifying -- treasury");
                 console.log(error.message);
             } else {
                 throw error; // let others bubble up

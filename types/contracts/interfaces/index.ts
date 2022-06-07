@@ -5,3 +5,4 @@ export type { IAuthority } from "./IAuthority";
 export type { IKondux } from "./IKondux";
 export type { IMarketplace } from "./IMarketplace";
 export type { INFTContract } from "./INFTContract";
+export type { ITreasury } from "./ITreasury";
