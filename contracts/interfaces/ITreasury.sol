@@ -7,9 +7,7 @@ interface ITreasury {
         address _token
     ) external;
 
-    function depositEther(
-        uint256 _amount
-    ) external payable;
+    function depositEther() external payable;
 
     function withdraw(
         uint256 _amount,

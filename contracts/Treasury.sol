@@ -4,6 +4,8 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./types/AccessControlled.sol";
 
+import "hardhat/console.sol";
+
 contract Treasury is AccessControlled {
 
     /* ========== EVENTS ========== */
@@ -64,12 +66,10 @@ contract Treasury is AccessControlled {
         emit Deposit(_token, _amount);
     }
 
-    function depositEther (
-        uint256 _amount
-    ) external payable {
+    function depositEther () external payable {
         require(permissions[STATUS.RESERVEDEPOSITOR][msg.sender], notApproved);                
                 
-        emit DepositEther(_amount);
+        emit DepositEther(msg.value);
     }
 
     /**
@@ -87,7 +87,7 @@ contract Treasury is AccessControlled {
     }
 
     receive() external payable {
-        require(permissions[STATUS.RESERVEDEPOSITOR][msg.sender], notApproved);
+        // require(permissions[STATUS.RESERVEDEPOSITOR][msg.sender], notApproved);
         emit EtherDeposit(msg.value);
     }
     

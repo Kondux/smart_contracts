@@ -78,6 +78,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
                 constructorArguments: [
                     authorityDeployment.address,
                     konduxNFTDeployment.address,
+                    treasuryDeployment.address
                 ],
             });
             console.log("Verified -- minter");
@@ -114,6 +115,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
                 address: stakingDeployment.address,
                 constructorArguments: [
                     authorityDeployment.address,
+                    treasuryDeployment.address
                 ],
             });
             console.log("Verified -- staking");
@@ -132,6 +134,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
                 address: treasuryDeployment.address,
                 constructorArguments: [
                     authorityDeployment.address,
+                    konduxNFTDeployment.address
                 ],
             });
             console.log("Verified -- treasury");

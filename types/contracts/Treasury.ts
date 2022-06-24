@@ -32,7 +32,7 @@ export interface TreasuryInterface extends utils.Interface {
     "Kondux()": FunctionFragment;
     "authority()": FunctionFragment;
     "deposit(uint256,address)": FunctionFragment;
-    "depositEther(uint256)": FunctionFragment;
+    "depositEther()": FunctionFragment;
     "permissions(uint8,address)": FunctionFragment;
     "setAuthority(address)": FunctionFragment;
     "setPermission(uint8,address,bool)": FunctionFragment;
@@ -61,7 +61,7 @@ export interface TreasuryInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "depositEther",
-    values: [BigNumberish]
+    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "permissions",
@@ -224,7 +224,6 @@ export interface Treasury extends BaseContract {
     ): Promise<ContractTransaction>;
 
     depositEther(
-      _amount: BigNumberish,
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
@@ -269,7 +268,6 @@ export interface Treasury extends BaseContract {
   ): Promise<ContractTransaction>;
 
   depositEther(
-    _amount: BigNumberish,
     overrides?: PayableOverrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -313,10 +311,7 @@ export interface Treasury extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
-    depositEther(
-      _amount: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<void>;
+    depositEther(overrides?: CallOverrides): Promise<void>;
 
     permissions(
       arg0: BigNumberish,
@@ -386,7 +381,6 @@ export interface Treasury extends BaseContract {
     ): Promise<BigNumber>;
 
     depositEther(
-      _amount: BigNumberish,
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
@@ -432,7 +426,6 @@ export interface Treasury extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     depositEther(
-      _amount: BigNumberish,
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 

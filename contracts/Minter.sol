@@ -21,7 +21,7 @@ contract Minter is AccessControlled {
     }
 
     receive() external payable {
-        treasury.depositEther(msg.value);
+        treasury.depositEther{ value: msg.value }();
         _mint();
     }
 
@@ -50,7 +50,8 @@ contract Minter is AccessControlled {
     function _mint() internal {
         require(msg.value >= price, "Not enought ether");
         //transfer ether to vault
-        treasury.deposit(msg.value, address(0));
+        // treasury.deposit(msg.value, address(0));
+        // treasury.depositEther(msg.value);
         kondux.automaticMint(msg.sender);
     }
 
