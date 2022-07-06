@@ -1,5 +1,6 @@
 import { Marketplace } from '../types/contracts/Marketplace';
 import { utils } from 'ethers';
+import axios from 'axios';
 // import { Treasury } from '../types/contracts/Treasury';
 // import { KonduxERC20 } from '../types/contracts/tests/KonduxERC20';
 const { expect } = require("chai");
@@ -312,6 +313,7 @@ describe('Send Ether to contract', async function () {
     const secondAddress = await second.getAddress();
     const Kondux = await ethers.getContractFactory("Kondux");
     const kondux = await Kondux.deploy("Kondux NFT", "KDX", authority.address);
+
     const transfer = second.sendTransaction({to: kondux.address, value: ethers.utils.parseEther("1.0")});
     await expect(transfer).to.be.reverted;
     describe("Sending Ether to Minter should mint NFT", async function () {
@@ -330,6 +332,59 @@ describe('Send Ether to contract', async function () {
         expect(await provider.getBalance(treasury.address)).to.equal(ethers.utils.parseEther("1.0"));
       });
     });
+
+  });
+});
+
+describe("Whitelist minting", async function () {
+  let authority: Authority;
+  let treasury: Treasury;
+  let konduxERC20: KonduxERC20;
+  beforeEach(async function () {
+    const [owner] = await ethers.getSigners();
+    const ownerAddress = await owner.getAddress();
+    authority = await new Authority__factory(owner).deploy(
+      ownerAddress,
+      ownerAddress,
+      ownerAddress,
+      ownerAddress
+    );
+
+    konduxERC20 = await new KonduxERC20__factory(owner).deploy();
+
+    treasury = await new Treasury__factory(owner).deploy(
+      authority.address,
+      konduxERC20.address
+    );
+  });
+  it("Should mint whitelisted NFT", async function () {
+    const [owner, second] = await ethers.getSigners();
+    const secondAddress = await second.getAddress();
+    const Kondux = await ethers.getContractFactory("Kondux");
+    const kondux = await Kondux.deploy("Kondux NFT", "KDX", authority.address);
+
+    const Minter = await ethers.getContractFactory("Minter");
+    const minter = await Minter.deploy(authority.address, kondux.address, treasury.address);
+    const setMinter = await kondux.setMinter(minter.address);
+    await setMinter.wait();
+    
+    const rootRes = await axios.get("https://h7af1y611a.execute-api.us-east-1.amazonaws.com/root")
+    const root = rootRes.data.root;
+    const setRoot = await minter.setRoot(root);
+    await setRoot.wait();
+
+    expect(await minter.root()).to.equal(root);
+    expect(await kondux.totalSupply()).to.equal(0);
+
+    const res = await axios.get("https://h7af1y611a.execute-api.us-east-1.amazonaws.com/" + secondAddress + "/proof");
+
+    const data = res.data;
+    const proof = data.response;
+    
+    const whitelistMint = await minter.connect(second).whitelistMint(proof);
+    await whitelistMint.wait();
+    expect(await kondux.totalSupply()).to.equal(1);
+    expect(await kondux.balanceOf(secondAddress)).to.equal(1);
   });
 });
 

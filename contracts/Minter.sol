@@ -28,7 +28,6 @@ contract Minter is AccessControlled {
     function unsafeMint() public returns (uint256) {
         uint256 id = _unsafeMint();
         return id;
-
     }        
 
     function setPrice(uint256 _price) public onlyGovernor {
