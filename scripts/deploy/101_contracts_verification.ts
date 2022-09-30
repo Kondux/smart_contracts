@@ -23,6 +23,8 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const marketplaceDeployment = await deployments.get(CONTRACTS.marketplace);  
     const stakingDeployment = await deployments.get(CONTRACTS.staking);
     const treasuryDeployment = await deployments.get(CONTRACTS.treasury);
+    const konduxFoundersDeployment = await deployments.get(CONTRACTS.konduxFounders);
+    const minterFoundersDeployment = await deployments.get(CONTRACTS.minterFounders);
     
     const network = await ethers.provider.getNetwork();
 
@@ -142,6 +144,46 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
             if (error instanceof NomicLabsHardhatPluginError) {
                 // specific error
                 console.log("Error verifying -- treasury");
+                console.log(error.message);
+            } else {
+                throw error; // let others bubble up
+            }                      
+        }
+
+        try {
+            await hre.run("verify:verify", {
+                address: konduxFoundersDeployment.address,
+                constructorArguments: [
+                    authorityDeployment.address,
+                ],
+            });
+            console.log("Verified -- konduxFounders");
+        }
+        catch (error) {
+            if (error instanceof NomicLabsHardhatPluginError) {
+                // specific error
+                console.log("Error verifying -- konduxFounders");
+                console.log(error.message);
+            } else {
+                throw error; // let others bubble up
+            }                      
+        }
+
+
+        try {
+            await hre.run("verify:verify", {
+                address: minterFoundersDeployment.address,
+                constructorArguments: [
+                    authorityDeployment.address,
+                    konduxFoundersDeployment.address,
+                    treasuryDeployment.address
+                ],
+            });
+            console.log("Verified -- minterFounders");
+        } catch (error) {
+            if (error instanceof NomicLabsHardhatPluginError) {
+                // specific error
+                console.log("Error verifying -- minterFounders");
                 console.log(error.message);
             } else {
                 throw error; // let others bubble up

@@ -24,6 +24,7 @@ import type {
   TypedEvent,
   TypedListener,
   OnEvent,
+  PromiseOrValue,
 } from "../../common";
 
 export interface MarketplaceFeeCollectorInterface extends utils.Interface {
@@ -51,12 +52,12 @@ export interface MarketplaceFeeCollectorInterface extends utils.Interface {
   encodeFunctionData(functionFragment: "authority", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "changeFee",
-    values: [BigNumberish]
+    values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(functionFragment: "fee", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "setAuthority",
-    values: [string]
+    values: [PromiseOrValue<string>]
   ): string;
 
   decodeFunctionResult(
@@ -121,15 +122,15 @@ export interface MarketplaceFeeCollector extends BaseContract {
     authority(overrides?: CallOverrides): Promise<[string]>;
 
     changeFee(
-      newFee: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      newFee: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     fee(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     setAuthority(
-      _newAuthority: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newAuthority: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
   };
 
@@ -138,15 +139,15 @@ export interface MarketplaceFeeCollector extends BaseContract {
   authority(overrides?: CallOverrides): Promise<string>;
 
   changeFee(
-    newFee: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    newFee: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   fee(overrides?: CallOverrides): Promise<BigNumber>;
 
   setAuthority(
-    _newAuthority: string,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _newAuthority: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   callStatic: {
@@ -154,12 +155,15 @@ export interface MarketplaceFeeCollector extends BaseContract {
 
     authority(overrides?: CallOverrides): Promise<string>;
 
-    changeFee(newFee: BigNumberish, overrides?: CallOverrides): Promise<void>;
+    changeFee(
+      newFee: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     fee(overrides?: CallOverrides): Promise<BigNumber>;
 
     setAuthority(
-      _newAuthority: string,
+      _newAuthority: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<void>;
   };
@@ -175,15 +179,15 @@ export interface MarketplaceFeeCollector extends BaseContract {
     authority(overrides?: CallOverrides): Promise<BigNumber>;
 
     changeFee(
-      newFee: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      newFee: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     fee(overrides?: CallOverrides): Promise<BigNumber>;
 
     setAuthority(
-      _newAuthority: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newAuthority: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
   };
 
@@ -193,15 +197,15 @@ export interface MarketplaceFeeCollector extends BaseContract {
     authority(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     changeFee(
-      newFee: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      newFee: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     fee(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     setAuthority(
-      _newAuthority: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newAuthority: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
   };
 }

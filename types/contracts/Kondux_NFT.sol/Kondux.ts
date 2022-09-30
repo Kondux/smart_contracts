@@ -24,10 +24,12 @@ import type {
   TypedEvent,
   TypedListener,
   OnEvent,
+  PromiseOrValue,
 } from "../../common";
 
 export interface KonduxInterface extends utils.Interface {
   functions: {
+    "MINTER_ROLE()": FunctionFragment;
     "approve(address,uint256)": FunctionFragment;
     "authority()": FunctionFragment;
     "automaticMint(address)": FunctionFragment;
@@ -40,7 +42,6 @@ export interface KonduxInterface extends utils.Interface {
     "getDna(uint256)": FunctionFragment;
     "indexDna(uint256)": FunctionFragment;
     "isApprovedForAll(address,address)": FunctionFragment;
-    "minter()": FunctionFragment;
     "name()": FunctionFragment;
     "ownerOf(uint256)": FunctionFragment;
     "pause()": FunctionFragment;
@@ -54,7 +55,6 @@ export interface KonduxInterface extends utils.Interface {
     "setBaseURI(string)": FunctionFragment;
     "setDefaultRoyalty(address,uint96)": FunctionFragment;
     "setDna(uint256,uint256)": FunctionFragment;
-    "setMinter(address)": FunctionFragment;
     "setTokenRoyalty(uint256,address,uint96)": FunctionFragment;
     "supportsInterface(bytes4)": FunctionFragment;
     "symbol()": FunctionFragment;
@@ -68,6 +68,7 @@ export interface KonduxInterface extends utils.Interface {
 
   getFunction(
     nameOrSignatureOrTopic:
+      | "MINTER_ROLE"
       | "approve"
       | "authority"
       | "automaticMint"
@@ -80,7 +81,6 @@ export interface KonduxInterface extends utils.Interface {
       | "getDna"
       | "indexDna"
       | "isApprovedForAll"
-      | "minter"
       | "name"
       | "ownerOf"
       | "pause"
@@ -94,7 +94,6 @@ export interface KonduxInterface extends utils.Interface {
       | "setBaseURI"
       | "setDefaultRoyalty"
       | "setDna"
-      | "setMinter"
       | "setTokenRoyalty"
       | "supportsInterface"
       | "symbol"
@@ -107,20 +106,30 @@ export interface KonduxInterface extends utils.Interface {
   ): FunctionFragment;
 
   encodeFunctionData(
+    functionFragment: "MINTER_ROLE",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "approve",
-    values: [string, BigNumberish]
+    values: [PromiseOrValue<string>, PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(functionFragment: "authority", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "automaticMint",
-    values: [string]
+    values: [PromiseOrValue<string>]
   ): string;
-  encodeFunctionData(functionFragment: "balanceOf", values: [string]): string;
+  encodeFunctionData(
+    functionFragment: "balanceOf",
+    values: [PromiseOrValue<string>]
+  ): string;
   encodeFunctionData(functionFragment: "baseURI", values?: undefined): string;
-  encodeFunctionData(functionFragment: "burn", values: [BigNumberish]): string;
+  encodeFunctionData(
+    functionFragment: "burn",
+    values: [PromiseOrValue<BigNumberish>]
+  ): string;
   encodeFunctionData(
     functionFragment: "changeDenominator",
-    values: [BigNumberish]
+    values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "denominator",
@@ -128,82 +137,96 @@ export interface KonduxInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "getApproved",
-    values: [BigNumberish]
+    values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "getDna",
-    values: [BigNumberish]
+    values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "indexDna",
-    values: [BigNumberish]
+    values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "isApprovedForAll",
-    values: [string, string]
+    values: [PromiseOrValue<string>, PromiseOrValue<string>]
   ): string;
-  encodeFunctionData(functionFragment: "minter", values?: undefined): string;
   encodeFunctionData(functionFragment: "name", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "ownerOf",
-    values: [BigNumberish]
+    values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(functionFragment: "pause", values?: undefined): string;
   encodeFunctionData(functionFragment: "paused", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "royaltyInfo",
-    values: [BigNumberish, BigNumberish]
+    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "safeMint",
-    values: [string, BigNumberish]
+    values: [PromiseOrValue<string>, PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "safeTransferFrom(address,address,uint256)",
-    values: [string, string, BigNumberish]
+    values: [
+      PromiseOrValue<string>,
+      PromiseOrValue<string>,
+      PromiseOrValue<BigNumberish>
+    ]
   ): string;
   encodeFunctionData(
     functionFragment: "safeTransferFrom(address,address,uint256,bytes)",
-    values: [string, string, BigNumberish, BytesLike]
+    values: [
+      PromiseOrValue<string>,
+      PromiseOrValue<string>,
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BytesLike>
+    ]
   ): string;
   encodeFunctionData(
     functionFragment: "setApprovalForAll",
-    values: [string, boolean]
+    values: [PromiseOrValue<string>, PromiseOrValue<boolean>]
   ): string;
   encodeFunctionData(
     functionFragment: "setAuthority",
-    values: [string]
+    values: [PromiseOrValue<string>]
   ): string;
-  encodeFunctionData(functionFragment: "setBaseURI", values: [string]): string;
+  encodeFunctionData(
+    functionFragment: "setBaseURI",
+    values: [PromiseOrValue<string>]
+  ): string;
   encodeFunctionData(
     functionFragment: "setDefaultRoyalty",
-    values: [string, BigNumberish]
+    values: [PromiseOrValue<string>, PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "setDna",
-    values: [BigNumberish, BigNumberish]
+    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<BigNumberish>]
   ): string;
-  encodeFunctionData(functionFragment: "setMinter", values: [string]): string;
   encodeFunctionData(
     functionFragment: "setTokenRoyalty",
-    values: [BigNumberish, string, BigNumberish]
+    values: [
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<string>,
+      PromiseOrValue<BigNumberish>
+    ]
   ): string;
   encodeFunctionData(
     functionFragment: "supportsInterface",
-    values: [BytesLike]
+    values: [PromiseOrValue<BytesLike>]
   ): string;
   encodeFunctionData(functionFragment: "symbol", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "tokenByIndex",
-    values: [BigNumberish]
+    values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "tokenOfOwnerByIndex",
-    values: [string, BigNumberish]
+    values: [PromiseOrValue<string>, PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "tokenURI",
-    values: [BigNumberish]
+    values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "totalSupply",
@@ -211,10 +234,18 @@ export interface KonduxInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "transferFrom",
-    values: [string, string, BigNumberish]
+    values: [
+      PromiseOrValue<string>,
+      PromiseOrValue<string>,
+      PromiseOrValue<BigNumberish>
+    ]
   ): string;
   encodeFunctionData(functionFragment: "unpause", values?: undefined): string;
 
+  decodeFunctionResult(
+    functionFragment: "MINTER_ROLE",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "approve", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "authority", data: BytesLike): Result;
   decodeFunctionResult(
@@ -242,7 +273,6 @@ export interface KonduxInterface extends utils.Interface {
     functionFragment: "isApprovedForAll",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "minter", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "name", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "ownerOf", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "pause", data: BytesLike): Result;
@@ -274,7 +304,6 @@ export interface KonduxInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "setDna", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "setMinter", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "setTokenRoyalty",
     data: BytesLike
@@ -459,470 +488,497 @@ export interface Kondux extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
+    MINTER_ROLE(overrides?: CallOverrides): Promise<[string]>;
+
     approve(
-      to: string,
-      tokenId: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      to: PromiseOrValue<string>,
+      tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     authority(overrides?: CallOverrides): Promise<[string]>;
 
     automaticMint(
-      to: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      to: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    balanceOf(owner: string, overrides?: CallOverrides): Promise<[BigNumber]>;
+    balanceOf(
+      owner: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
 
     baseURI(overrides?: CallOverrides): Promise<[string]>;
 
     burn(
-      tokenId: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     changeDenominator(
-      _denominator: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _denominator: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     denominator(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     getApproved(
-      tokenId: BigNumberish,
+      tokenId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<[string]>;
 
     getDna(
-      _tokenID: BigNumberish,
+      _tokenID: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
     indexDna(
-      arg0: BigNumberish,
+      arg0: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
     isApprovedForAll(
-      owner: string,
-      operator: string,
+      owner: PromiseOrValue<string>,
+      operator: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<[boolean]>;
-
-    minter(overrides?: CallOverrides): Promise<[string]>;
 
     name(overrides?: CallOverrides): Promise<[string]>;
 
     ownerOf(
-      tokenId: BigNumberish,
+      tokenId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<[string]>;
 
     pause(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     paused(overrides?: CallOverrides): Promise<[boolean]>;
 
     royaltyInfo(
-      _tokenId: BigNumberish,
-      _salePrice: BigNumberish,
+      _tokenId: PromiseOrValue<BigNumberish>,
+      _salePrice: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<[string, BigNumber]>;
 
     safeMint(
-      to: string,
-      dna: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      to: PromiseOrValue<string>,
+      dna: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     "safeTransferFrom(address,address,uint256)"(
-      from: string,
-      to: string,
-      tokenId: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      from: PromiseOrValue<string>,
+      to: PromiseOrValue<string>,
+      tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     "safeTransferFrom(address,address,uint256,bytes)"(
-      from: string,
-      to: string,
-      tokenId: BigNumberish,
-      _data: BytesLike,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      from: PromiseOrValue<string>,
+      to: PromiseOrValue<string>,
+      tokenId: PromiseOrValue<BigNumberish>,
+      data: PromiseOrValue<BytesLike>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     setApprovalForAll(
-      operator: string,
-      approved: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      operator: PromiseOrValue<string>,
+      approved: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     setAuthority(
-      _newAuthority: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newAuthority: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     setBaseURI(
-      _newURI: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newURI: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     setDefaultRoyalty(
-      receiver: string,
-      feeNumerator: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      receiver: PromiseOrValue<string>,
+      feeNumerator: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     setDna(
-      _tokenID: BigNumberish,
-      _dna: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
-    setMinter(
-      _minter: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _tokenID: PromiseOrValue<BigNumberish>,
+      _dna: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     setTokenRoyalty(
-      tokenId: BigNumberish,
-      receiver: string,
-      feeNumerator: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      tokenId: PromiseOrValue<BigNumberish>,
+      receiver: PromiseOrValue<string>,
+      feeNumerator: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     supportsInterface(
-      interfaceId: BytesLike,
+      interfaceId: PromiseOrValue<BytesLike>,
       overrides?: CallOverrides
     ): Promise<[boolean]>;
 
     symbol(overrides?: CallOverrides): Promise<[string]>;
 
     tokenByIndex(
-      index: BigNumberish,
+      index: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
     tokenOfOwnerByIndex(
-      owner: string,
-      index: BigNumberish,
+      owner: PromiseOrValue<string>,
+      index: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
     tokenURI(
-      tokenId: BigNumberish,
+      tokenId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<[string]>;
 
     totalSupply(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     transferFrom(
-      from: string,
-      to: string,
-      tokenId: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      from: PromiseOrValue<string>,
+      to: PromiseOrValue<string>,
+      tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     unpause(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
   };
 
+  MINTER_ROLE(overrides?: CallOverrides): Promise<string>;
+
   approve(
-    to: string,
-    tokenId: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    to: PromiseOrValue<string>,
+    tokenId: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   authority(overrides?: CallOverrides): Promise<string>;
 
   automaticMint(
-    to: string,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    to: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  balanceOf(owner: string, overrides?: CallOverrides): Promise<BigNumber>;
+  balanceOf(
+    owner: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
 
   baseURI(overrides?: CallOverrides): Promise<string>;
 
   burn(
-    tokenId: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    tokenId: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   changeDenominator(
-    _denominator: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _denominator: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   denominator(overrides?: CallOverrides): Promise<BigNumber>;
 
   getApproved(
-    tokenId: BigNumberish,
+    tokenId: PromiseOrValue<BigNumberish>,
     overrides?: CallOverrides
   ): Promise<string>;
 
-  getDna(_tokenID: BigNumberish, overrides?: CallOverrides): Promise<BigNumber>;
+  getDna(
+    _tokenID: PromiseOrValue<BigNumberish>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
 
-  indexDna(arg0: BigNumberish, overrides?: CallOverrides): Promise<BigNumber>;
+  indexDna(
+    arg0: PromiseOrValue<BigNumberish>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
 
   isApprovedForAll(
-    owner: string,
-    operator: string,
+    owner: PromiseOrValue<string>,
+    operator: PromiseOrValue<string>,
     overrides?: CallOverrides
   ): Promise<boolean>;
 
-  minter(overrides?: CallOverrides): Promise<string>;
-
   name(overrides?: CallOverrides): Promise<string>;
 
-  ownerOf(tokenId: BigNumberish, overrides?: CallOverrides): Promise<string>;
+  ownerOf(
+    tokenId: PromiseOrValue<BigNumberish>,
+    overrides?: CallOverrides
+  ): Promise<string>;
 
   pause(
-    overrides?: Overrides & { from?: string | Promise<string> }
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   paused(overrides?: CallOverrides): Promise<boolean>;
 
   royaltyInfo(
-    _tokenId: BigNumberish,
-    _salePrice: BigNumberish,
+    _tokenId: PromiseOrValue<BigNumberish>,
+    _salePrice: PromiseOrValue<BigNumberish>,
     overrides?: CallOverrides
   ): Promise<[string, BigNumber]>;
 
   safeMint(
-    to: string,
-    dna: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    to: PromiseOrValue<string>,
+    dna: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   "safeTransferFrom(address,address,uint256)"(
-    from: string,
-    to: string,
-    tokenId: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    from: PromiseOrValue<string>,
+    to: PromiseOrValue<string>,
+    tokenId: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   "safeTransferFrom(address,address,uint256,bytes)"(
-    from: string,
-    to: string,
-    tokenId: BigNumberish,
-    _data: BytesLike,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    from: PromiseOrValue<string>,
+    to: PromiseOrValue<string>,
+    tokenId: PromiseOrValue<BigNumberish>,
+    data: PromiseOrValue<BytesLike>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   setApprovalForAll(
-    operator: string,
-    approved: boolean,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    operator: PromiseOrValue<string>,
+    approved: PromiseOrValue<boolean>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   setAuthority(
-    _newAuthority: string,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _newAuthority: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   setBaseURI(
-    _newURI: string,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _newURI: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   setDefaultRoyalty(
-    receiver: string,
-    feeNumerator: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    receiver: PromiseOrValue<string>,
+    feeNumerator: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   setDna(
-    _tokenID: BigNumberish,
-    _dna: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
-  setMinter(
-    _minter: string,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _tokenID: PromiseOrValue<BigNumberish>,
+    _dna: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   setTokenRoyalty(
-    tokenId: BigNumberish,
-    receiver: string,
-    feeNumerator: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    tokenId: PromiseOrValue<BigNumberish>,
+    receiver: PromiseOrValue<string>,
+    feeNumerator: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   supportsInterface(
-    interfaceId: BytesLike,
+    interfaceId: PromiseOrValue<BytesLike>,
     overrides?: CallOverrides
   ): Promise<boolean>;
 
   symbol(overrides?: CallOverrides): Promise<string>;
 
   tokenByIndex(
-    index: BigNumberish,
+    index: PromiseOrValue<BigNumberish>,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
   tokenOfOwnerByIndex(
-    owner: string,
-    index: BigNumberish,
+    owner: PromiseOrValue<string>,
+    index: PromiseOrValue<BigNumberish>,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
-  tokenURI(tokenId: BigNumberish, overrides?: CallOverrides): Promise<string>;
+  tokenURI(
+    tokenId: PromiseOrValue<BigNumberish>,
+    overrides?: CallOverrides
+  ): Promise<string>;
 
   totalSupply(overrides?: CallOverrides): Promise<BigNumber>;
 
   transferFrom(
-    from: string,
-    to: string,
-    tokenId: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    from: PromiseOrValue<string>,
+    to: PromiseOrValue<string>,
+    tokenId: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   unpause(
-    overrides?: Overrides & { from?: string | Promise<string> }
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   callStatic: {
+    MINTER_ROLE(overrides?: CallOverrides): Promise<string>;
+
     approve(
-      to: string,
-      tokenId: BigNumberish,
+      to: PromiseOrValue<string>,
+      tokenId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     authority(overrides?: CallOverrides): Promise<string>;
 
-    automaticMint(to: string, overrides?: CallOverrides): Promise<BigNumber>;
+    automaticMint(
+      to: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
-    balanceOf(owner: string, overrides?: CallOverrides): Promise<BigNumber>;
+    balanceOf(
+      owner: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
     baseURI(overrides?: CallOverrides): Promise<string>;
 
-    burn(tokenId: BigNumberish, overrides?: CallOverrides): Promise<void>;
+    burn(
+      tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     changeDenominator(
-      _denominator: BigNumberish,
+      _denominator: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     denominator(overrides?: CallOverrides): Promise<BigNumber>;
 
     getApproved(
-      tokenId: BigNumberish,
+      tokenId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<string>;
 
     getDna(
-      _tokenID: BigNumberish,
+      _tokenID: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    indexDna(arg0: BigNumberish, overrides?: CallOverrides): Promise<BigNumber>;
+    indexDna(
+      arg0: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
     isApprovedForAll(
-      owner: string,
-      operator: string,
+      owner: PromiseOrValue<string>,
+      operator: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<boolean>;
 
-    minter(overrides?: CallOverrides): Promise<string>;
-
     name(overrides?: CallOverrides): Promise<string>;
 
-    ownerOf(tokenId: BigNumberish, overrides?: CallOverrides): Promise<string>;
+    ownerOf(
+      tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<string>;
 
     pause(overrides?: CallOverrides): Promise<void>;
 
     paused(overrides?: CallOverrides): Promise<boolean>;
 
     royaltyInfo(
-      _tokenId: BigNumberish,
-      _salePrice: BigNumberish,
+      _tokenId: PromiseOrValue<BigNumberish>,
+      _salePrice: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<[string, BigNumber]>;
 
     safeMint(
-      to: string,
-      dna: BigNumberish,
+      to: PromiseOrValue<string>,
+      dna: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     "safeTransferFrom(address,address,uint256)"(
-      from: string,
-      to: string,
-      tokenId: BigNumberish,
+      from: PromiseOrValue<string>,
+      to: PromiseOrValue<string>,
+      tokenId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     "safeTransferFrom(address,address,uint256,bytes)"(
-      from: string,
-      to: string,
-      tokenId: BigNumberish,
-      _data: BytesLike,
+      from: PromiseOrValue<string>,
+      to: PromiseOrValue<string>,
+      tokenId: PromiseOrValue<BigNumberish>,
+      data: PromiseOrValue<BytesLike>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     setApprovalForAll(
-      operator: string,
-      approved: boolean,
+      operator: PromiseOrValue<string>,
+      approved: PromiseOrValue<boolean>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     setAuthority(
-      _newAuthority: string,
+      _newAuthority: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setBaseURI(_newURI: string, overrides?: CallOverrides): Promise<string>;
+    setBaseURI(
+      _newURI: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<string>;
 
     setDefaultRoyalty(
-      receiver: string,
-      feeNumerator: BigNumberish,
+      receiver: PromiseOrValue<string>,
+      feeNumerator: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     setDna(
-      _tokenID: BigNumberish,
-      _dna: BigNumberish,
+      _tokenID: PromiseOrValue<BigNumberish>,
+      _dna: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setMinter(_minter: string, overrides?: CallOverrides): Promise<void>;
-
     setTokenRoyalty(
-      tokenId: BigNumberish,
-      receiver: string,
-      feeNumerator: BigNumberish,
+      tokenId: PromiseOrValue<BigNumberish>,
+      receiver: PromiseOrValue<string>,
+      feeNumerator: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     supportsInterface(
-      interfaceId: BytesLike,
+      interfaceId: PromiseOrValue<BytesLike>,
       overrides?: CallOverrides
     ): Promise<boolean>;
 
     symbol(overrides?: CallOverrides): Promise<string>;
 
     tokenByIndex(
-      index: BigNumberish,
+      index: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     tokenOfOwnerByIndex(
-      owner: string,
-      index: BigNumberish,
+      owner: PromiseOrValue<string>,
+      index: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    tokenURI(tokenId: BigNumberish, overrides?: CallOverrides): Promise<string>;
+    tokenURI(
+      tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<string>;
 
     totalSupply(overrides?: CallOverrides): Promise<BigNumber>;
 
     transferFrom(
-      from: string,
-      to: string,
-      tokenId: BigNumberish,
+      from: PromiseOrValue<string>,
+      to: PromiseOrValue<string>,
+      tokenId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -931,24 +987,24 @@ export interface Kondux extends BaseContract {
 
   filters: {
     "Approval(address,address,uint256)"(
-      owner?: string | null,
-      approved?: string | null,
-      tokenId?: BigNumberish | null
+      owner?: PromiseOrValue<string> | null,
+      approved?: PromiseOrValue<string> | null,
+      tokenId?: PromiseOrValue<BigNumberish> | null
     ): ApprovalEventFilter;
     Approval(
-      owner?: string | null,
-      approved?: string | null,
-      tokenId?: BigNumberish | null
+      owner?: PromiseOrValue<string> | null,
+      approved?: PromiseOrValue<string> | null,
+      tokenId?: PromiseOrValue<BigNumberish> | null
     ): ApprovalEventFilter;
 
     "ApprovalForAll(address,address,bool)"(
-      owner?: string | null,
-      operator?: string | null,
+      owner?: PromiseOrValue<string> | null,
+      operator?: PromiseOrValue<string> | null,
       approved?: null
     ): ApprovalForAllEventFilter;
     ApprovalForAll(
-      owner?: string | null,
-      operator?: string | null,
+      owner?: PromiseOrValue<string> | null,
+      operator?: PromiseOrValue<string> | null,
       approved?: null
     ): ApprovalForAllEventFilter;
 
@@ -979,14 +1035,14 @@ export interface Kondux extends BaseContract {
     Received(sender?: null, value?: null): ReceivedEventFilter;
 
     "Transfer(address,address,uint256)"(
-      from?: string | null,
-      to?: string | null,
-      tokenId?: BigNumberish | null
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null,
+      tokenId?: PromiseOrValue<BigNumberish> | null
     ): TransferEventFilter;
     Transfer(
-      from?: string | null,
-      to?: string | null,
-      tokenId?: BigNumberish | null
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null,
+      tokenId?: PromiseOrValue<BigNumberish> | null
     ): TransferEventFilter;
 
     "Unpaused(address)"(account?: null): UnpausedEventFilter;
@@ -994,342 +1050,338 @@ export interface Kondux extends BaseContract {
   };
 
   estimateGas: {
+    MINTER_ROLE(overrides?: CallOverrides): Promise<BigNumber>;
+
     approve(
-      to: string,
-      tokenId: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      to: PromiseOrValue<string>,
+      tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     authority(overrides?: CallOverrides): Promise<BigNumber>;
 
     automaticMint(
-      to: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      to: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    balanceOf(owner: string, overrides?: CallOverrides): Promise<BigNumber>;
+    balanceOf(
+      owner: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
     baseURI(overrides?: CallOverrides): Promise<BigNumber>;
 
     burn(
-      tokenId: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     changeDenominator(
-      _denominator: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _denominator: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     denominator(overrides?: CallOverrides): Promise<BigNumber>;
 
     getApproved(
-      tokenId: BigNumberish,
+      tokenId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     getDna(
-      _tokenID: BigNumberish,
+      _tokenID: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    indexDna(arg0: BigNumberish, overrides?: CallOverrides): Promise<BigNumber>;
+    indexDna(
+      arg0: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
     isApprovedForAll(
-      owner: string,
-      operator: string,
+      owner: PromiseOrValue<string>,
+      operator: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
-
-    minter(overrides?: CallOverrides): Promise<BigNumber>;
 
     name(overrides?: CallOverrides): Promise<BigNumber>;
 
     ownerOf(
-      tokenId: BigNumberish,
+      tokenId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     pause(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     paused(overrides?: CallOverrides): Promise<BigNumber>;
 
     royaltyInfo(
-      _tokenId: BigNumberish,
-      _salePrice: BigNumberish,
+      _tokenId: PromiseOrValue<BigNumberish>,
+      _salePrice: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     safeMint(
-      to: string,
-      dna: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      to: PromiseOrValue<string>,
+      dna: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     "safeTransferFrom(address,address,uint256)"(
-      from: string,
-      to: string,
-      tokenId: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      from: PromiseOrValue<string>,
+      to: PromiseOrValue<string>,
+      tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     "safeTransferFrom(address,address,uint256,bytes)"(
-      from: string,
-      to: string,
-      tokenId: BigNumberish,
-      _data: BytesLike,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      from: PromiseOrValue<string>,
+      to: PromiseOrValue<string>,
+      tokenId: PromiseOrValue<BigNumberish>,
+      data: PromiseOrValue<BytesLike>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     setApprovalForAll(
-      operator: string,
-      approved: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      operator: PromiseOrValue<string>,
+      approved: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     setAuthority(
-      _newAuthority: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newAuthority: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     setBaseURI(
-      _newURI: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newURI: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     setDefaultRoyalty(
-      receiver: string,
-      feeNumerator: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      receiver: PromiseOrValue<string>,
+      feeNumerator: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     setDna(
-      _tokenID: BigNumberish,
-      _dna: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
-    setMinter(
-      _minter: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _tokenID: PromiseOrValue<BigNumberish>,
+      _dna: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     setTokenRoyalty(
-      tokenId: BigNumberish,
-      receiver: string,
-      feeNumerator: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      tokenId: PromiseOrValue<BigNumberish>,
+      receiver: PromiseOrValue<string>,
+      feeNumerator: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     supportsInterface(
-      interfaceId: BytesLike,
+      interfaceId: PromiseOrValue<BytesLike>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     symbol(overrides?: CallOverrides): Promise<BigNumber>;
 
     tokenByIndex(
-      index: BigNumberish,
+      index: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     tokenOfOwnerByIndex(
-      owner: string,
-      index: BigNumberish,
+      owner: PromiseOrValue<string>,
+      index: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     tokenURI(
-      tokenId: BigNumberish,
+      tokenId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     totalSupply(overrides?: CallOverrides): Promise<BigNumber>;
 
     transferFrom(
-      from: string,
-      to: string,
-      tokenId: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      from: PromiseOrValue<string>,
+      to: PromiseOrValue<string>,
+      tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     unpause(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
   };
 
   populateTransaction: {
+    MINTER_ROLE(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     approve(
-      to: string,
-      tokenId: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      to: PromiseOrValue<string>,
+      tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     authority(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     automaticMint(
-      to: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      to: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     balanceOf(
-      owner: string,
+      owner: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     baseURI(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     burn(
-      tokenId: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     changeDenominator(
-      _denominator: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _denominator: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     denominator(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     getApproved(
-      tokenId: BigNumberish,
+      tokenId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     getDna(
-      _tokenID: BigNumberish,
+      _tokenID: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     indexDna(
-      arg0: BigNumberish,
+      arg0: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     isApprovedForAll(
-      owner: string,
-      operator: string,
+      owner: PromiseOrValue<string>,
+      operator: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
-
-    minter(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     name(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     ownerOf(
-      tokenId: BigNumberish,
+      tokenId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     pause(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     paused(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     royaltyInfo(
-      _tokenId: BigNumberish,
-      _salePrice: BigNumberish,
+      _tokenId: PromiseOrValue<BigNumberish>,
+      _salePrice: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     safeMint(
-      to: string,
-      dna: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      to: PromiseOrValue<string>,
+      dna: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     "safeTransferFrom(address,address,uint256)"(
-      from: string,
-      to: string,
-      tokenId: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      from: PromiseOrValue<string>,
+      to: PromiseOrValue<string>,
+      tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     "safeTransferFrom(address,address,uint256,bytes)"(
-      from: string,
-      to: string,
-      tokenId: BigNumberish,
-      _data: BytesLike,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      from: PromiseOrValue<string>,
+      to: PromiseOrValue<string>,
+      tokenId: PromiseOrValue<BigNumberish>,
+      data: PromiseOrValue<BytesLike>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     setApprovalForAll(
-      operator: string,
-      approved: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      operator: PromiseOrValue<string>,
+      approved: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     setAuthority(
-      _newAuthority: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newAuthority: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     setBaseURI(
-      _newURI: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newURI: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     setDefaultRoyalty(
-      receiver: string,
-      feeNumerator: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      receiver: PromiseOrValue<string>,
+      feeNumerator: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     setDna(
-      _tokenID: BigNumberish,
-      _dna: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
-    setMinter(
-      _minter: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _tokenID: PromiseOrValue<BigNumberish>,
+      _dna: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     setTokenRoyalty(
-      tokenId: BigNumberish,
-      receiver: string,
-      feeNumerator: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      tokenId: PromiseOrValue<BigNumberish>,
+      receiver: PromiseOrValue<string>,
+      feeNumerator: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     supportsInterface(
-      interfaceId: BytesLike,
+      interfaceId: PromiseOrValue<BytesLike>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     symbol(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     tokenByIndex(
-      index: BigNumberish,
+      index: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     tokenOfOwnerByIndex(
-      owner: string,
-      index: BigNumberish,
+      owner: PromiseOrValue<string>,
+      index: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     tokenURI(
-      tokenId: BigNumberish,
+      tokenId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     totalSupply(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     transferFrom(
-      from: string,
-      to: string,
-      tokenId: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      from: PromiseOrValue<string>,
+      to: PromiseOrValue<string>,
+      tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     unpause(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
   };
 }

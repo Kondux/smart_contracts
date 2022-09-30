@@ -1,28 +1,28 @@
-import "@typechain/hardhat";
-import "@nomiclabs/hardhat-ethers";
-import "@nomiclabs/hardhat-waffle";
-import "@nomiclabs/hardhat-etherscan";
-import "hardhat-gas-reporter";
-import "solidity-coverage";
+import "@nomicfoundation/hardhat-toolbox";
+import "@nomicfoundation/hardhat-chai-matchers";
 import "@openzeppelin/hardhat-upgrades";
+import "@nomiclabs/hardhat-solhint";
 import "hardhat-abi-exporter";
-
 import "hardhat-deploy";
-
+require('@typechain/hardhat')
+require('@nomiclabs/hardhat-ethers')
+// require('@nomiclabs/hardhat-waffle')
 import { resolve } from "path";
-
 import { config as dotenvConfig } from "dotenv";
 import { HardhatUserConfig } from "hardhat/config";
 import { NetworkUserConfig } from "hardhat/types";
+import "@ericxstone/hardhat-blockscout-verify";
+
 
 dotenvConfig({ path: resolve(__dirname, "./.env") });
 
-
-const DATAHUB_API_KEY = process.env.DATAHUB_API_KEY;
-const FUJI_PRIVATE_KEY = process.env.FUJI_PRIVATE_KEY;
-const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY;
-// const ALCHEMY_API_KEY = "91XJqsiTl71uJgk19MlCHf0cc1leGk6a";
-// process.env.ALCHEMY_API_KEY = ALCHEMY_API_KEY;
+const DATAHUB_API_KEY = process.env.DATAHUB_API_KEY || "";
+const FUJI_PRIVATE_KEY = process.env.FUJI_PRIVATE_KEY || "";
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || "";
+const COINMARKETCAP_API_KEY = process.env.COINMARKETCAP_API_KEY || "";
+const MATICVIGIL_API_KEY = process.env.MATICVIGIL_API_KEY || "";
+const POLYGONSCAN_API_KEY = process.env.POLYGONSCAN_API_KEY || "";
+const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY || "";
 
 const chainIds = {
   goerli: 5,
@@ -31,25 +31,55 @@ const chainIds = {
   mainnet: 1,
   rinkeby: 4,
   ropsten: 3,
+  polygon: 137,
+  polygonMumbai: 80001,
+  fuji: 43113,
+  avalanche: 43114,
 };
 
 // Ensure that we have all the environment variables we need.
-const deployerPK = process.env.DEPLOYER_PK ?? "NO_DEPLOYER_PK";
-const tokenOwnerPK = process.env.TOKEN_OWNER_PK ?? "NO_TOKEN_OWNER_PK";
-// Make sure node is setup on Alchemy website
-const alchemyApiKey = process.env.ALCHEMY_API_KEY ?? "NO_ALCHEMY_API_KEY";
+const deployerPK = process.env.DEPLOYER_PK ?? "NO_DEPLOYER_PK"; 
+const prodDeployerPK = process.env.PROD_DEPLOYER_PK ?? "NO_PROD_DEPLOYER_PK";
 
+// Accounts
+const accounts = {
+  // special accounts
+};
 
 
 function getChainConfig(network: keyof typeof chainIds): NetworkUserConfig {
-  const url = `https://eth-${network}.alchemyapi.io/v2/${alchemyApiKey}`;
+  const url = getChainRPC(network);
+  let deployer = deployerPK;
+
+  if ((network === "mainnet" || network === "polygon" || network === "avalanche") && prodDeployerPK !== "NO_PROD_DEPLOYER_PK") {
+    deployer = prodDeployerPK;
+  }
+
   return {
-      accounts: [deployerPK, tokenOwnerPK],
+      accounts: [deployer],
       chainId: chainIds[network],
       url,
-      // gas: 2100000,
-      // gasPrice: 8000000000,
   };
+}
+
+function getChainRPC(network: keyof typeof chainIds): string {
+  switch (network) {
+    case "mainnet":
+    case "rinkeby":
+    case "goerli":
+    case "ropsten":
+      return `https://eth-${network}.alchemyapi.io/v2/${ALCHEMY_API_KEY}`;
+    case "polygon":
+      return `https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`;
+    case "polygonMumbai":
+      return `https://polygon-mumbai.g.alchemy.com/v2/${ALCHEMY_API_KEY}`;
+    case "fuji":
+      return `https://avalanche--${network}--rpc.datahub.figment.io/apikey/${DATAHUB_API_KEY}/ext/bc/C/rpc`;
+    case "avalanche":
+      return `https://avalanche--mainnet--rpc.datahub.figment.io/apikey/${DATAHUB_API_KEY}/ext/bc/C/rpc`;
+    default:
+      return "";
+  }
 }
 
 /**
@@ -57,66 +87,76 @@ function getChainConfig(network: keyof typeof chainIds): NetworkUserConfig {
  */
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
-    networks: {
-      localhost: {
-        url: "http://127.0.0.1:8545"
-      },        
-      hardhat: {
-          mining: {
-            auto: true,
-            // interval: 20000 // milliseconds
-          },
-          chainId: chainIds.hardhat,          
-          loggingEnabled: process.env.EVM_LOGGING === "true",
-      },
-      fuji: {
-          url: `https://avalanche--fuji--rpc.datahub.figment.io/apikey/${DATAHUB_API_KEY}/ext/bc/C/rpc`,
-          accounts: [deployerPK, tokenOwnerPK],
-          gasPrice: 25000000000, //225000000000
-                                // 25000000000
-          // gas: 10001,
-          // chainId: 43113,
+  networks: {
+    localhost: {
+      url: "http://127.0.0.1:8545"
+    },        
+    hardhat: {
+        mining: {
+          auto: true,
+          // interval: 20000 // milliseconds
         },
-      avalanche: {
-          url: `https://avalanche--mainnet--rpc.datahub.figment.io/apikey/${DATAHUB_API_KEY}/ext/bc/C/rpc`,
-          accounts: [deployerPK, tokenOwnerPK],
-          gasPrice: 25000000000,
-        },
-      // Uncomment for testing. Commented due to CI issues
-      mainnet: getChainConfig("mainnet"),
-      rinkeby: getChainConfig("rinkeby"),
-      ropsten: getChainConfig("ropsten"),
+        chainId: chainIds.hardhat,          
+        loggingEnabled: process.env.EVM_LOGGING === "true",
+        // forking: {
+        //   url: getChainRPC("mainnet")
+        // },
         
+    },   
+    mainnet: getChainConfig("mainnet"),
+    rinkeby: getChainConfig("rinkeby"),
+    ropsten: getChainConfig("ropsten"),
+    goerli: getChainConfig("goerli"),
+    polygon: getChainConfig("polygon"),
+    polygonMumbai: getChainConfig("polygonMumbai"),
+    avalanche: getChainConfig("avalanche"),
+    fuji: getChainConfig("fuji"),        
   },
   gasReporter: {
     currency: 'USD',
     token: 'ETH',
-    gasPrice: 156,
     showMethodSig: true,
     showTimeSpent: true,
     enabled: process.env.REPORT_GAS ? true : false,
     excludeContracts: [],
     src: "./contracts",
+    coinmarketcap: COINMARKETCAP_API_KEY,
   },
 
   etherscan: {
-    apiKey: ETHERSCAN_API_KEY
+    apiKey: {
+      polygonMumbai: POLYGONSCAN_API_KEY,
+      polygon: POLYGONSCAN_API_KEY,
+      mainnet: ETHERSCAN_API_KEY,
+      rinkenby: ETHERSCAN_API_KEY,
+      goerli: ETHERSCAN_API_KEY,
+    },
   },
-
+//   blockscoutVerify: {
+//     blockscoutURL: "https://explorer.songchain.ens.re/",
+//     contracts: {
+//       "<CONTRACT_NAME>": {
+//         compilerVersion: SOLIDITY_VERSION.SOLIDITY_V_8_11, // checkout enum SOLIDITY_VERSION
+//         optimization: true,
+//         evmVersion: EVM_VERSION.<EVM_VERSION>, // checkout enum SOLIDITY_VERSION
+//         optimizationRuns: 999999,
+//       },
+//     },
+//   },
   solidity: {
     compilers: [
-        {
-            version: "0.8.9",
-            settings: {
-                metadata: {
-                    bytecodeHash: "none",
-                },
-                optimizer: {
-                    enabled: true,
-                    runs: 800,
-                },
-            },
-        }
+      {
+        version: "0.8.16",
+        settings: {
+          metadata: {
+            bytecodeHash: "none",
+          },
+          optimizer: {
+            enabled: true,
+            runs: 800,
+          },
+        },
+      }
     ],
     settings: {
         outputSelection: {
@@ -129,11 +169,7 @@ const config: HardhatUserConfig = {
   namedAccounts: {
     deployer: {
         default: 0,
-        tokenOwner: 1,
-    },
-    // ownedWallets: {
-    //     1: "0x245cc372C84B3645Bf0Ffe6538620B04a217988B",
-    // },
+    }
 },
   typechain: {
     outDir: "types",

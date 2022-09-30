@@ -21,6 +21,7 @@ import type {
   TypedEvent,
   TypedListener,
   OnEvent,
+  PromiseOrValue,
 } from "../../common";
 
 export interface IAuthorityInterface extends utils.Interface {
@@ -28,21 +29,32 @@ export interface IAuthorityInterface extends utils.Interface {
     "governor()": FunctionFragment;
     "guardian()": FunctionFragment;
     "policy()": FunctionFragment;
+    "roles(address)": FunctionFragment;
     "vault()": FunctionFragment;
   };
 
   getFunction(
-    nameOrSignatureOrTopic: "governor" | "guardian" | "policy" | "vault"
+    nameOrSignatureOrTopic:
+      | "governor"
+      | "guardian"
+      | "policy"
+      | "roles"
+      | "vault"
   ): FunctionFragment;
 
   encodeFunctionData(functionFragment: "governor", values?: undefined): string;
   encodeFunctionData(functionFragment: "guardian", values?: undefined): string;
   encodeFunctionData(functionFragment: "policy", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "roles",
+    values: [PromiseOrValue<string>]
+  ): string;
   encodeFunctionData(functionFragment: "vault", values?: undefined): string;
 
   decodeFunctionResult(functionFragment: "governor", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "guardian", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "policy", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "roles", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "vault", data: BytesLike): Result;
 
   events: {
@@ -52,6 +64,7 @@ export interface IAuthorityInterface extends utils.Interface {
     "GuardianPushed(address,address,bool)": EventFragment;
     "PolicyPulled(address,address)": EventFragment;
     "PolicyPushed(address,address,bool)": EventFragment;
+    "RolePushed(address,bytes32)": EventFragment;
     "VaultPulled(address,address)": EventFragment;
     "VaultPushed(address,address,bool)": EventFragment;
   };
@@ -62,6 +75,7 @@ export interface IAuthorityInterface extends utils.Interface {
   getEvent(nameOrSignatureOrTopic: "GuardianPushed"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "PolicyPulled"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "PolicyPushed"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "RolePushed"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "VaultPulled"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "VaultPushed"): EventFragment;
 }
@@ -135,6 +149,17 @@ export type PolicyPushedEvent = TypedEvent<
 
 export type PolicyPushedEventFilter = TypedEventFilter<PolicyPushedEvent>;
 
+export interface RolePushedEventObject {
+  account: string;
+  _role: string;
+}
+export type RolePushedEvent = TypedEvent<
+  [string, string],
+  RolePushedEventObject
+>;
+
+export type RolePushedEventFilter = TypedEventFilter<RolePushedEvent>;
+
 export interface VaultPulledEventObject {
   from: string;
   to: string;
@@ -191,6 +216,11 @@ export interface IAuthority extends BaseContract {
 
     policy(overrides?: CallOverrides): Promise<[string]>;
 
+    roles(
+      _addr: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[string]>;
+
     vault(overrides?: CallOverrides): Promise<[string]>;
   };
 
@@ -199,6 +229,11 @@ export interface IAuthority extends BaseContract {
   guardian(overrides?: CallOverrides): Promise<string>;
 
   policy(overrides?: CallOverrides): Promise<string>;
+
+  roles(
+    _addr: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<string>;
 
   vault(overrides?: CallOverrides): Promise<string>;
 
@@ -209,87 +244,101 @@ export interface IAuthority extends BaseContract {
 
     policy(overrides?: CallOverrides): Promise<string>;
 
+    roles(
+      _addr: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<string>;
+
     vault(overrides?: CallOverrides): Promise<string>;
   };
 
   filters: {
     "GovernorPulled(address,address)"(
-      from?: string | null,
-      to?: string | null
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null
     ): GovernorPulledEventFilter;
     GovernorPulled(
-      from?: string | null,
-      to?: string | null
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null
     ): GovernorPulledEventFilter;
 
     "GovernorPushed(address,address,bool)"(
-      from?: string | null,
-      to?: string | null,
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null,
       _effectiveImmediately?: null
     ): GovernorPushedEventFilter;
     GovernorPushed(
-      from?: string | null,
-      to?: string | null,
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null,
       _effectiveImmediately?: null
     ): GovernorPushedEventFilter;
 
     "GuardianPulled(address,address)"(
-      from?: string | null,
-      to?: string | null
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null
     ): GuardianPulledEventFilter;
     GuardianPulled(
-      from?: string | null,
-      to?: string | null
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null
     ): GuardianPulledEventFilter;
 
     "GuardianPushed(address,address,bool)"(
-      from?: string | null,
-      to?: string | null,
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null,
       _effectiveImmediately?: null
     ): GuardianPushedEventFilter;
     GuardianPushed(
-      from?: string | null,
-      to?: string | null,
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null,
       _effectiveImmediately?: null
     ): GuardianPushedEventFilter;
 
     "PolicyPulled(address,address)"(
-      from?: string | null,
-      to?: string | null
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null
     ): PolicyPulledEventFilter;
     PolicyPulled(
-      from?: string | null,
-      to?: string | null
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null
     ): PolicyPulledEventFilter;
 
     "PolicyPushed(address,address,bool)"(
-      from?: string | null,
-      to?: string | null,
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null,
       _effectiveImmediately?: null
     ): PolicyPushedEventFilter;
     PolicyPushed(
-      from?: string | null,
-      to?: string | null,
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null,
       _effectiveImmediately?: null
     ): PolicyPushedEventFilter;
 
+    "RolePushed(address,bytes32)"(
+      account?: PromiseOrValue<string> | null,
+      _role?: null
+    ): RolePushedEventFilter;
+    RolePushed(
+      account?: PromiseOrValue<string> | null,
+      _role?: null
+    ): RolePushedEventFilter;
+
     "VaultPulled(address,address)"(
-      from?: string | null,
-      to?: string | null
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null
     ): VaultPulledEventFilter;
     VaultPulled(
-      from?: string | null,
-      to?: string | null
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null
     ): VaultPulledEventFilter;
 
     "VaultPushed(address,address,bool)"(
-      from?: string | null,
-      to?: string | null,
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null,
       _effectiveImmediately?: null
     ): VaultPushedEventFilter;
     VaultPushed(
-      from?: string | null,
-      to?: string | null,
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null,
       _effectiveImmediately?: null
     ): VaultPushedEventFilter;
   };
@@ -301,6 +350,11 @@ export interface IAuthority extends BaseContract {
 
     policy(overrides?: CallOverrides): Promise<BigNumber>;
 
+    roles(
+      _addr: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     vault(overrides?: CallOverrides): Promise<BigNumber>;
   };
 
@@ -310,6 +364,11 @@ export interface IAuthority extends BaseContract {
     guardian(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     policy(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    roles(
+      _addr: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
 
     vault(overrides?: CallOverrides): Promise<PopulatedTransaction>;
   };

@@ -20,6 +20,7 @@ import type {
   TypedEvent,
   TypedListener,
   OnEvent,
+  PromiseOrValue,
 } from "../../common";
 
 export interface IKonduxInterface extends utils.Interface {
@@ -52,30 +53,40 @@ export interface IKonduxInterface extends utils.Interface {
 
   encodeFunctionData(
     functionFragment: "automaticMint",
-    values: [string]
+    values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
     functionFragment: "changeDenominator",
-    values: [BigNumberish]
+    values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(functionFragment: "pause", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "safeMint",
-    values: [string, BigNumberish]
+    values: [PromiseOrValue<string>, PromiseOrValue<BigNumberish>]
   ): string;
-  encodeFunctionData(functionFragment: "setBaseURI", values: [string]): string;
+  encodeFunctionData(
+    functionFragment: "setBaseURI",
+    values: [PromiseOrValue<string>]
+  ): string;
   encodeFunctionData(
     functionFragment: "setDefaultRoyalty",
-    values: [string, BigNumberish]
+    values: [PromiseOrValue<string>, PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "setDna",
-    values: [BigNumberish, BigNumberish]
+    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<BigNumberish>]
   ): string;
-  encodeFunctionData(functionFragment: "setMinter", values: [string]): string;
+  encodeFunctionData(
+    functionFragment: "setMinter",
+    values: [PromiseOrValue<string>]
+  ): string;
   encodeFunctionData(
     functionFragment: "setTokenRoyalty",
-    values: [BigNumberish, string, BigNumberish]
+    values: [
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<string>,
+      PromiseOrValue<BigNumberish>
+    ]
   ): string;
   encodeFunctionData(functionFragment: "unpause", values?: undefined): string;
 
@@ -133,148 +144,157 @@ export interface IKondux extends BaseContract {
 
   functions: {
     automaticMint(
-      to: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      to: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     changeDenominator(
-      _denominator: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _denominator: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     pause(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     safeMint(
-      to: string,
-      dna: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      to: PromiseOrValue<string>,
+      dna: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     setBaseURI(
-      _newURI: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newURI: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     setDefaultRoyalty(
-      receiver: string,
-      feeNumerator: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      receiver: PromiseOrValue<string>,
+      feeNumerator: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     setDna(
-      _tokenID: BigNumberish,
-      _dna: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _tokenID: PromiseOrValue<BigNumberish>,
+      _dna: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     setMinter(
-      _minter: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _minter: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     setTokenRoyalty(
-      tokenId: BigNumberish,
-      receiver: string,
-      feeNumerator: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      tokenId: PromiseOrValue<BigNumberish>,
+      receiver: PromiseOrValue<string>,
+      feeNumerator: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     unpause(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
   };
 
   automaticMint(
-    to: string,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    to: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   changeDenominator(
-    _denominator: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _denominator: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   pause(
-    overrides?: Overrides & { from?: string | Promise<string> }
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   safeMint(
-    to: string,
-    dna: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    to: PromiseOrValue<string>,
+    dna: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   setBaseURI(
-    _newURI: string,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _newURI: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   setDefaultRoyalty(
-    receiver: string,
-    feeNumerator: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    receiver: PromiseOrValue<string>,
+    feeNumerator: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   setDna(
-    _tokenID: BigNumberish,
-    _dna: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _tokenID: PromiseOrValue<BigNumberish>,
+    _dna: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   setMinter(
-    _minter: string,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _minter: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   setTokenRoyalty(
-    tokenId: BigNumberish,
-    receiver: string,
-    feeNumerator: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    tokenId: PromiseOrValue<BigNumberish>,
+    receiver: PromiseOrValue<string>,
+    feeNumerator: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   unpause(
-    overrides?: Overrides & { from?: string | Promise<string> }
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   callStatic: {
-    automaticMint(to: string, overrides?: CallOverrides): Promise<BigNumber>;
+    automaticMint(
+      to: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
     changeDenominator(
-      _denominator: BigNumberish,
+      _denominator: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     pause(overrides?: CallOverrides): Promise<void>;
 
     safeMint(
-      to: string,
-      dna: BigNumberish,
+      to: PromiseOrValue<string>,
+      dna: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setBaseURI(_newURI: string, overrides?: CallOverrides): Promise<string>;
+    setBaseURI(
+      _newURI: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<string>;
 
     setDefaultRoyalty(
-      receiver: string,
-      feeNumerator: BigNumberish,
+      receiver: PromiseOrValue<string>,
+      feeNumerator: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     setDna(
-      _tokenID: BigNumberish,
-      _dna: BigNumberish,
+      _tokenID: PromiseOrValue<BigNumberish>,
+      _dna: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setMinter(_minter: string, overrides?: CallOverrides): Promise<void>;
+    setMinter(
+      _minter: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     setTokenRoyalty(
-      tokenId: BigNumberish,
-      receiver: string,
-      feeNumerator: BigNumberish,
+      tokenId: PromiseOrValue<BigNumberish>,
+      receiver: PromiseOrValue<string>,
+      feeNumerator: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -285,111 +305,111 @@ export interface IKondux extends BaseContract {
 
   estimateGas: {
     automaticMint(
-      to: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      to: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     changeDenominator(
-      _denominator: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _denominator: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     pause(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     safeMint(
-      to: string,
-      dna: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      to: PromiseOrValue<string>,
+      dna: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     setBaseURI(
-      _newURI: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newURI: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     setDefaultRoyalty(
-      receiver: string,
-      feeNumerator: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      receiver: PromiseOrValue<string>,
+      feeNumerator: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     setDna(
-      _tokenID: BigNumberish,
-      _dna: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _tokenID: PromiseOrValue<BigNumberish>,
+      _dna: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     setMinter(
-      _minter: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _minter: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     setTokenRoyalty(
-      tokenId: BigNumberish,
-      receiver: string,
-      feeNumerator: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      tokenId: PromiseOrValue<BigNumberish>,
+      receiver: PromiseOrValue<string>,
+      feeNumerator: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     unpause(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
   };
 
   populateTransaction: {
     automaticMint(
-      to: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      to: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     changeDenominator(
-      _denominator: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _denominator: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     pause(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     safeMint(
-      to: string,
-      dna: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      to: PromiseOrValue<string>,
+      dna: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     setBaseURI(
-      _newURI: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newURI: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     setDefaultRoyalty(
-      receiver: string,
-      feeNumerator: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      receiver: PromiseOrValue<string>,
+      feeNumerator: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     setDna(
-      _tokenID: BigNumberish,
-      _dna: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _tokenID: PromiseOrValue<BigNumberish>,
+      _dna: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     setMinter(
-      _minter: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _minter: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     setTokenRoyalty(
-      tokenId: BigNumberish,
-      receiver: string,
-      feeNumerator: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      tokenId: PromiseOrValue<BigNumberish>,
+      receiver: PromiseOrValue<string>,
+      feeNumerator: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     unpause(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
   };
 }

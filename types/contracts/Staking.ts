@@ -24,6 +24,7 @@ import type {
   TypedEvent,
   TypedListener,
   OnEvent,
+  PromiseOrValue,
 } from "../common";
 
 export interface StakingInterface extends utils.Interface {
@@ -71,7 +72,7 @@ export interface StakingInterface extends utils.Interface {
   encodeFunctionData(functionFragment: "authority", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "calculateRewards",
-    values: [string]
+    values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
     functionFragment: "claimRewards",
@@ -83,15 +84,15 @@ export interface StakingInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "compoundRewardsTimer",
-    values: [string]
+    values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
     functionFragment: "deposit",
-    values: [BigNumberish]
+    values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "getDepositInfo",
-    values: [string]
+    values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
     functionFragment: "konduxERC20",
@@ -104,19 +105,19 @@ export interface StakingInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "setAuthority",
-    values: [string]
+    values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
     functionFragment: "setCompFreq",
-    values: [BigNumberish]
+    values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "setMinStake",
-    values: [BigNumberish]
+    values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "setRewards",
-    values: [BigNumberish]
+    values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "stakeRewards",
@@ -124,7 +125,7 @@ export interface StakingInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "withdraw",
-    values: [BigNumberish]
+    values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "withdrawAll",
@@ -289,28 +290,28 @@ export interface Staking extends BaseContract {
     authority(overrides?: CallOverrides): Promise<[string]>;
 
     calculateRewards(
-      _staker: string,
+      _staker: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<[BigNumber] & { rewards: BigNumber }>;
 
     claimRewards(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     compoundFreq(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     compoundRewardsTimer(
-      _user: string,
+      _user: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<[BigNumber] & { _timer: BigNumber }>;
 
     deposit(
-      _amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _amount: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     getDepositInfo(
-      _user: string,
+      _user: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<
       [BigNumber, BigNumber] & { _stake: BigNumber; _rewards: BigNumber }
@@ -323,64 +324,64 @@ export interface Staking extends BaseContract {
     rewardsPerHour(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     setAuthority(
-      _newAuthority: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newAuthority: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     setCompFreq(
-      _compoundFreq: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _compoundFreq: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     setMinStake(
-      _minStake: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _minStake: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     setRewards(
-      _rewardsPerHour: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _rewardsPerHour: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     stakeRewards(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     withdraw(
-      _amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _amount: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     withdrawAll(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
   };
 
   authority(overrides?: CallOverrides): Promise<string>;
 
   calculateRewards(
-    _staker: string,
+    _staker: PromiseOrValue<string>,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
   claimRewards(
-    overrides?: Overrides & { from?: string | Promise<string> }
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   compoundFreq(overrides?: CallOverrides): Promise<BigNumber>;
 
   compoundRewardsTimer(
-    _user: string,
+    _user: PromiseOrValue<string>,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
   deposit(
-    _amount: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _amount: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   getDepositInfo(
-    _user: string,
+    _user: PromiseOrValue<string>,
     overrides?: CallOverrides
   ): Promise<
     [BigNumber, BigNumber] & { _stake: BigNumber; _rewards: BigNumber }
@@ -393,43 +394,43 @@ export interface Staking extends BaseContract {
   rewardsPerHour(overrides?: CallOverrides): Promise<BigNumber>;
 
   setAuthority(
-    _newAuthority: string,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _newAuthority: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   setCompFreq(
-    _compoundFreq: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _compoundFreq: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   setMinStake(
-    _minStake: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _minStake: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   setRewards(
-    _rewardsPerHour: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _rewardsPerHour: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   stakeRewards(
-    overrides?: Overrides & { from?: string | Promise<string> }
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   withdraw(
-    _amount: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _amount: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   withdrawAll(
-    overrides?: Overrides & { from?: string | Promise<string> }
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   callStatic: {
     authority(overrides?: CallOverrides): Promise<string>;
 
     calculateRewards(
-      _staker: string,
+      _staker: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -438,14 +439,17 @@ export interface Staking extends BaseContract {
     compoundFreq(overrides?: CallOverrides): Promise<BigNumber>;
 
     compoundRewardsTimer(
-      _user: string,
+      _user: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    deposit(_amount: BigNumberish, overrides?: CallOverrides): Promise<void>;
+    deposit(
+      _amount: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     getDepositInfo(
-      _user: string,
+      _user: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<
       [BigNumber, BigNumber] & { _stake: BigNumber; _rewards: BigNumber }
@@ -458,28 +462,31 @@ export interface Staking extends BaseContract {
     rewardsPerHour(overrides?: CallOverrides): Promise<BigNumber>;
 
     setAuthority(
-      _newAuthority: string,
+      _newAuthority: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     setCompFreq(
-      _compoundFreq: BigNumberish,
+      _compoundFreq: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     setMinStake(
-      _minStake: BigNumberish,
+      _minStake: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     setRewards(
-      _rewardsPerHour: BigNumberish,
+      _rewardsPerHour: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     stakeRewards(overrides?: CallOverrides): Promise<void>;
 
-    withdraw(_amount: BigNumberish, overrides?: CallOverrides): Promise<void>;
+    withdraw(
+      _amount: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     withdrawAll(overrides?: CallOverrides): Promise<void>;
   };
@@ -489,62 +496,77 @@ export interface Staking extends BaseContract {
     AuthorityUpdated(authority?: null): AuthorityUpdatedEventFilter;
 
     "Compound(address,uint256)"(
-      staker?: string | null,
+      staker?: PromiseOrValue<string> | null,
       amount?: null
     ): CompoundEventFilter;
-    Compound(staker?: string | null, amount?: null): CompoundEventFilter;
+    Compound(
+      staker?: PromiseOrValue<string> | null,
+      amount?: null
+    ): CompoundEventFilter;
 
     "Reward(address,uint256)"(
-      staker?: string | null,
+      staker?: PromiseOrValue<string> | null,
       amount?: null
     ): RewardEventFilter;
-    Reward(staker?: string | null, amount?: null): RewardEventFilter;
+    Reward(
+      staker?: PromiseOrValue<string> | null,
+      amount?: null
+    ): RewardEventFilter;
 
     "Stake(address,uint256)"(
-      staker?: string | null,
+      staker?: PromiseOrValue<string> | null,
       amount?: null
     ): StakeEventFilter;
-    Stake(staker?: string | null, amount?: null): StakeEventFilter;
+    Stake(
+      staker?: PromiseOrValue<string> | null,
+      amount?: null
+    ): StakeEventFilter;
 
     "Unstake(address,uint256)"(
-      staker?: string | null,
+      staker?: PromiseOrValue<string> | null,
       amount?: null
     ): UnstakeEventFilter;
-    Unstake(staker?: string | null, amount?: null): UnstakeEventFilter;
+    Unstake(
+      staker?: PromiseOrValue<string> | null,
+      amount?: null
+    ): UnstakeEventFilter;
 
     "Withdraw(address,uint256)"(
-      staker?: string | null,
+      staker?: PromiseOrValue<string> | null,
       amount?: null
     ): WithdrawEventFilter;
-    Withdraw(staker?: string | null, amount?: null): WithdrawEventFilter;
+    Withdraw(
+      staker?: PromiseOrValue<string> | null,
+      amount?: null
+    ): WithdrawEventFilter;
   };
 
   estimateGas: {
     authority(overrides?: CallOverrides): Promise<BigNumber>;
 
     calculateRewards(
-      _staker: string,
+      _staker: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     claimRewards(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     compoundFreq(overrides?: CallOverrides): Promise<BigNumber>;
 
     compoundRewardsTimer(
-      _user: string,
+      _user: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     deposit(
-      _amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _amount: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     getDepositInfo(
-      _user: string,
+      _user: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -555,36 +577,36 @@ export interface Staking extends BaseContract {
     rewardsPerHour(overrides?: CallOverrides): Promise<BigNumber>;
 
     setAuthority(
-      _newAuthority: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newAuthority: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     setCompFreq(
-      _compoundFreq: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _compoundFreq: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     setMinStake(
-      _minStake: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _minStake: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     setRewards(
-      _rewardsPerHour: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _rewardsPerHour: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     stakeRewards(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     withdraw(
-      _amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _amount: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     withdrawAll(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
   };
 
@@ -592,28 +614,28 @@ export interface Staking extends BaseContract {
     authority(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     calculateRewards(
-      _staker: string,
+      _staker: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     claimRewards(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     compoundFreq(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     compoundRewardsTimer(
-      _user: string,
+      _user: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     deposit(
-      _amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _amount: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     getDepositInfo(
-      _user: string,
+      _user: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
@@ -624,36 +646,36 @@ export interface Staking extends BaseContract {
     rewardsPerHour(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     setAuthority(
-      _newAuthority: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newAuthority: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     setCompFreq(
-      _compoundFreq: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _compoundFreq: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     setMinStake(
-      _minStake: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _minStake: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     setRewards(
-      _rewardsPerHour: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _rewardsPerHour: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     stakeRewards(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     withdraw(
-      _amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _amount: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     withdrawAll(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
   };
 }

@@ -148,6 +148,25 @@ const _abi = [
       {
         indexed: true,
         internalType: "address",
+        name: "account",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "bytes32",
+        name: "_role",
+        type: "bytes32",
+      },
+    ],
+    name: "RolePushed",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
         name: "from",
         type: "address",
       },
@@ -220,6 +239,25 @@ const _abi = [
         internalType: "address",
         name: "",
         type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "_addr",
+        type: "address",
+      },
+    ],
+    name: "roles",
+    outputs: [
+      {
+        internalType: "bytes32",
+        name: "",
+        type: "bytes32",
       },
     ],
     stateMutability: "view",

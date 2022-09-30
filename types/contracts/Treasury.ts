@@ -25,6 +25,7 @@ import type {
   TypedEvent,
   TypedListener,
   OnEvent,
+  PromiseOrValue,
 } from "../common";
 
 export interface TreasuryInterface extends utils.Interface {
@@ -57,7 +58,7 @@ export interface TreasuryInterface extends utils.Interface {
   encodeFunctionData(functionFragment: "authority", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "deposit",
-    values: [BigNumberish, string]
+    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
     functionFragment: "depositEther",
@@ -65,23 +66,27 @@ export interface TreasuryInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "permissions",
-    values: [BigNumberish, string]
+    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
     functionFragment: "setAuthority",
-    values: [string]
+    values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
     functionFragment: "setPermission",
-    values: [BigNumberish, string, boolean]
+    values: [
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<string>,
+      PromiseOrValue<boolean>
+    ]
   ): string;
   encodeFunctionData(
     functionFragment: "withdraw",
-    values: [BigNumberish, string]
+    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
     functionFragment: "withdrawEther",
-    values: [BigNumberish]
+    values: [PromiseOrValue<BigNumberish>]
   ): string;
 
   decodeFunctionResult(functionFragment: "Kondux", data: BytesLike): Result;
@@ -218,42 +223,42 @@ export interface Treasury extends BaseContract {
     authority(overrides?: CallOverrides): Promise<[string]>;
 
     deposit(
-      _amount: BigNumberish,
-      _token: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _amount: PromiseOrValue<BigNumberish>,
+      _token: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     depositEther(
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     permissions(
-      arg0: BigNumberish,
-      arg1: string,
+      arg0: PromiseOrValue<BigNumberish>,
+      arg1: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<[boolean]>;
 
     setAuthority(
-      _newAuthority: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newAuthority: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     setPermission(
-      _status: BigNumberish,
-      _address: string,
-      _permission: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _status: PromiseOrValue<BigNumberish>,
+      _address: PromiseOrValue<string>,
+      _permission: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     withdraw(
-      _amount: BigNumberish,
-      _token: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _amount: PromiseOrValue<BigNumberish>,
+      _token: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     withdrawEther(
-      _amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _amount: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
   };
 
@@ -262,42 +267,42 @@ export interface Treasury extends BaseContract {
   authority(overrides?: CallOverrides): Promise<string>;
 
   deposit(
-    _amount: BigNumberish,
-    _token: string,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _amount: PromiseOrValue<BigNumberish>,
+    _token: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   depositEther(
-    overrides?: PayableOverrides & { from?: string | Promise<string> }
+    overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   permissions(
-    arg0: BigNumberish,
-    arg1: string,
+    arg0: PromiseOrValue<BigNumberish>,
+    arg1: PromiseOrValue<string>,
     overrides?: CallOverrides
   ): Promise<boolean>;
 
   setAuthority(
-    _newAuthority: string,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _newAuthority: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   setPermission(
-    _status: BigNumberish,
-    _address: string,
-    _permission: boolean,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _status: PromiseOrValue<BigNumberish>,
+    _address: PromiseOrValue<string>,
+    _permission: PromiseOrValue<boolean>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   withdraw(
-    _amount: BigNumberish,
-    _token: string,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _amount: PromiseOrValue<BigNumberish>,
+    _token: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   withdrawEther(
-    _amount: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _amount: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   callStatic: {
@@ -306,39 +311,39 @@ export interface Treasury extends BaseContract {
     authority(overrides?: CallOverrides): Promise<string>;
 
     deposit(
-      _amount: BigNumberish,
-      _token: string,
+      _amount: PromiseOrValue<BigNumberish>,
+      _token: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     depositEther(overrides?: CallOverrides): Promise<void>;
 
     permissions(
-      arg0: BigNumberish,
-      arg1: string,
+      arg0: PromiseOrValue<BigNumberish>,
+      arg1: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<boolean>;
 
     setAuthority(
-      _newAuthority: string,
+      _newAuthority: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     setPermission(
-      _status: BigNumberish,
-      _address: string,
-      _permission: boolean,
+      _status: PromiseOrValue<BigNumberish>,
+      _address: PromiseOrValue<string>,
+      _permission: PromiseOrValue<boolean>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     withdraw(
-      _amount: BigNumberish,
-      _token: string,
+      _amount: PromiseOrValue<BigNumberish>,
+      _token: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     withdrawEther(
-      _amount: BigNumberish,
+      _amount: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
   };
@@ -348,10 +353,13 @@ export interface Treasury extends BaseContract {
     AuthorityUpdated(authority?: null): AuthorityUpdatedEventFilter;
 
     "Deposit(address,uint256)"(
-      token?: string | null,
+      token?: PromiseOrValue<string> | null,
       amount?: null
     ): DepositEventFilter;
-    Deposit(token?: string | null, amount?: null): DepositEventFilter;
+    Deposit(
+      token?: PromiseOrValue<string> | null,
+      amount?: null
+    ): DepositEventFilter;
 
     "DepositEther(uint256)"(amount?: null): DepositEtherEventFilter;
     DepositEther(amount?: null): DepositEtherEventFilter;
@@ -363,10 +371,13 @@ export interface Treasury extends BaseContract {
     EtherWithdrawal(amount?: null): EtherWithdrawalEventFilter;
 
     "Withdrawal(address,uint256)"(
-      token?: string | null,
+      token?: PromiseOrValue<string> | null,
       amount?: null
     ): WithdrawalEventFilter;
-    Withdrawal(token?: string | null, amount?: null): WithdrawalEventFilter;
+    Withdrawal(
+      token?: PromiseOrValue<string> | null,
+      amount?: null
+    ): WithdrawalEventFilter;
   };
 
   estimateGas: {
@@ -375,42 +386,42 @@ export interface Treasury extends BaseContract {
     authority(overrides?: CallOverrides): Promise<BigNumber>;
 
     deposit(
-      _amount: BigNumberish,
-      _token: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _amount: PromiseOrValue<BigNumberish>,
+      _token: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     depositEther(
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     permissions(
-      arg0: BigNumberish,
-      arg1: string,
+      arg0: PromiseOrValue<BigNumberish>,
+      arg1: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     setAuthority(
-      _newAuthority: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newAuthority: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     setPermission(
-      _status: BigNumberish,
-      _address: string,
-      _permission: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _status: PromiseOrValue<BigNumberish>,
+      _address: PromiseOrValue<string>,
+      _permission: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     withdraw(
-      _amount: BigNumberish,
-      _token: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _amount: PromiseOrValue<BigNumberish>,
+      _token: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     withdrawEther(
-      _amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _amount: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
   };
 
@@ -420,42 +431,42 @@ export interface Treasury extends BaseContract {
     authority(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     deposit(
-      _amount: BigNumberish,
-      _token: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _amount: PromiseOrValue<BigNumberish>,
+      _token: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     depositEther(
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     permissions(
-      arg0: BigNumberish,
-      arg1: string,
+      arg0: PromiseOrValue<BigNumberish>,
+      arg1: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     setAuthority(
-      _newAuthority: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newAuthority: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     setPermission(
-      _status: BigNumberish,
-      _address: string,
-      _permission: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _status: PromiseOrValue<BigNumberish>,
+      _address: PromiseOrValue<string>,
+      _permission: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     withdraw(
-      _amount: BigNumberish,
-      _token: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _amount: PromiseOrValue<BigNumberish>,
+      _token: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     withdrawEther(
-      _amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _amount: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
   };
 }

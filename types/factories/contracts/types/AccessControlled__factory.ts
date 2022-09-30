@@ -11,11 +11,6 @@ import type {
 
 const _abi = [
   {
-    inputs: [],
-    name: "UNAUTHORIZED",
-    type: "error",
-  },
-  {
     anonymous: false,
     inputs: [
       {

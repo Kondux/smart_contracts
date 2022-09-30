@@ -25,6 +25,7 @@ import type {
   TypedEvent,
   TypedListener,
   OnEvent,
+  PromiseOrValue,
 } from "../../common";
 
 export interface IMarketplaceInterface extends utils.Interface {
@@ -51,27 +52,36 @@ export interface IMarketplaceInterface extends utils.Interface {
 
   encodeFunctionData(
     functionFragment: "acceptAsk",
-    values: [string[], BigNumberish[]]
+    values: [PromiseOrValue<string>[], PromiseOrValue<BigNumberish>[]]
   ): string;
   encodeFunctionData(
     functionFragment: "acceptBid",
-    values: [string[], BigNumberish[]]
+    values: [PromiseOrValue<string>[], PromiseOrValue<BigNumberish>[]]
   ): string;
   encodeFunctionData(
     functionFragment: "cancelAsk",
-    values: [string[], BigNumberish[]]
+    values: [PromiseOrValue<string>[], PromiseOrValue<BigNumberish>[]]
   ): string;
   encodeFunctionData(
     functionFragment: "cancelBid",
-    values: [string[], BigNumberish[]]
+    values: [PromiseOrValue<string>[], PromiseOrValue<BigNumberish>[]]
   ): string;
   encodeFunctionData(
     functionFragment: "createAsk",
-    values: [string[], BigNumberish[], BigNumberish[], string[]]
+    values: [
+      PromiseOrValue<string>[],
+      PromiseOrValue<BigNumberish>[],
+      PromiseOrValue<BigNumberish>[],
+      PromiseOrValue<string>[]
+    ]
   ): string;
   encodeFunctionData(
     functionFragment: "createBid",
-    values: [string[], BigNumberish[], BigNumberish[]]
+    values: [
+      PromiseOrValue<string>[],
+      PromiseOrValue<BigNumberish>[],
+      PromiseOrValue<BigNumberish>[]
+    ]
   ): string;
   encodeFunctionData(functionFragment: "withdraw", values?: undefined): string;
 
@@ -200,129 +210,129 @@ export interface IMarketplace extends BaseContract {
 
   functions: {
     acceptAsk(
-      nft: string[],
-      tokenID: BigNumberish[],
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+      nft: PromiseOrValue<string>[],
+      tokenID: PromiseOrValue<BigNumberish>[],
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     acceptBid(
-      nft: string[],
-      tokenID: BigNumberish[],
-      overrides?: Overrides & { from?: string | Promise<string> }
+      nft: PromiseOrValue<string>[],
+      tokenID: PromiseOrValue<BigNumberish>[],
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     cancelAsk(
-      nft: string[],
-      tokenID: BigNumberish[],
-      overrides?: Overrides & { from?: string | Promise<string> }
+      nft: PromiseOrValue<string>[],
+      tokenID: PromiseOrValue<BigNumberish>[],
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     cancelBid(
-      nft: string[],
-      tokenID: BigNumberish[],
-      overrides?: Overrides & { from?: string | Promise<string> }
+      nft: PromiseOrValue<string>[],
+      tokenID: PromiseOrValue<BigNumberish>[],
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     createAsk(
-      nft: string[],
-      tokenID: BigNumberish[],
-      price: BigNumberish[],
-      to: string[],
-      overrides?: Overrides & { from?: string | Promise<string> }
+      nft: PromiseOrValue<string>[],
+      tokenID: PromiseOrValue<BigNumberish>[],
+      price: PromiseOrValue<BigNumberish>[],
+      to: PromiseOrValue<string>[],
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     createBid(
-      nft: string[],
-      tokenID: BigNumberish[],
-      price: BigNumberish[],
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+      nft: PromiseOrValue<string>[],
+      tokenID: PromiseOrValue<BigNumberish>[],
+      price: PromiseOrValue<BigNumberish>[],
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     withdraw(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
   };
 
   acceptAsk(
-    nft: string[],
-    tokenID: BigNumberish[],
-    overrides?: PayableOverrides & { from?: string | Promise<string> }
+    nft: PromiseOrValue<string>[],
+    tokenID: PromiseOrValue<BigNumberish>[],
+    overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   acceptBid(
-    nft: string[],
-    tokenID: BigNumberish[],
-    overrides?: Overrides & { from?: string | Promise<string> }
+    nft: PromiseOrValue<string>[],
+    tokenID: PromiseOrValue<BigNumberish>[],
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   cancelAsk(
-    nft: string[],
-    tokenID: BigNumberish[],
-    overrides?: Overrides & { from?: string | Promise<string> }
+    nft: PromiseOrValue<string>[],
+    tokenID: PromiseOrValue<BigNumberish>[],
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   cancelBid(
-    nft: string[],
-    tokenID: BigNumberish[],
-    overrides?: Overrides & { from?: string | Promise<string> }
+    nft: PromiseOrValue<string>[],
+    tokenID: PromiseOrValue<BigNumberish>[],
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   createAsk(
-    nft: string[],
-    tokenID: BigNumberish[],
-    price: BigNumberish[],
-    to: string[],
-    overrides?: Overrides & { from?: string | Promise<string> }
+    nft: PromiseOrValue<string>[],
+    tokenID: PromiseOrValue<BigNumberish>[],
+    price: PromiseOrValue<BigNumberish>[],
+    to: PromiseOrValue<string>[],
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   createBid(
-    nft: string[],
-    tokenID: BigNumberish[],
-    price: BigNumberish[],
-    overrides?: PayableOverrides & { from?: string | Promise<string> }
+    nft: PromiseOrValue<string>[],
+    tokenID: PromiseOrValue<BigNumberish>[],
+    price: PromiseOrValue<BigNumberish>[],
+    overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   withdraw(
-    overrides?: Overrides & { from?: string | Promise<string> }
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   callStatic: {
     acceptAsk(
-      nft: string[],
-      tokenID: BigNumberish[],
+      nft: PromiseOrValue<string>[],
+      tokenID: PromiseOrValue<BigNumberish>[],
       overrides?: CallOverrides
     ): Promise<void>;
 
     acceptBid(
-      nft: string[],
-      tokenID: BigNumberish[],
+      nft: PromiseOrValue<string>[],
+      tokenID: PromiseOrValue<BigNumberish>[],
       overrides?: CallOverrides
     ): Promise<void>;
 
     cancelAsk(
-      nft: string[],
-      tokenID: BigNumberish[],
+      nft: PromiseOrValue<string>[],
+      tokenID: PromiseOrValue<BigNumberish>[],
       overrides?: CallOverrides
     ): Promise<void>;
 
     cancelBid(
-      nft: string[],
-      tokenID: BigNumberish[],
+      nft: PromiseOrValue<string>[],
+      tokenID: PromiseOrValue<BigNumberish>[],
       overrides?: CallOverrides
     ): Promise<void>;
 
     createAsk(
-      nft: string[],
-      tokenID: BigNumberish[],
-      price: BigNumberish[],
-      to: string[],
+      nft: PromiseOrValue<string>[],
+      tokenID: PromiseOrValue<BigNumberish>[],
+      price: PromiseOrValue<BigNumberish>[],
+      to: PromiseOrValue<string>[],
       overrides?: CallOverrides
     ): Promise<void>;
 
     createBid(
-      nft: string[],
-      tokenID: BigNumberish[],
-      price: BigNumberish[],
+      nft: PromiseOrValue<string>[],
+      tokenID: PromiseOrValue<BigNumberish>[],
+      price: PromiseOrValue<BigNumberish>[],
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -331,159 +341,159 @@ export interface IMarketplace extends BaseContract {
 
   filters: {
     "AcceptAsk(address,uint256,uint256,address)"(
-      nft?: string | null,
-      tokenID?: BigNumberish | null,
+      nft?: PromiseOrValue<string> | null,
+      tokenID?: PromiseOrValue<BigNumberish> | null,
       price?: null,
-      to?: string | null
+      to?: PromiseOrValue<string> | null
     ): AcceptAskEventFilter;
     AcceptAsk(
-      nft?: string | null,
-      tokenID?: BigNumberish | null,
+      nft?: PromiseOrValue<string> | null,
+      tokenID?: PromiseOrValue<BigNumberish> | null,
       price?: null,
-      to?: string | null
+      to?: PromiseOrValue<string> | null
     ): AcceptAskEventFilter;
 
     "AcceptBid(address,uint256,uint256)"(
-      nft?: string | null,
-      tokenID?: BigNumberish | null,
+      nft?: PromiseOrValue<string> | null,
+      tokenID?: PromiseOrValue<BigNumberish> | null,
       price?: null
     ): AcceptBidEventFilter;
     AcceptBid(
-      nft?: string | null,
-      tokenID?: BigNumberish | null,
+      nft?: PromiseOrValue<string> | null,
+      tokenID?: PromiseOrValue<BigNumberish> | null,
       price?: null
     ): AcceptBidEventFilter;
 
     "CancelAsk(address,uint256)"(
-      nft?: string | null,
-      tokenID?: BigNumberish | null
+      nft?: PromiseOrValue<string> | null,
+      tokenID?: PromiseOrValue<BigNumberish> | null
     ): CancelAskEventFilter;
     CancelAsk(
-      nft?: string | null,
-      tokenID?: BigNumberish | null
+      nft?: PromiseOrValue<string> | null,
+      tokenID?: PromiseOrValue<BigNumberish> | null
     ): CancelAskEventFilter;
 
     "CancelBid(address,uint256)"(
-      nft?: string | null,
-      tokenID?: BigNumberish | null
+      nft?: PromiseOrValue<string> | null,
+      tokenID?: PromiseOrValue<BigNumberish> | null
     ): CancelBidEventFilter;
     CancelBid(
-      nft?: string | null,
-      tokenID?: BigNumberish | null
+      nft?: PromiseOrValue<string> | null,
+      tokenID?: PromiseOrValue<BigNumberish> | null
     ): CancelBidEventFilter;
 
     "CreateAsk(address,uint256,uint256,address)"(
-      nft?: string | null,
-      tokenID?: BigNumberish | null,
+      nft?: PromiseOrValue<string> | null,
+      tokenID?: PromiseOrValue<BigNumberish> | null,
       price?: null,
-      to?: string | null
+      to?: PromiseOrValue<string> | null
     ): CreateAskEventFilter;
     CreateAsk(
-      nft?: string | null,
-      tokenID?: BigNumberish | null,
+      nft?: PromiseOrValue<string> | null,
+      tokenID?: PromiseOrValue<BigNumberish> | null,
       price?: null,
-      to?: string | null
+      to?: PromiseOrValue<string> | null
     ): CreateAskEventFilter;
 
     "CreateBid(address,uint256,uint256)"(
-      nft?: string | null,
-      tokenID?: BigNumberish | null,
+      nft?: PromiseOrValue<string> | null,
+      tokenID?: PromiseOrValue<BigNumberish> | null,
       price?: null
     ): CreateBidEventFilter;
     CreateBid(
-      nft?: string | null,
-      tokenID?: BigNumberish | null,
+      nft?: PromiseOrValue<string> | null,
+      tokenID?: PromiseOrValue<BigNumberish> | null,
       price?: null
     ): CreateBidEventFilter;
   };
 
   estimateGas: {
     acceptAsk(
-      nft: string[],
-      tokenID: BigNumberish[],
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+      nft: PromiseOrValue<string>[],
+      tokenID: PromiseOrValue<BigNumberish>[],
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     acceptBid(
-      nft: string[],
-      tokenID: BigNumberish[],
-      overrides?: Overrides & { from?: string | Promise<string> }
+      nft: PromiseOrValue<string>[],
+      tokenID: PromiseOrValue<BigNumberish>[],
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     cancelAsk(
-      nft: string[],
-      tokenID: BigNumberish[],
-      overrides?: Overrides & { from?: string | Promise<string> }
+      nft: PromiseOrValue<string>[],
+      tokenID: PromiseOrValue<BigNumberish>[],
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     cancelBid(
-      nft: string[],
-      tokenID: BigNumberish[],
-      overrides?: Overrides & { from?: string | Promise<string> }
+      nft: PromiseOrValue<string>[],
+      tokenID: PromiseOrValue<BigNumberish>[],
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     createAsk(
-      nft: string[],
-      tokenID: BigNumberish[],
-      price: BigNumberish[],
-      to: string[],
-      overrides?: Overrides & { from?: string | Promise<string> }
+      nft: PromiseOrValue<string>[],
+      tokenID: PromiseOrValue<BigNumberish>[],
+      price: PromiseOrValue<BigNumberish>[],
+      to: PromiseOrValue<string>[],
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     createBid(
-      nft: string[],
-      tokenID: BigNumberish[],
-      price: BigNumberish[],
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+      nft: PromiseOrValue<string>[],
+      tokenID: PromiseOrValue<BigNumberish>[],
+      price: PromiseOrValue<BigNumberish>[],
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     withdraw(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
   };
 
   populateTransaction: {
     acceptAsk(
-      nft: string[],
-      tokenID: BigNumberish[],
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+      nft: PromiseOrValue<string>[],
+      tokenID: PromiseOrValue<BigNumberish>[],
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     acceptBid(
-      nft: string[],
-      tokenID: BigNumberish[],
-      overrides?: Overrides & { from?: string | Promise<string> }
+      nft: PromiseOrValue<string>[],
+      tokenID: PromiseOrValue<BigNumberish>[],
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     cancelAsk(
-      nft: string[],
-      tokenID: BigNumberish[],
-      overrides?: Overrides & { from?: string | Promise<string> }
+      nft: PromiseOrValue<string>[],
+      tokenID: PromiseOrValue<BigNumberish>[],
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     cancelBid(
-      nft: string[],
-      tokenID: BigNumberish[],
-      overrides?: Overrides & { from?: string | Promise<string> }
+      nft: PromiseOrValue<string>[],
+      tokenID: PromiseOrValue<BigNumberish>[],
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     createAsk(
-      nft: string[],
-      tokenID: BigNumberish[],
-      price: BigNumberish[],
-      to: string[],
-      overrides?: Overrides & { from?: string | Promise<string> }
+      nft: PromiseOrValue<string>[],
+      tokenID: PromiseOrValue<BigNumberish>[],
+      price: PromiseOrValue<BigNumberish>[],
+      to: PromiseOrValue<string>[],
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     createBid(
-      nft: string[],
-      tokenID: BigNumberish[],
-      price: BigNumberish[],
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+      nft: PromiseOrValue<string>[],
+      tokenID: PromiseOrValue<BigNumberish>[],
+      price: PromiseOrValue<BigNumberish>[],
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     withdraw(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
   };
 }

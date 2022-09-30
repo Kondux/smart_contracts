@@ -1,11 +1,7 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.9;
 
 import "../interfaces/IAuthority.sol";
-
-error UNAUTHORIZED();
-error AUTHORITY_INITIALIZED();
 
 /// @dev Reasoning for this contract = modifiers literaly copy code
 /// instead of pointing towards the logic to execute. Over many
@@ -23,6 +19,7 @@ abstract contract AccessControlled {
     /* ========== Constructor ========== */
 
     constructor(IAuthority _authority) {
+        require(address(_authority) != address(0), "Authority cannot be zero address");
         authority = _authority;
         emit AuthorityUpdated(_authority);
     }
@@ -30,29 +27,34 @@ abstract contract AccessControlled {
     /* ========== "MODIFIERS" ========== */
 
     modifier onlyGovernor {
-	_onlyGovernor();
-	_;
+        _onlyGovernor();
+        _;
     }
 
     modifier onlyGuardian {
-	_onlyGuardian();
-	_;
+        _onlyGuardian();
+        _;
     }
 
     modifier onlyPolicy {
-	_onlyPolicy();
-	_;
+        _onlyPolicy();
+        _;
     }
 
     modifier onlyVault {
-	_onlyVault();
-	_;
+        _onlyVault();
+        _;
+    }
+
+    modifier onlyRole(bytes32 _role){
+        _onlyRole(_role);
+        _;
     }
 
     /* ========== GOV ONLY ========== */
 
     function initializeAuthority(IAuthority _newAuthority) internal {
-        if (authority != IAuthority(address(0))) revert AUTHORITY_INITIALIZED();
+        require(authority == IAuthority(address(0)), "AUTHORITY_INITIALIZED");
         authority = _newAuthority;
         emit AuthorityUpdated(_newAuthority);
     }
@@ -66,18 +68,24 @@ abstract contract AccessControlled {
     /* ========== INTERNAL CHECKS ========== */
 
     function _onlyGovernor() internal view {
-        if (msg.sender != authority.governor()) revert UNAUTHORIZED();
+        require(msg.sender == authority.governor(), "UNAUTHORIZED");
     }
 
     function _onlyGuardian() internal view {
-        if (msg.sender != authority.guardian()) revert UNAUTHORIZED();
+        require(msg.sender == authority.guardian(), "UNAUTHORIZED");
     }
 
     function _onlyPolicy() internal view {
-        if (msg.sender != authority.policy()) revert UNAUTHORIZED();
+        require(msg.sender == authority.policy(), "UNAUTHORIZED");        
     }
 
     function _onlyVault() internal view {
-        if (msg.sender != authority.vault()) revert UNAUTHORIZED();
+        require(msg.sender == authority.vault(), "UNAUTHORIZED");                
     }
+
+    function _onlyRole(bytes32 _role) internal view {
+        require(authority.roles(msg.sender) == _role, "UNAUTHORIZED");
+    }
+
+  
 }

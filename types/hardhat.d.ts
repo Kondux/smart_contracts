@@ -113,6 +113,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IKondux__factory>;
     getContractFactory(
+      name: "IKonduxFounders",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IKonduxFounders__factory>;
+    getContractFactory(
       name: "IMarketplace",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IMarketplace__factory>;
@@ -125,6 +129,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ITreasury__factory>;
     getContractFactory(
+      name: "KonduxFounders",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.KonduxFounders__factory>;
+    getContractFactory(
       name: "Kondux",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Kondux__factory>;
@@ -132,6 +140,10 @@ declare module "hardhat/types/runtime" {
       name: "Marketplace",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Marketplace__factory>;
+    getContractFactory(
+      name: "MinterFounders",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.MinterFounders__factory>;
     getContractFactory(
       name: "Minter",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -287,6 +299,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.IKondux>;
     getContractAt(
+      name: "IKonduxFounders",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IKonduxFounders>;
+    getContractAt(
       name: "IMarketplace",
       address: string,
       signer?: ethers.Signer
@@ -302,6 +319,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.ITreasury>;
     getContractAt(
+      name: "KonduxFounders",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.KonduxFounders>;
+    getContractAt(
       name: "Kondux",
       address: string,
       signer?: ethers.Signer
@@ -311,6 +333,11 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.Marketplace>;
+    getContractAt(
+      name: "MinterFounders",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.MinterFounders>;
     getContractAt(
       name: "Minter",
       address: string,

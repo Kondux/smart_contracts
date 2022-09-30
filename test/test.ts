@@ -1,11 +1,9 @@
 import { Marketplace } from '../types/contracts/Marketplace';
-import { utils } from 'ethers';
+import helpers from "@nomicfoundation/hardhat-network-helpers";
 import axios from 'axios';
-// import { Treasury } from '../types/contracts/Treasury';
-// import { KonduxERC20 } from '../types/contracts/tests/KonduxERC20';
+// import { Treasury, KonduxERC20 } from '../types';
 const { expect } = require("chai");
-const { ethers, waffle } = require("hardhat");
-const provider = waffle.provider;
+const { ethers } = require("hardhat");
 
 import {
   Authority,
@@ -17,6 +15,7 @@ import {
   Treasury,
   Treasury__factory,
 } from "../types";
+import { keccak256 } from 'ethers/lib/utils';
  
 describe("Token contract", function () {
   let authority: Authority;
@@ -130,7 +129,7 @@ describe ("Mint NFT", async function () {
     const Kondux = await ethers.getContractFactory("Kondux");
     const kondux = await Kondux.deploy("Kondux NFT", "KDX", authority.address);
     const ownerAddress =  await owner.getAddress();
-    const chainid = (await provider.getNetwork()).chainId;
+    const chainid = (await ethers.provider.getNetwork()).chainId;
     const {randomBytes} = await import('crypto');
     const dna = randomBytes(32);
 
@@ -140,14 +139,23 @@ describe ("Mint NFT", async function () {
    
     describe ("Owner Mint NFT", async function () {
   
-      it("Owner Should mint NFT", async function () {       
-        const minted = await kondux.safeMint(ownerAddress,dna);
-        await minted.wait();
+      it("Owner Should mint NFT", async function () {
+        let feeData = await ethers.provider.getGasPrice()
+        console.log(feeData)
+        feeData = feeData.mul(3)
+        console.log(feeData)
+        console.log(await ethers.provider.getGasPrice())
+        // console.log(gasPrice.mul(2))       
+        const minted = await kondux.safeMint(ownerAddress,dna, { gasPrice: feeData});
+        console.log("******************");
+        const receipt = await minted.wait();
+        console.log("####################");
+    ;
 
         expect(await kondux.totalSupply()).to.equal(1);
         expect(await kondux.tokenURI(0)).to.equal(baseURIString + 0);
         expect(await kondux.tokenOfOwnerByIndex(ownerAddress, 0)).to.equal(0);
-        expect(await kondux.indexDna(0)).to.equal(dna);
+        expect(await kondux.indexDna(0)).to.equal(ethers.BigNumber.from(dna));
         expect(await kondux.ownerOf(0)).to.equal(ownerAddress);
       });
 
@@ -158,7 +166,7 @@ describe ("Mint NFT", async function () {
         expect(await kondux.totalSupply()).to.equal(2);
         expect(await kondux.tokenURI(1)).to.equal(baseURIString + 1);
         expect(await kondux.tokenOfOwnerByIndex(secondAddress, 0)).to.equal(1);
-        expect(await kondux.indexDna(1)).to.equal(dna);
+        expect(await kondux.indexDna(1)).to.equal(ethers.BigNumber.from(dna));
         expect(await kondux.ownerOf(1)).to.equal(secondAddress);
       });
 
@@ -167,7 +175,7 @@ describe ("Mint NFT", async function () {
         const setDna = await kondux.setDna(0, newDna);
         await setDna.wait();
 
-        expect(await kondux.indexDna(0)).to.equal(newDna);
+        expect(await kondux.indexDna(0)).to.equal(ethers.BigNumber.from(newDna));
       });
 
       describe ("Second account Mint NFT", async function () {
@@ -329,7 +337,7 @@ describe('Send Ether to contract', async function () {
         await mintTransfer.wait();
         expect(await kondux.totalSupply()).to.equal(1);
         expect(await kondux.balanceOf(secondAddress)).to.equal(1);
-        expect(await provider.getBalance(treasury.address)).to.equal(ethers.utils.parseEther("1.0"));
+        expect(await ethers.provider.getBalance(treasury.address)).to.equal(ethers.utils.parseEther("1.0"));
       });
     });
 
@@ -365,8 +373,8 @@ describe("Whitelist minting", async function () {
 
     const Minter = await ethers.getContractFactory("Minter");
     const minter = await Minter.deploy(authority.address, kondux.address, treasury.address);
-    const setMinter = await kondux.setMinter(minter.address);
-    await setMinter.wait();
+    
+    const pushMinter = await authority.pushRole(minter.address, keccak256(ethers.utils.toUtf8Bytes("MINTER_ROLE")));
     
     const rootRes = await axios.get("https://h7af1y611a.execute-api.us-east-1.amazonaws.com/root")
     const root = rootRes.data.root;
@@ -456,7 +464,7 @@ describe("Marketplace", async function () {
     const Marketplace = await ethers.getContractFactory("Marketplace");
     marketplace = await Marketplace.deploy(authority.address);
 
-    const chainid = (await provider.getNetwork()).chainId;
+    const chainid = (await ethers.provider.getNetwork()).chainId;
     const {randomBytes} = await import('crypto');
     const dna = randomBytes(32);
 

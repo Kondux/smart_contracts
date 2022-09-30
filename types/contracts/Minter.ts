@@ -24,6 +24,7 @@ import type {
   TypedEvent,
   TypedListener,
   OnEvent,
+  PromiseOrValue,
 } from "../common";
 
 export interface MinterInterface extends utils.Interface {
@@ -60,13 +61,16 @@ export interface MinterInterface extends utils.Interface {
   encodeFunctionData(functionFragment: "root", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "setAuthority",
-    values: [string]
+    values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
     functionFragment: "setPrice",
-    values: [BigNumberish]
+    values: [PromiseOrValue<BigNumberish>]
   ): string;
-  encodeFunctionData(functionFragment: "setRoot", values: [BytesLike]): string;
+  encodeFunctionData(
+    functionFragment: "setRoot",
+    values: [PromiseOrValue<BytesLike>]
+  ): string;
   encodeFunctionData(functionFragment: "treasury", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "unsafeMint",
@@ -74,7 +78,7 @@ export interface MinterInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "whitelistMint",
-    values: [BytesLike[]]
+    values: [PromiseOrValue<BytesLike>[]]
   ): string;
 
   decodeFunctionResult(functionFragment: "authority", data: BytesLike): Result;
@@ -148,29 +152,29 @@ export interface Minter extends BaseContract {
     root(overrides?: CallOverrides): Promise<[string]>;
 
     setAuthority(
-      _newAuthority: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newAuthority: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     setPrice(
-      _price: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _price: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     setRoot(
-      _root: BytesLike,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _root: PromiseOrValue<BytesLike>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     treasury(overrides?: CallOverrides): Promise<[string]>;
 
     unsafeMint(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     whitelistMint(
-      _merkleProof: BytesLike[],
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _merkleProof: PromiseOrValue<BytesLike>[],
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
   };
 
@@ -183,29 +187,29 @@ export interface Minter extends BaseContract {
   root(overrides?: CallOverrides): Promise<string>;
 
   setAuthority(
-    _newAuthority: string,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _newAuthority: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   setPrice(
-    _price: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _price: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   setRoot(
-    _root: BytesLike,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _root: PromiseOrValue<BytesLike>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   treasury(overrides?: CallOverrides): Promise<string>;
 
   unsafeMint(
-    overrides?: Overrides & { from?: string | Promise<string> }
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   whitelistMint(
-    _merkleProof: BytesLike[],
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _merkleProof: PromiseOrValue<BytesLike>[],
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   callStatic: {
@@ -218,20 +222,26 @@ export interface Minter extends BaseContract {
     root(overrides?: CallOverrides): Promise<string>;
 
     setAuthority(
-      _newAuthority: string,
+      _newAuthority: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setPrice(_price: BigNumberish, overrides?: CallOverrides): Promise<void>;
+    setPrice(
+      _price: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
-    setRoot(_root: BytesLike, overrides?: CallOverrides): Promise<void>;
+    setRoot(
+      _root: PromiseOrValue<BytesLike>,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     treasury(overrides?: CallOverrides): Promise<string>;
 
     unsafeMint(overrides?: CallOverrides): Promise<BigNumber>;
 
     whitelistMint(
-      _merkleProof: BytesLike[],
+      _merkleProof: PromiseOrValue<BytesLike>[],
       overrides?: CallOverrides
     ): Promise<BigNumber>;
   };
@@ -251,29 +261,29 @@ export interface Minter extends BaseContract {
     root(overrides?: CallOverrides): Promise<BigNumber>;
 
     setAuthority(
-      _newAuthority: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newAuthority: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     setPrice(
-      _price: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _price: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     setRoot(
-      _root: BytesLike,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _root: PromiseOrValue<BytesLike>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     treasury(overrides?: CallOverrides): Promise<BigNumber>;
 
     unsafeMint(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     whitelistMint(
-      _merkleProof: BytesLike[],
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _merkleProof: PromiseOrValue<BytesLike>[],
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
   };
 
@@ -287,29 +297,29 @@ export interface Minter extends BaseContract {
     root(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     setAuthority(
-      _newAuthority: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newAuthority: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     setPrice(
-      _price: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _price: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     setRoot(
-      _root: BytesLike,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _root: PromiseOrValue<BytesLike>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     treasury(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     unsafeMint(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     whitelistMint(
-      _merkleProof: BytesLike[],
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _merkleProof: PromiseOrValue<BytesLike>[],
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
   };
 }

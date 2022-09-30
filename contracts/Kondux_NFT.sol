@@ -17,22 +17,17 @@ contract Kondux is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Roya
     event Received(address sender, uint value);
     event DnaChanged(uint256 tokenID, uint256 dna);
     event DenominatorChanged(uint96 denominator);
+
     using Counters for Counters.Counter;
 
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
     string public baseURI;
     uint96 public denominator;
-    address public minter;
-
+    
     mapping (uint256 => uint256) public indexDna;
 
     Counters.Counter private _tokenIdCounter;
-
-    modifier minterOnly {
-        require(msg.sender == minter, "Only minter can call this function");
-        _;    
-        
-    }
 
     constructor(string memory _name, string memory _symbol, address _authority) 
         ERC721(_name, _symbol) 
@@ -79,7 +74,7 @@ contract Kondux is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Roya
         _safeMint(to, tokenId);
     }
 
-    function automaticMint(address to) external minterOnly returns (uint256) {
+    function automaticMint(address to) external onlyRole(MINTER_ROLE) returns (uint256) {
         uint256 tokenId = _tokenIdCounter.current();
 
         _tokenIdCounter.increment();
@@ -99,11 +94,7 @@ contract Kondux is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Roya
     function getDna (uint256 _tokenID) public view returns (uint256) {
         require(_exists(_tokenID), "ERC721Metadata: URI query for nonexistent token");
         return indexDna[_tokenID];
-    }
-
-    function setMinter(address _minter) public onlyGovernor {
-        minter = _minter;
-    }
+    }  
 
     // Internal functions //
 

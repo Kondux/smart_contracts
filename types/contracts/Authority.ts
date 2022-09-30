@@ -23,6 +23,7 @@ import type {
   TypedEvent,
   TypedListener,
   OnEvent,
+  PromiseOrValue,
 } from "../common";
 
 export interface AuthorityInterface extends utils.Interface {
@@ -30,6 +31,7 @@ export interface AuthorityInterface extends utils.Interface {
     "authority()": FunctionFragment;
     "governor()": FunctionFragment;
     "guardian()": FunctionFragment;
+    "isContract(address)": FunctionFragment;
     "newGovernor()": FunctionFragment;
     "newGuardian()": FunctionFragment;
     "newPolicy()": FunctionFragment;
@@ -42,7 +44,9 @@ export interface AuthorityInterface extends utils.Interface {
     "pushGovernor(address,bool)": FunctionFragment;
     "pushGuardian(address,bool)": FunctionFragment;
     "pushPolicy(address,bool)": FunctionFragment;
+    "pushRole(address,bytes32)": FunctionFragment;
     "pushVault(address,bool)": FunctionFragment;
+    "roles(address)": FunctionFragment;
     "setAuthority(address)": FunctionFragment;
     "vault()": FunctionFragment;
   };
@@ -52,6 +56,7 @@ export interface AuthorityInterface extends utils.Interface {
       | "authority"
       | "governor"
       | "guardian"
+      | "isContract"
       | "newGovernor"
       | "newGuardian"
       | "newPolicy"
@@ -64,7 +69,9 @@ export interface AuthorityInterface extends utils.Interface {
       | "pushGovernor"
       | "pushGuardian"
       | "pushPolicy"
+      | "pushRole"
       | "pushVault"
+      | "roles"
       | "setAuthority"
       | "vault"
   ): FunctionFragment;
@@ -72,6 +79,10 @@ export interface AuthorityInterface extends utils.Interface {
   encodeFunctionData(functionFragment: "authority", values?: undefined): string;
   encodeFunctionData(functionFragment: "governor", values?: undefined): string;
   encodeFunctionData(functionFragment: "guardian", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "isContract",
+    values: [PromiseOrValue<string>]
+  ): string;
   encodeFunctionData(
     functionFragment: "newGovernor",
     values?: undefined
@@ -98,29 +109,38 @@ export interface AuthorityInterface extends utils.Interface {
   encodeFunctionData(functionFragment: "pullVault", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "pushGovernor",
-    values: [string, boolean]
+    values: [PromiseOrValue<string>, PromiseOrValue<boolean>]
   ): string;
   encodeFunctionData(
     functionFragment: "pushGuardian",
-    values: [string, boolean]
+    values: [PromiseOrValue<string>, PromiseOrValue<boolean>]
   ): string;
   encodeFunctionData(
     functionFragment: "pushPolicy",
-    values: [string, boolean]
+    values: [PromiseOrValue<string>, PromiseOrValue<boolean>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "pushRole",
+    values: [PromiseOrValue<string>, PromiseOrValue<BytesLike>]
   ): string;
   encodeFunctionData(
     functionFragment: "pushVault",
-    values: [string, boolean]
+    values: [PromiseOrValue<string>, PromiseOrValue<boolean>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "roles",
+    values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
     functionFragment: "setAuthority",
-    values: [string]
+    values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(functionFragment: "vault", values?: undefined): string;
 
   decodeFunctionResult(functionFragment: "authority", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "governor", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "guardian", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "isContract", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "newGovernor",
     data: BytesLike
@@ -151,7 +171,9 @@ export interface AuthorityInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "pushPolicy", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "pushRole", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "pushVault", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "roles", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "setAuthority",
     data: BytesLike
@@ -166,6 +188,7 @@ export interface AuthorityInterface extends utils.Interface {
     "GuardianPushed(address,address,bool)": EventFragment;
     "PolicyPulled(address,address)": EventFragment;
     "PolicyPushed(address,address,bool)": EventFragment;
+    "RolePushed(address,bytes32)": EventFragment;
     "VaultPulled(address,address)": EventFragment;
     "VaultPushed(address,address,bool)": EventFragment;
   };
@@ -177,6 +200,7 @@ export interface AuthorityInterface extends utils.Interface {
   getEvent(nameOrSignatureOrTopic: "GuardianPushed"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "PolicyPulled"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "PolicyPushed"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "RolePushed"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "VaultPulled"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "VaultPushed"): EventFragment;
 }
@@ -261,6 +285,17 @@ export type PolicyPushedEvent = TypedEvent<
 
 export type PolicyPushedEventFilter = TypedEventFilter<PolicyPushedEvent>;
 
+export interface RolePushedEventObject {
+  account: string;
+  _role: string;
+}
+export type RolePushedEvent = TypedEvent<
+  [string, string],
+  RolePushedEventObject
+>;
+
+export type RolePushedEventFilter = TypedEventFilter<RolePushedEvent>;
+
 export interface VaultPulledEventObject {
   from: string;
   to: string;
@@ -317,6 +352,11 @@ export interface Authority extends BaseContract {
 
     guardian(overrides?: CallOverrides): Promise<[string]>;
 
+    isContract(
+      addr: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[boolean]>;
+
     newGovernor(overrides?: CallOverrides): Promise<[string]>;
 
     newGuardian(overrides?: CallOverrides): Promise<[string]>;
@@ -328,48 +368,59 @@ export interface Authority extends BaseContract {
     policy(overrides?: CallOverrides): Promise<[string]>;
 
     pullGovernor(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     pullGuardian(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     pullPolicy(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     pullVault(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     pushGovernor(
-      _newGovernor: string,
-      _effectiveImmediately: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newGovernor: PromiseOrValue<string>,
+      _effectiveImmediately: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     pushGuardian(
-      _newGuardian: string,
-      _effectiveImmediately: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newGuardian: PromiseOrValue<string>,
+      _effectiveImmediately: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     pushPolicy(
-      _newPolicy: string,
-      _effectiveImmediately: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newPolicy: PromiseOrValue<string>,
+      _effectiveImmediately: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    pushRole(
+      _account: PromiseOrValue<string>,
+      _role: PromiseOrValue<BytesLike>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     pushVault(
-      _newVault: string,
-      _effectiveImmediately: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newVault: PromiseOrValue<string>,
+      _effectiveImmediately: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
+    roles(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[string]>;
+
     setAuthority(
-      _newAuthority: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newAuthority: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     vault(overrides?: CallOverrides): Promise<[string]>;
@@ -380,6 +431,11 @@ export interface Authority extends BaseContract {
   governor(overrides?: CallOverrides): Promise<string>;
 
   guardian(overrides?: CallOverrides): Promise<string>;
+
+  isContract(
+    addr: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<boolean>;
 
   newGovernor(overrides?: CallOverrides): Promise<string>;
 
@@ -392,48 +448,59 @@ export interface Authority extends BaseContract {
   policy(overrides?: CallOverrides): Promise<string>;
 
   pullGovernor(
-    overrides?: Overrides & { from?: string | Promise<string> }
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   pullGuardian(
-    overrides?: Overrides & { from?: string | Promise<string> }
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   pullPolicy(
-    overrides?: Overrides & { from?: string | Promise<string> }
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   pullVault(
-    overrides?: Overrides & { from?: string | Promise<string> }
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   pushGovernor(
-    _newGovernor: string,
-    _effectiveImmediately: boolean,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _newGovernor: PromiseOrValue<string>,
+    _effectiveImmediately: PromiseOrValue<boolean>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   pushGuardian(
-    _newGuardian: string,
-    _effectiveImmediately: boolean,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _newGuardian: PromiseOrValue<string>,
+    _effectiveImmediately: PromiseOrValue<boolean>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   pushPolicy(
-    _newPolicy: string,
-    _effectiveImmediately: boolean,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _newPolicy: PromiseOrValue<string>,
+    _effectiveImmediately: PromiseOrValue<boolean>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  pushRole(
+    _account: PromiseOrValue<string>,
+    _role: PromiseOrValue<BytesLike>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   pushVault(
-    _newVault: string,
-    _effectiveImmediately: boolean,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _newVault: PromiseOrValue<string>,
+    _effectiveImmediately: PromiseOrValue<boolean>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
+  roles(
+    arg0: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<string>;
+
   setAuthority(
-    _newAuthority: string,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _newAuthority: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   vault(overrides?: CallOverrides): Promise<string>;
@@ -444,6 +511,11 @@ export interface Authority extends BaseContract {
     governor(overrides?: CallOverrides): Promise<string>;
 
     guardian(overrides?: CallOverrides): Promise<string>;
+
+    isContract(
+      addr: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<boolean>;
 
     newGovernor(overrides?: CallOverrides): Promise<string>;
 
@@ -464,31 +536,42 @@ export interface Authority extends BaseContract {
     pullVault(overrides?: CallOverrides): Promise<void>;
 
     pushGovernor(
-      _newGovernor: string,
-      _effectiveImmediately: boolean,
+      _newGovernor: PromiseOrValue<string>,
+      _effectiveImmediately: PromiseOrValue<boolean>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     pushGuardian(
-      _newGuardian: string,
-      _effectiveImmediately: boolean,
+      _newGuardian: PromiseOrValue<string>,
+      _effectiveImmediately: PromiseOrValue<boolean>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     pushPolicy(
-      _newPolicy: string,
-      _effectiveImmediately: boolean,
+      _newPolicy: PromiseOrValue<string>,
+      _effectiveImmediately: PromiseOrValue<boolean>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    pushRole(
+      _account: PromiseOrValue<string>,
+      _role: PromiseOrValue<BytesLike>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     pushVault(
-      _newVault: string,
-      _effectiveImmediately: boolean,
+      _newVault: PromiseOrValue<string>,
+      _effectiveImmediately: PromiseOrValue<boolean>,
       overrides?: CallOverrides
     ): Promise<void>;
 
+    roles(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<string>;
+
     setAuthority(
-      _newAuthority: string,
+      _newAuthority: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -500,82 +583,91 @@ export interface Authority extends BaseContract {
     AuthorityUpdated(authority?: null): AuthorityUpdatedEventFilter;
 
     "GovernorPulled(address,address)"(
-      from?: string | null,
-      to?: string | null
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null
     ): GovernorPulledEventFilter;
     GovernorPulled(
-      from?: string | null,
-      to?: string | null
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null
     ): GovernorPulledEventFilter;
 
     "GovernorPushed(address,address,bool)"(
-      from?: string | null,
-      to?: string | null,
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null,
       _effectiveImmediately?: null
     ): GovernorPushedEventFilter;
     GovernorPushed(
-      from?: string | null,
-      to?: string | null,
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null,
       _effectiveImmediately?: null
     ): GovernorPushedEventFilter;
 
     "GuardianPulled(address,address)"(
-      from?: string | null,
-      to?: string | null
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null
     ): GuardianPulledEventFilter;
     GuardianPulled(
-      from?: string | null,
-      to?: string | null
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null
     ): GuardianPulledEventFilter;
 
     "GuardianPushed(address,address,bool)"(
-      from?: string | null,
-      to?: string | null,
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null,
       _effectiveImmediately?: null
     ): GuardianPushedEventFilter;
     GuardianPushed(
-      from?: string | null,
-      to?: string | null,
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null,
       _effectiveImmediately?: null
     ): GuardianPushedEventFilter;
 
     "PolicyPulled(address,address)"(
-      from?: string | null,
-      to?: string | null
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null
     ): PolicyPulledEventFilter;
     PolicyPulled(
-      from?: string | null,
-      to?: string | null
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null
     ): PolicyPulledEventFilter;
 
     "PolicyPushed(address,address,bool)"(
-      from?: string | null,
-      to?: string | null,
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null,
       _effectiveImmediately?: null
     ): PolicyPushedEventFilter;
     PolicyPushed(
-      from?: string | null,
-      to?: string | null,
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null,
       _effectiveImmediately?: null
     ): PolicyPushedEventFilter;
 
+    "RolePushed(address,bytes32)"(
+      account?: PromiseOrValue<string> | null,
+      _role?: null
+    ): RolePushedEventFilter;
+    RolePushed(
+      account?: PromiseOrValue<string> | null,
+      _role?: null
+    ): RolePushedEventFilter;
+
     "VaultPulled(address,address)"(
-      from?: string | null,
-      to?: string | null
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null
     ): VaultPulledEventFilter;
     VaultPulled(
-      from?: string | null,
-      to?: string | null
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null
     ): VaultPulledEventFilter;
 
     "VaultPushed(address,address,bool)"(
-      from?: string | null,
-      to?: string | null,
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null,
       _effectiveImmediately?: null
     ): VaultPushedEventFilter;
     VaultPushed(
-      from?: string | null,
-      to?: string | null,
+      from?: PromiseOrValue<string> | null,
+      to?: PromiseOrValue<string> | null,
       _effectiveImmediately?: null
     ): VaultPushedEventFilter;
   };
@@ -586,6 +678,11 @@ export interface Authority extends BaseContract {
     governor(overrides?: CallOverrides): Promise<BigNumber>;
 
     guardian(overrides?: CallOverrides): Promise<BigNumber>;
+
+    isContract(
+      addr: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
     newGovernor(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -598,48 +695,59 @@ export interface Authority extends BaseContract {
     policy(overrides?: CallOverrides): Promise<BigNumber>;
 
     pullGovernor(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     pullGuardian(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     pullPolicy(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     pullVault(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     pushGovernor(
-      _newGovernor: string,
-      _effectiveImmediately: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newGovernor: PromiseOrValue<string>,
+      _effectiveImmediately: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     pushGuardian(
-      _newGuardian: string,
-      _effectiveImmediately: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newGuardian: PromiseOrValue<string>,
+      _effectiveImmediately: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     pushPolicy(
-      _newPolicy: string,
-      _effectiveImmediately: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newPolicy: PromiseOrValue<string>,
+      _effectiveImmediately: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    pushRole(
+      _account: PromiseOrValue<string>,
+      _role: PromiseOrValue<BytesLike>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     pushVault(
-      _newVault: string,
-      _effectiveImmediately: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newVault: PromiseOrValue<string>,
+      _effectiveImmediately: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    roles(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     setAuthority(
-      _newAuthority: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newAuthority: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     vault(overrides?: CallOverrides): Promise<BigNumber>;
@@ -652,6 +760,11 @@ export interface Authority extends BaseContract {
 
     guardian(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    isContract(
+      addr: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     newGovernor(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     newGuardian(overrides?: CallOverrides): Promise<PopulatedTransaction>;
@@ -663,48 +776,59 @@ export interface Authority extends BaseContract {
     policy(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     pullGovernor(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     pullGuardian(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     pullPolicy(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     pullVault(
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     pushGovernor(
-      _newGovernor: string,
-      _effectiveImmediately: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newGovernor: PromiseOrValue<string>,
+      _effectiveImmediately: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     pushGuardian(
-      _newGuardian: string,
-      _effectiveImmediately: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newGuardian: PromiseOrValue<string>,
+      _effectiveImmediately: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     pushPolicy(
-      _newPolicy: string,
-      _effectiveImmediately: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newPolicy: PromiseOrValue<string>,
+      _effectiveImmediately: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    pushRole(
+      _account: PromiseOrValue<string>,
+      _role: PromiseOrValue<BytesLike>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     pushVault(
-      _newVault: string,
-      _effectiveImmediately: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newVault: PromiseOrValue<string>,
+      _effectiveImmediately: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    roles(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     setAuthority(
-      _newAuthority: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _newAuthority: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     vault(overrides?: CallOverrides): Promise<PopulatedTransaction>;

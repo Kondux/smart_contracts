@@ -21,6 +21,7 @@ import type {
   TypedEvent,
   TypedListener,
   OnEvent,
+  PromiseOrValue,
 } from "../../common";
 
 export interface INFTContractInterface extends utils.Interface {
@@ -49,35 +50,56 @@ export interface INFTContractInterface extends utils.Interface {
 
   encodeFunctionData(
     functionFragment: "approve",
-    values: [string, BigNumberish]
+    values: [PromiseOrValue<string>, PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "balanceOf",
-    values: [string, BigNumberish]
+    values: [PromiseOrValue<string>, PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "ownerOf",
-    values: [BigNumberish]
+    values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "safeBatchTransferFrom",
-    values: [string, string, BigNumberish[], BigNumberish[], BytesLike]
+    values: [
+      PromiseOrValue<string>,
+      PromiseOrValue<string>,
+      PromiseOrValue<BigNumberish>[],
+      PromiseOrValue<BigNumberish>[],
+      PromiseOrValue<BytesLike>
+    ]
   ): string;
   encodeFunctionData(
     functionFragment: "safeTransferFrom(address,address,uint256)",
-    values: [string, string, BigNumberish]
+    values: [
+      PromiseOrValue<string>,
+      PromiseOrValue<string>,
+      PromiseOrValue<BigNumberish>
+    ]
   ): string;
   encodeFunctionData(
     functionFragment: "safeTransferFrom(address,address,uint256,bytes)",
-    values: [string, string, BigNumberish, BytesLike]
+    values: [
+      PromiseOrValue<string>,
+      PromiseOrValue<string>,
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BytesLike>
+    ]
   ): string;
   encodeFunctionData(
     functionFragment: "safeTransferFrom(address,address,uint256,uint256,bytes)",
-    values: [string, string, BigNumberish, BigNumberish, BytesLike]
+    values: [
+      PromiseOrValue<string>,
+      PromiseOrValue<string>,
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BytesLike>
+    ]
   ): string;
   encodeFunctionData(
     functionFragment: "setApprovalForAll",
-    values: [string, boolean]
+    values: [PromiseOrValue<string>, PromiseOrValue<boolean>]
   ): string;
 
   decodeFunctionResult(functionFragment: "approve", data: BytesLike): Result;
@@ -135,166 +157,172 @@ export interface INFTContract extends BaseContract {
 
   functions: {
     approve(
-      _approved: string,
-      _tokenId: BigNumberish,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+      _approved: PromiseOrValue<string>,
+      _tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     balanceOf(
-      _owner: string,
-      _id: BigNumberish,
+      _owner: PromiseOrValue<string>,
+      _id: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
     ownerOf(
-      tokenId: BigNumberish,
+      tokenId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<[string] & { owner: string }>;
 
     safeBatchTransferFrom(
-      _from: string,
-      _to: string,
-      _ids: BigNumberish[],
-      _values: BigNumberish[],
-      _data: BytesLike,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _from: PromiseOrValue<string>,
+      _to: PromiseOrValue<string>,
+      _ids: PromiseOrValue<BigNumberish>[],
+      _values: PromiseOrValue<BigNumberish>[],
+      _data: PromiseOrValue<BytesLike>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     "safeTransferFrom(address,address,uint256)"(
-      _from: string,
-      _to: string,
-      _tokenId: BigNumberish,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+      _from: PromiseOrValue<string>,
+      _to: PromiseOrValue<string>,
+      _tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     "safeTransferFrom(address,address,uint256,bytes)"(
-      _from: string,
-      _to: string,
-      _tokenId: BigNumberish,
-      data: BytesLike,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+      _from: PromiseOrValue<string>,
+      _to: PromiseOrValue<string>,
+      _tokenId: PromiseOrValue<BigNumberish>,
+      data: PromiseOrValue<BytesLike>,
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     "safeTransferFrom(address,address,uint256,uint256,bytes)"(
-      _from: string,
-      _to: string,
-      _id: BigNumberish,
-      _value: BigNumberish,
-      _data: BytesLike,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _from: PromiseOrValue<string>,
+      _to: PromiseOrValue<string>,
+      _id: PromiseOrValue<BigNumberish>,
+      _value: PromiseOrValue<BigNumberish>,
+      _data: PromiseOrValue<BytesLike>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     setApprovalForAll(
-      _operator: string,
-      _approved: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _operator: PromiseOrValue<string>,
+      _approved: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
   };
 
   approve(
-    _approved: string,
-    _tokenId: BigNumberish,
-    overrides?: PayableOverrides & { from?: string | Promise<string> }
+    _approved: PromiseOrValue<string>,
+    _tokenId: PromiseOrValue<BigNumberish>,
+    overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   balanceOf(
-    _owner: string,
-    _id: BigNumberish,
+    _owner: PromiseOrValue<string>,
+    _id: PromiseOrValue<BigNumberish>,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
-  ownerOf(tokenId: BigNumberish, overrides?: CallOverrides): Promise<string>;
+  ownerOf(
+    tokenId: PromiseOrValue<BigNumberish>,
+    overrides?: CallOverrides
+  ): Promise<string>;
 
   safeBatchTransferFrom(
-    _from: string,
-    _to: string,
-    _ids: BigNumberish[],
-    _values: BigNumberish[],
-    _data: BytesLike,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _from: PromiseOrValue<string>,
+    _to: PromiseOrValue<string>,
+    _ids: PromiseOrValue<BigNumberish>[],
+    _values: PromiseOrValue<BigNumberish>[],
+    _data: PromiseOrValue<BytesLike>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   "safeTransferFrom(address,address,uint256)"(
-    _from: string,
-    _to: string,
-    _tokenId: BigNumberish,
-    overrides?: PayableOverrides & { from?: string | Promise<string> }
+    _from: PromiseOrValue<string>,
+    _to: PromiseOrValue<string>,
+    _tokenId: PromiseOrValue<BigNumberish>,
+    overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   "safeTransferFrom(address,address,uint256,bytes)"(
-    _from: string,
-    _to: string,
-    _tokenId: BigNumberish,
-    data: BytesLike,
-    overrides?: PayableOverrides & { from?: string | Promise<string> }
+    _from: PromiseOrValue<string>,
+    _to: PromiseOrValue<string>,
+    _tokenId: PromiseOrValue<BigNumberish>,
+    data: PromiseOrValue<BytesLike>,
+    overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   "safeTransferFrom(address,address,uint256,uint256,bytes)"(
-    _from: string,
-    _to: string,
-    _id: BigNumberish,
-    _value: BigNumberish,
-    _data: BytesLike,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _from: PromiseOrValue<string>,
+    _to: PromiseOrValue<string>,
+    _id: PromiseOrValue<BigNumberish>,
+    _value: PromiseOrValue<BigNumberish>,
+    _data: PromiseOrValue<BytesLike>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   setApprovalForAll(
-    _operator: string,
-    _approved: boolean,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _operator: PromiseOrValue<string>,
+    _approved: PromiseOrValue<boolean>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   callStatic: {
     approve(
-      _approved: string,
-      _tokenId: BigNumberish,
+      _approved: PromiseOrValue<string>,
+      _tokenId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     balanceOf(
-      _owner: string,
-      _id: BigNumberish,
+      _owner: PromiseOrValue<string>,
+      _id: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    ownerOf(tokenId: BigNumberish, overrides?: CallOverrides): Promise<string>;
+    ownerOf(
+      tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<string>;
 
     safeBatchTransferFrom(
-      _from: string,
-      _to: string,
-      _ids: BigNumberish[],
-      _values: BigNumberish[],
-      _data: BytesLike,
+      _from: PromiseOrValue<string>,
+      _to: PromiseOrValue<string>,
+      _ids: PromiseOrValue<BigNumberish>[],
+      _values: PromiseOrValue<BigNumberish>[],
+      _data: PromiseOrValue<BytesLike>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     "safeTransferFrom(address,address,uint256)"(
-      _from: string,
-      _to: string,
-      _tokenId: BigNumberish,
+      _from: PromiseOrValue<string>,
+      _to: PromiseOrValue<string>,
+      _tokenId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     "safeTransferFrom(address,address,uint256,bytes)"(
-      _from: string,
-      _to: string,
-      _tokenId: BigNumberish,
-      data: BytesLike,
+      _from: PromiseOrValue<string>,
+      _to: PromiseOrValue<string>,
+      _tokenId: PromiseOrValue<BigNumberish>,
+      data: PromiseOrValue<BytesLike>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     "safeTransferFrom(address,address,uint256,uint256,bytes)"(
-      _from: string,
-      _to: string,
-      _id: BigNumberish,
-      _value: BigNumberish,
-      _data: BytesLike,
+      _from: PromiseOrValue<string>,
+      _to: PromiseOrValue<string>,
+      _id: PromiseOrValue<BigNumberish>,
+      _value: PromiseOrValue<BigNumberish>,
+      _data: PromiseOrValue<BytesLike>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     setApprovalForAll(
-      _operator: string,
-      _approved: boolean,
+      _operator: PromiseOrValue<string>,
+      _approved: PromiseOrValue<boolean>,
       overrides?: CallOverrides
     ): Promise<void>;
   };
@@ -303,117 +331,117 @@ export interface INFTContract extends BaseContract {
 
   estimateGas: {
     approve(
-      _approved: string,
-      _tokenId: BigNumberish,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+      _approved: PromiseOrValue<string>,
+      _tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     balanceOf(
-      _owner: string,
-      _id: BigNumberish,
+      _owner: PromiseOrValue<string>,
+      _id: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     ownerOf(
-      tokenId: BigNumberish,
+      tokenId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     safeBatchTransferFrom(
-      _from: string,
-      _to: string,
-      _ids: BigNumberish[],
-      _values: BigNumberish[],
-      _data: BytesLike,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _from: PromiseOrValue<string>,
+      _to: PromiseOrValue<string>,
+      _ids: PromiseOrValue<BigNumberish>[],
+      _values: PromiseOrValue<BigNumberish>[],
+      _data: PromiseOrValue<BytesLike>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     "safeTransferFrom(address,address,uint256)"(
-      _from: string,
-      _to: string,
-      _tokenId: BigNumberish,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+      _from: PromiseOrValue<string>,
+      _to: PromiseOrValue<string>,
+      _tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     "safeTransferFrom(address,address,uint256,bytes)"(
-      _from: string,
-      _to: string,
-      _tokenId: BigNumberish,
-      data: BytesLike,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+      _from: PromiseOrValue<string>,
+      _to: PromiseOrValue<string>,
+      _tokenId: PromiseOrValue<BigNumberish>,
+      data: PromiseOrValue<BytesLike>,
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     "safeTransferFrom(address,address,uint256,uint256,bytes)"(
-      _from: string,
-      _to: string,
-      _id: BigNumberish,
-      _value: BigNumberish,
-      _data: BytesLike,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _from: PromiseOrValue<string>,
+      _to: PromiseOrValue<string>,
+      _id: PromiseOrValue<BigNumberish>,
+      _value: PromiseOrValue<BigNumberish>,
+      _data: PromiseOrValue<BytesLike>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     setApprovalForAll(
-      _operator: string,
-      _approved: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _operator: PromiseOrValue<string>,
+      _approved: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
   };
 
   populateTransaction: {
     approve(
-      _approved: string,
-      _tokenId: BigNumberish,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+      _approved: PromiseOrValue<string>,
+      _tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     balanceOf(
-      _owner: string,
-      _id: BigNumberish,
+      _owner: PromiseOrValue<string>,
+      _id: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     ownerOf(
-      tokenId: BigNumberish,
+      tokenId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     safeBatchTransferFrom(
-      _from: string,
-      _to: string,
-      _ids: BigNumberish[],
-      _values: BigNumberish[],
-      _data: BytesLike,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _from: PromiseOrValue<string>,
+      _to: PromiseOrValue<string>,
+      _ids: PromiseOrValue<BigNumberish>[],
+      _values: PromiseOrValue<BigNumberish>[],
+      _data: PromiseOrValue<BytesLike>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     "safeTransferFrom(address,address,uint256)"(
-      _from: string,
-      _to: string,
-      _tokenId: BigNumberish,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+      _from: PromiseOrValue<string>,
+      _to: PromiseOrValue<string>,
+      _tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     "safeTransferFrom(address,address,uint256,bytes)"(
-      _from: string,
-      _to: string,
-      _tokenId: BigNumberish,
-      data: BytesLike,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+      _from: PromiseOrValue<string>,
+      _to: PromiseOrValue<string>,
+      _tokenId: PromiseOrValue<BigNumberish>,
+      data: PromiseOrValue<BytesLike>,
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     "safeTransferFrom(address,address,uint256,uint256,bytes)"(
-      _from: string,
-      _to: string,
-      _id: BigNumberish,
-      _value: BigNumberish,
-      _data: BytesLike,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _from: PromiseOrValue<string>,
+      _to: PromiseOrValue<string>,
+      _id: PromiseOrValue<BigNumberish>,
+      _value: PromiseOrValue<BigNumberish>,
+      _data: PromiseOrValue<BytesLike>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     setApprovalForAll(
-      _operator: string,
-      _approved: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      _operator: PromiseOrValue<string>,
+      _approved: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
   };
 }
