@@ -31,281 +31,392 @@ import type {
 export interface MinterFoundersInterface extends utils.Interface {
   functions: {
     "authority()": FunctionFragment;
+    "founders020Claimed(address)": FunctionFragment;
+    "founders025Claimed(address)": FunctionFragment;
+    "freeFoundersClaimed(address)": FunctionFragment;
+    "freeKNFTClaimed(address)": FunctionFragment;
+    "kondux()": FunctionFragment;
     "konduxFounders()": FunctionFragment;
-    "pausedOG()": FunctionFragment;
-    "pausedPublic()": FunctionFragment;
-    "pausedWL1()": FunctionFragment;
-    "pausedWL2()": FunctionFragment;
+    "pausedFounders020()": FunctionFragment;
+    "pausedFounders025()": FunctionFragment;
+    "pausedFreeFounders()": FunctionFragment;
+    "pausedFreeKNFT()": FunctionFragment;
     "pausedWhitelist()": FunctionFragment;
-    "price()": FunctionFragment;
-    "priceOG()": FunctionFragment;
-    "pricePublic()": FunctionFragment;
-    "priceWL1()": FunctionFragment;
-    "priceWL2()": FunctionFragment;
-    "publicMint()": FunctionFragment;
-    "root()": FunctionFragment;
-    "rootOG()": FunctionFragment;
-    "rootWL1()": FunctionFragment;
-    "rootWL2()": FunctionFragment;
+    "priceFounders020()": FunctionFragment;
+    "priceFounders025()": FunctionFragment;
+    "priceFreeFounders()": FunctionFragment;
+    "priceFreeKNFT()": FunctionFragment;
+    "rootFounders020()": FunctionFragment;
+    "rootFounders025()": FunctionFragment;
+    "rootFreeFounders()": FunctionFragment;
+    "rootFreeKNFT()": FunctionFragment;
     "setAuthority(address)": FunctionFragment;
-    "setPausedOG(bool)": FunctionFragment;
-    "setPausedPublic(bool)": FunctionFragment;
-    "setPausedWL1(bool)": FunctionFragment;
-    "setPausedWL2(bool)": FunctionFragment;
-    "setPausedWhitelist(bool)": FunctionFragment;
-    "setPrice(uint256)": FunctionFragment;
-    "setPriceOG(uint256)": FunctionFragment;
-    "setPricePublic(uint256)": FunctionFragment;
-    "setPriceWL1(uint256)": FunctionFragment;
-    "setPriceWL2(uint256)": FunctionFragment;
-    "setRoot(bytes32)": FunctionFragment;
-    "setRootOG(bytes32)": FunctionFragment;
-    "setRootWL1(bytes32)": FunctionFragment;
-    "setRootWL2(bytes32)": FunctionFragment;
+    "setKonduxFounders(address)": FunctionFragment;
+    "setPausedFounders020(bool)": FunctionFragment;
+    "setPausedFounders025(bool)": FunctionFragment;
+    "setPausedFreeFounders(bool)": FunctionFragment;
+    "setPausedFreeKNFT(bool)": FunctionFragment;
+    "setPriceFounders020(uint256)": FunctionFragment;
+    "setPriceFounders025(uint256)": FunctionFragment;
+    "setPriceFreeFounders(uint256)": FunctionFragment;
+    "setPriceFreeKNFT(uint256)": FunctionFragment;
+    "setRootFounders020(bytes32)": FunctionFragment;
+    "setRootFounders025(bytes32)": FunctionFragment;
+    "setRootFreeFounders(bytes32)": FunctionFragment;
+    "setRootFreeKNFT(bytes32)": FunctionFragment;
+    "setTreasury(address)": FunctionFragment;
     "treasury()": FunctionFragment;
-    "whitelistMint(bytes32[])": FunctionFragment;
-    "whitelistMintOG(bytes32[])": FunctionFragment;
-    "whitelistMintWL1(bytes32[])": FunctionFragment;
-    "whitelistMintWL2(bytes32[])": FunctionFragment;
+    "whitelistMintFounders020(bytes32[])": FunctionFragment;
+    "whitelistMintFounders025(bytes32[])": FunctionFragment;
+    "whitelistMintFreeFounders(bytes32[])": FunctionFragment;
+    "whitelistMintFreeKNFT(bytes32[])": FunctionFragment;
   };
 
   getFunction(
     nameOrSignatureOrTopic:
       | "authority"
+      | "founders020Claimed"
+      | "founders025Claimed"
+      | "freeFoundersClaimed"
+      | "freeKNFTClaimed"
+      | "kondux"
       | "konduxFounders"
-      | "pausedOG"
-      | "pausedPublic"
-      | "pausedWL1"
-      | "pausedWL2"
+      | "pausedFounders020"
+      | "pausedFounders025"
+      | "pausedFreeFounders"
+      | "pausedFreeKNFT"
       | "pausedWhitelist"
-      | "price"
-      | "priceOG"
-      | "pricePublic"
-      | "priceWL1"
-      | "priceWL2"
-      | "publicMint"
-      | "root"
-      | "rootOG"
-      | "rootWL1"
-      | "rootWL2"
+      | "priceFounders020"
+      | "priceFounders025"
+      | "priceFreeFounders"
+      | "priceFreeKNFT"
+      | "rootFounders020"
+      | "rootFounders025"
+      | "rootFreeFounders"
+      | "rootFreeKNFT"
       | "setAuthority"
-      | "setPausedOG"
-      | "setPausedPublic"
-      | "setPausedWL1"
-      | "setPausedWL2"
-      | "setPausedWhitelist"
-      | "setPrice"
-      | "setPriceOG"
-      | "setPricePublic"
-      | "setPriceWL1"
-      | "setPriceWL2"
-      | "setRoot"
-      | "setRootOG"
-      | "setRootWL1"
-      | "setRootWL2"
+      | "setKonduxFounders"
+      | "setPausedFounders020"
+      | "setPausedFounders025"
+      | "setPausedFreeFounders"
+      | "setPausedFreeKNFT"
+      | "setPriceFounders020"
+      | "setPriceFounders025"
+      | "setPriceFreeFounders"
+      | "setPriceFreeKNFT"
+      | "setRootFounders020"
+      | "setRootFounders025"
+      | "setRootFreeFounders"
+      | "setRootFreeKNFT"
+      | "setTreasury"
       | "treasury"
-      | "whitelistMint"
-      | "whitelistMintOG"
-      | "whitelistMintWL1"
-      | "whitelistMintWL2"
+      | "whitelistMintFounders020"
+      | "whitelistMintFounders025"
+      | "whitelistMintFreeFounders"
+      | "whitelistMintFreeKNFT"
   ): FunctionFragment;
 
   encodeFunctionData(functionFragment: "authority", values?: undefined): string;
   encodeFunctionData(
+    functionFragment: "founders020Claimed",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "founders025Claimed",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "freeFoundersClaimed",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "freeKNFTClaimed",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(functionFragment: "kondux", values?: undefined): string;
+  encodeFunctionData(
     functionFragment: "konduxFounders",
     values?: undefined
   ): string;
-  encodeFunctionData(functionFragment: "pausedOG", values?: undefined): string;
   encodeFunctionData(
-    functionFragment: "pausedPublic",
+    functionFragment: "pausedFounders020",
     values?: undefined
   ): string;
-  encodeFunctionData(functionFragment: "pausedWL1", values?: undefined): string;
-  encodeFunctionData(functionFragment: "pausedWL2", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "pausedFounders025",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "pausedFreeFounders",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "pausedFreeKNFT",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "pausedWhitelist",
     values?: undefined
   ): string;
-  encodeFunctionData(functionFragment: "price", values?: undefined): string;
-  encodeFunctionData(functionFragment: "priceOG", values?: undefined): string;
   encodeFunctionData(
-    functionFragment: "pricePublic",
+    functionFragment: "priceFounders020",
     values?: undefined
   ): string;
-  encodeFunctionData(functionFragment: "priceWL1", values?: undefined): string;
-  encodeFunctionData(functionFragment: "priceWL2", values?: undefined): string;
   encodeFunctionData(
-    functionFragment: "publicMint",
+    functionFragment: "priceFounders025",
     values?: undefined
   ): string;
-  encodeFunctionData(functionFragment: "root", values?: undefined): string;
-  encodeFunctionData(functionFragment: "rootOG", values?: undefined): string;
-  encodeFunctionData(functionFragment: "rootWL1", values?: undefined): string;
-  encodeFunctionData(functionFragment: "rootWL2", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "priceFreeFounders",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "priceFreeKNFT",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "rootFounders020",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "rootFounders025",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "rootFreeFounders",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "rootFreeKNFT",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "setAuthority",
     values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
-    functionFragment: "setPausedOG",
+    functionFragment: "setKonduxFounders",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setPausedFounders020",
     values: [PromiseOrValue<boolean>]
   ): string;
   encodeFunctionData(
-    functionFragment: "setPausedPublic",
+    functionFragment: "setPausedFounders025",
     values: [PromiseOrValue<boolean>]
   ): string;
   encodeFunctionData(
-    functionFragment: "setPausedWL1",
+    functionFragment: "setPausedFreeFounders",
     values: [PromiseOrValue<boolean>]
   ): string;
   encodeFunctionData(
-    functionFragment: "setPausedWL2",
+    functionFragment: "setPausedFreeKNFT",
     values: [PromiseOrValue<boolean>]
   ): string;
   encodeFunctionData(
-    functionFragment: "setPausedWhitelist",
-    values: [PromiseOrValue<boolean>]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "setPrice",
+    functionFragment: "setPriceFounders020",
     values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
-    functionFragment: "setPriceOG",
+    functionFragment: "setPriceFounders025",
     values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
-    functionFragment: "setPricePublic",
+    functionFragment: "setPriceFreeFounders",
     values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
-    functionFragment: "setPriceWL1",
+    functionFragment: "setPriceFreeKNFT",
     values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
-    functionFragment: "setPriceWL2",
-    values: [PromiseOrValue<BigNumberish>]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "setRoot",
+    functionFragment: "setRootFounders020",
     values: [PromiseOrValue<BytesLike>]
   ): string;
   encodeFunctionData(
-    functionFragment: "setRootOG",
+    functionFragment: "setRootFounders025",
     values: [PromiseOrValue<BytesLike>]
   ): string;
   encodeFunctionData(
-    functionFragment: "setRootWL1",
+    functionFragment: "setRootFreeFounders",
     values: [PromiseOrValue<BytesLike>]
   ): string;
   encodeFunctionData(
-    functionFragment: "setRootWL2",
+    functionFragment: "setRootFreeKNFT",
     values: [PromiseOrValue<BytesLike>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setTreasury",
+    values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(functionFragment: "treasury", values?: undefined): string;
   encodeFunctionData(
-    functionFragment: "whitelistMint",
+    functionFragment: "whitelistMintFounders020",
     values: [PromiseOrValue<BytesLike>[]]
   ): string;
   encodeFunctionData(
-    functionFragment: "whitelistMintOG",
+    functionFragment: "whitelistMintFounders025",
     values: [PromiseOrValue<BytesLike>[]]
   ): string;
   encodeFunctionData(
-    functionFragment: "whitelistMintWL1",
+    functionFragment: "whitelistMintFreeFounders",
     values: [PromiseOrValue<BytesLike>[]]
   ): string;
   encodeFunctionData(
-    functionFragment: "whitelistMintWL2",
+    functionFragment: "whitelistMintFreeKNFT",
     values: [PromiseOrValue<BytesLike>[]]
   ): string;
 
   decodeFunctionResult(functionFragment: "authority", data: BytesLike): Result;
   decodeFunctionResult(
+    functionFragment: "founders020Claimed",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "founders025Claimed",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "freeFoundersClaimed",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "freeKNFTClaimed",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "kondux", data: BytesLike): Result;
+  decodeFunctionResult(
     functionFragment: "konduxFounders",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "pausedOG", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "pausedPublic",
+    functionFragment: "pausedFounders020",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "pausedWL1", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "pausedWL2", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "pausedFounders025",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "pausedFreeFounders",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "pausedFreeKNFT",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "pausedWhitelist",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "price", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "priceOG", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "pricePublic",
+    functionFragment: "priceFounders020",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "priceWL1", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "priceWL2", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "publicMint", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "root", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "rootOG", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "rootWL1", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "rootWL2", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "priceFounders025",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "priceFreeFounders",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "priceFreeKNFT",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "rootFounders020",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "rootFounders025",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "rootFreeFounders",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "rootFreeKNFT",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "setAuthority",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "setPausedOG",
+    functionFragment: "setKonduxFounders",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "setPausedPublic",
+    functionFragment: "setPausedFounders020",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "setPausedWL1",
+    functionFragment: "setPausedFounders025",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "setPausedWL2",
+    functionFragment: "setPausedFreeFounders",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "setPausedWhitelist",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(functionFragment: "setPrice", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "setPriceOG", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "setPricePublic",
+    functionFragment: "setPausedFreeKNFT",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "setPriceWL1",
+    functionFragment: "setPriceFounders020",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "setPriceWL2",
+    functionFragment: "setPriceFounders025",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "setRoot", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "setRootOG", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "setRootWL1", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "setRootWL2", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "setPriceFreeFounders",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setPriceFreeKNFT",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setRootFounders020",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setRootFounders025",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setRootFreeFounders",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setRootFreeKNFT",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setTreasury",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "treasury", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "whitelistMint",
+    functionFragment: "whitelistMintFounders020",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "whitelistMintOG",
+    functionFragment: "whitelistMintFounders025",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "whitelistMintWL1",
+    functionFragment: "whitelistMintFreeFounders",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "whitelistMintWL2",
+    functionFragment: "whitelistMintFreeKNFT",
     data: BytesLike
   ): Result;
 
@@ -356,399 +467,449 @@ export interface MinterFounders extends BaseContract {
   functions: {
     authority(overrides?: CallOverrides): Promise<[string]>;
 
+    founders020Claimed(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[boolean]>;
+
+    founders025Claimed(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[boolean]>;
+
+    freeFoundersClaimed(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[boolean]>;
+
+    freeKNFTClaimed(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[boolean]>;
+
+    kondux(overrides?: CallOverrides): Promise<[string]>;
+
     konduxFounders(overrides?: CallOverrides): Promise<[string]>;
 
-    pausedOG(overrides?: CallOverrides): Promise<[boolean]>;
+    pausedFounders020(overrides?: CallOverrides): Promise<[boolean]>;
 
-    pausedPublic(overrides?: CallOverrides): Promise<[boolean]>;
+    pausedFounders025(overrides?: CallOverrides): Promise<[boolean]>;
 
-    pausedWL1(overrides?: CallOverrides): Promise<[boolean]>;
+    pausedFreeFounders(overrides?: CallOverrides): Promise<[boolean]>;
 
-    pausedWL2(overrides?: CallOverrides): Promise<[boolean]>;
+    pausedFreeKNFT(overrides?: CallOverrides): Promise<[boolean]>;
 
     pausedWhitelist(overrides?: CallOverrides): Promise<[boolean]>;
 
-    price(overrides?: CallOverrides): Promise<[BigNumber]>;
+    priceFounders020(overrides?: CallOverrides): Promise<[BigNumber]>;
 
-    priceOG(overrides?: CallOverrides): Promise<[BigNumber]>;
+    priceFounders025(overrides?: CallOverrides): Promise<[BigNumber]>;
 
-    pricePublic(overrides?: CallOverrides): Promise<[BigNumber]>;
+    priceFreeFounders(overrides?: CallOverrides): Promise<[BigNumber]>;
 
-    priceWL1(overrides?: CallOverrides): Promise<[BigNumber]>;
+    priceFreeKNFT(overrides?: CallOverrides): Promise<[BigNumber]>;
 
-    priceWL2(overrides?: CallOverrides): Promise<[BigNumber]>;
+    rootFounders020(overrides?: CallOverrides): Promise<[string]>;
 
-    publicMint(
-      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
+    rootFounders025(overrides?: CallOverrides): Promise<[string]>;
 
-    root(overrides?: CallOverrides): Promise<[string]>;
+    rootFreeFounders(overrides?: CallOverrides): Promise<[string]>;
 
-    rootOG(overrides?: CallOverrides): Promise<[string]>;
-
-    rootWL1(overrides?: CallOverrides): Promise<[string]>;
-
-    rootWL2(overrides?: CallOverrides): Promise<[string]>;
+    rootFreeKNFT(overrides?: CallOverrides): Promise<[string]>;
 
     setAuthority(
       _newAuthority: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    setPausedOG(
+    setKonduxFounders(
+      _konduxFounders: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    setPausedFounders020(
       _paused: PromiseOrValue<boolean>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    setPausedPublic(
+    setPausedFounders025(
       _paused: PromiseOrValue<boolean>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    setPausedWL1(
+    setPausedFreeFounders(
       _paused: PromiseOrValue<boolean>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    setPausedWL2(
+    setPausedFreeKNFT(
       _paused: PromiseOrValue<boolean>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    setPausedWhitelist(
-      _paused: PromiseOrValue<boolean>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
-    setPrice(
+    setPriceFounders020(
       _price: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    setPriceOG(
+    setPriceFounders025(
       _price: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    setPricePublic(
+    setPriceFreeFounders(
       _price: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    setPriceWL1(
+    setPriceFreeKNFT(
       _price: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    setPriceWL2(
-      _price: PromiseOrValue<BigNumberish>,
+    setRootFounders020(
+      _rootFounders020: PromiseOrValue<BytesLike>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    setRoot(
-      _root: PromiseOrValue<BytesLike>,
+    setRootFounders025(
+      _rootFounders025: PromiseOrValue<BytesLike>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    setRootOG(
-      _rootOG: PromiseOrValue<BytesLike>,
+    setRootFreeFounders(
+      _rootFreeFounders: PromiseOrValue<BytesLike>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    setRootWL1(
-      _rootWL1: PromiseOrValue<BytesLike>,
+    setRootFreeKNFT(
+      _rootFreeKNFT: PromiseOrValue<BytesLike>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    setRootWL2(
-      _rootWL2: PromiseOrValue<BytesLike>,
+    setTreasury(
+      _treasury: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     treasury(overrides?: CallOverrides): Promise<[string]>;
 
-    whitelistMint(
+    whitelistMintFounders020(
       _merkleProof: PromiseOrValue<BytesLike>[],
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    whitelistMintOG(
+    whitelistMintFounders025(
       _merkleProof: PromiseOrValue<BytesLike>[],
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    whitelistMintWL1(
+    whitelistMintFreeFounders(
       _merkleProof: PromiseOrValue<BytesLike>[],
-      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    whitelistMintWL2(
+    whitelistMintFreeKNFT(
       _merkleProof: PromiseOrValue<BytesLike>[],
-      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
   };
 
   authority(overrides?: CallOverrides): Promise<string>;
 
+  founders020Claimed(
+    arg0: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<boolean>;
+
+  founders025Claimed(
+    arg0: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<boolean>;
+
+  freeFoundersClaimed(
+    arg0: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<boolean>;
+
+  freeKNFTClaimed(
+    arg0: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<boolean>;
+
+  kondux(overrides?: CallOverrides): Promise<string>;
+
   konduxFounders(overrides?: CallOverrides): Promise<string>;
 
-  pausedOG(overrides?: CallOverrides): Promise<boolean>;
+  pausedFounders020(overrides?: CallOverrides): Promise<boolean>;
 
-  pausedPublic(overrides?: CallOverrides): Promise<boolean>;
+  pausedFounders025(overrides?: CallOverrides): Promise<boolean>;
 
-  pausedWL1(overrides?: CallOverrides): Promise<boolean>;
+  pausedFreeFounders(overrides?: CallOverrides): Promise<boolean>;
 
-  pausedWL2(overrides?: CallOverrides): Promise<boolean>;
+  pausedFreeKNFT(overrides?: CallOverrides): Promise<boolean>;
 
   pausedWhitelist(overrides?: CallOverrides): Promise<boolean>;
 
-  price(overrides?: CallOverrides): Promise<BigNumber>;
+  priceFounders020(overrides?: CallOverrides): Promise<BigNumber>;
 
-  priceOG(overrides?: CallOverrides): Promise<BigNumber>;
+  priceFounders025(overrides?: CallOverrides): Promise<BigNumber>;
 
-  pricePublic(overrides?: CallOverrides): Promise<BigNumber>;
+  priceFreeFounders(overrides?: CallOverrides): Promise<BigNumber>;
 
-  priceWL1(overrides?: CallOverrides): Promise<BigNumber>;
+  priceFreeKNFT(overrides?: CallOverrides): Promise<BigNumber>;
 
-  priceWL2(overrides?: CallOverrides): Promise<BigNumber>;
+  rootFounders020(overrides?: CallOverrides): Promise<string>;
 
-  publicMint(
-    overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
+  rootFounders025(overrides?: CallOverrides): Promise<string>;
 
-  root(overrides?: CallOverrides): Promise<string>;
+  rootFreeFounders(overrides?: CallOverrides): Promise<string>;
 
-  rootOG(overrides?: CallOverrides): Promise<string>;
-
-  rootWL1(overrides?: CallOverrides): Promise<string>;
-
-  rootWL2(overrides?: CallOverrides): Promise<string>;
+  rootFreeKNFT(overrides?: CallOverrides): Promise<string>;
 
   setAuthority(
     _newAuthority: PromiseOrValue<string>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  setPausedOG(
+  setKonduxFounders(
+    _konduxFounders: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  setPausedFounders020(
     _paused: PromiseOrValue<boolean>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  setPausedPublic(
+  setPausedFounders025(
     _paused: PromiseOrValue<boolean>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  setPausedWL1(
+  setPausedFreeFounders(
     _paused: PromiseOrValue<boolean>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  setPausedWL2(
+  setPausedFreeKNFT(
     _paused: PromiseOrValue<boolean>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  setPausedWhitelist(
-    _paused: PromiseOrValue<boolean>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
-
-  setPrice(
+  setPriceFounders020(
     _price: PromiseOrValue<BigNumberish>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  setPriceOG(
+  setPriceFounders025(
     _price: PromiseOrValue<BigNumberish>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  setPricePublic(
+  setPriceFreeFounders(
     _price: PromiseOrValue<BigNumberish>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  setPriceWL1(
+  setPriceFreeKNFT(
     _price: PromiseOrValue<BigNumberish>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  setPriceWL2(
-    _price: PromiseOrValue<BigNumberish>,
+  setRootFounders020(
+    _rootFounders020: PromiseOrValue<BytesLike>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  setRoot(
-    _root: PromiseOrValue<BytesLike>,
+  setRootFounders025(
+    _rootFounders025: PromiseOrValue<BytesLike>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  setRootOG(
-    _rootOG: PromiseOrValue<BytesLike>,
+  setRootFreeFounders(
+    _rootFreeFounders: PromiseOrValue<BytesLike>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  setRootWL1(
-    _rootWL1: PromiseOrValue<BytesLike>,
+  setRootFreeKNFT(
+    _rootFreeKNFT: PromiseOrValue<BytesLike>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  setRootWL2(
-    _rootWL2: PromiseOrValue<BytesLike>,
+  setTreasury(
+    _treasury: PromiseOrValue<string>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   treasury(overrides?: CallOverrides): Promise<string>;
 
-  whitelistMint(
+  whitelistMintFounders020(
     _merkleProof: PromiseOrValue<BytesLike>[],
     overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  whitelistMintOG(
+  whitelistMintFounders025(
     _merkleProof: PromiseOrValue<BytesLike>[],
     overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  whitelistMintWL1(
+  whitelistMintFreeFounders(
     _merkleProof: PromiseOrValue<BytesLike>[],
-    overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  whitelistMintWL2(
+  whitelistMintFreeKNFT(
     _merkleProof: PromiseOrValue<BytesLike>[],
-    overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   callStatic: {
     authority(overrides?: CallOverrides): Promise<string>;
 
+    founders020Claimed(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<boolean>;
+
+    founders025Claimed(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<boolean>;
+
+    freeFoundersClaimed(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<boolean>;
+
+    freeKNFTClaimed(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<boolean>;
+
+    kondux(overrides?: CallOverrides): Promise<string>;
+
     konduxFounders(overrides?: CallOverrides): Promise<string>;
 
-    pausedOG(overrides?: CallOverrides): Promise<boolean>;
+    pausedFounders020(overrides?: CallOverrides): Promise<boolean>;
 
-    pausedPublic(overrides?: CallOverrides): Promise<boolean>;
+    pausedFounders025(overrides?: CallOverrides): Promise<boolean>;
 
-    pausedWL1(overrides?: CallOverrides): Promise<boolean>;
+    pausedFreeFounders(overrides?: CallOverrides): Promise<boolean>;
 
-    pausedWL2(overrides?: CallOverrides): Promise<boolean>;
+    pausedFreeKNFT(overrides?: CallOverrides): Promise<boolean>;
 
     pausedWhitelist(overrides?: CallOverrides): Promise<boolean>;
 
-    price(overrides?: CallOverrides): Promise<BigNumber>;
+    priceFounders020(overrides?: CallOverrides): Promise<BigNumber>;
 
-    priceOG(overrides?: CallOverrides): Promise<BigNumber>;
+    priceFounders025(overrides?: CallOverrides): Promise<BigNumber>;
 
-    pricePublic(overrides?: CallOverrides): Promise<BigNumber>;
+    priceFreeFounders(overrides?: CallOverrides): Promise<BigNumber>;
 
-    priceWL1(overrides?: CallOverrides): Promise<BigNumber>;
+    priceFreeKNFT(overrides?: CallOverrides): Promise<BigNumber>;
 
-    priceWL2(overrides?: CallOverrides): Promise<BigNumber>;
+    rootFounders020(overrides?: CallOverrides): Promise<string>;
 
-    publicMint(overrides?: CallOverrides): Promise<BigNumber>;
+    rootFounders025(overrides?: CallOverrides): Promise<string>;
 
-    root(overrides?: CallOverrides): Promise<string>;
+    rootFreeFounders(overrides?: CallOverrides): Promise<string>;
 
-    rootOG(overrides?: CallOverrides): Promise<string>;
-
-    rootWL1(overrides?: CallOverrides): Promise<string>;
-
-    rootWL2(overrides?: CallOverrides): Promise<string>;
+    rootFreeKNFT(overrides?: CallOverrides): Promise<string>;
 
     setAuthority(
       _newAuthority: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setPausedOG(
+    setKonduxFounders(
+      _konduxFounders: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setPausedFounders020(
       _paused: PromiseOrValue<boolean>,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setPausedPublic(
+    setPausedFounders025(
       _paused: PromiseOrValue<boolean>,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setPausedWL1(
+    setPausedFreeFounders(
       _paused: PromiseOrValue<boolean>,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setPausedWL2(
+    setPausedFreeKNFT(
       _paused: PromiseOrValue<boolean>,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setPausedWhitelist(
-      _paused: PromiseOrValue<boolean>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    setPrice(
+    setPriceFounders020(
       _price: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setPriceOG(
+    setPriceFounders025(
       _price: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setPricePublic(
+    setPriceFreeFounders(
       _price: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setPriceWL1(
+    setPriceFreeKNFT(
       _price: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setPriceWL2(
-      _price: PromiseOrValue<BigNumberish>,
+    setRootFounders020(
+      _rootFounders020: PromiseOrValue<BytesLike>,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setRoot(
-      _root: PromiseOrValue<BytesLike>,
+    setRootFounders025(
+      _rootFounders025: PromiseOrValue<BytesLike>,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setRootOG(
-      _rootOG: PromiseOrValue<BytesLike>,
+    setRootFreeFounders(
+      _rootFreeFounders: PromiseOrValue<BytesLike>,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setRootWL1(
-      _rootWL1: PromiseOrValue<BytesLike>,
+    setRootFreeKNFT(
+      _rootFreeKNFT: PromiseOrValue<BytesLike>,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setRootWL2(
-      _rootWL2: PromiseOrValue<BytesLike>,
+    setTreasury(
+      _treasury: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     treasury(overrides?: CallOverrides): Promise<string>;
 
-    whitelistMint(
+    whitelistMintFounders020(
       _merkleProof: PromiseOrValue<BytesLike>[],
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    whitelistMintOG(
+    whitelistMintFounders025(
       _merkleProof: PromiseOrValue<BytesLike>[],
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    whitelistMintWL1(
+    whitelistMintFreeFounders(
       _merkleProof: PromiseOrValue<BytesLike>[],
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    whitelistMintWL2(
+    whitelistMintFreeKNFT(
       _merkleProof: PromiseOrValue<BytesLike>[],
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -762,270 +923,304 @@ export interface MinterFounders extends BaseContract {
   estimateGas: {
     authority(overrides?: CallOverrides): Promise<BigNumber>;
 
+    founders020Claimed(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    founders025Claimed(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    freeFoundersClaimed(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    freeKNFTClaimed(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    kondux(overrides?: CallOverrides): Promise<BigNumber>;
+
     konduxFounders(overrides?: CallOverrides): Promise<BigNumber>;
 
-    pausedOG(overrides?: CallOverrides): Promise<BigNumber>;
+    pausedFounders020(overrides?: CallOverrides): Promise<BigNumber>;
 
-    pausedPublic(overrides?: CallOverrides): Promise<BigNumber>;
+    pausedFounders025(overrides?: CallOverrides): Promise<BigNumber>;
 
-    pausedWL1(overrides?: CallOverrides): Promise<BigNumber>;
+    pausedFreeFounders(overrides?: CallOverrides): Promise<BigNumber>;
 
-    pausedWL2(overrides?: CallOverrides): Promise<BigNumber>;
+    pausedFreeKNFT(overrides?: CallOverrides): Promise<BigNumber>;
 
     pausedWhitelist(overrides?: CallOverrides): Promise<BigNumber>;
 
-    price(overrides?: CallOverrides): Promise<BigNumber>;
+    priceFounders020(overrides?: CallOverrides): Promise<BigNumber>;
 
-    priceOG(overrides?: CallOverrides): Promise<BigNumber>;
+    priceFounders025(overrides?: CallOverrides): Promise<BigNumber>;
 
-    pricePublic(overrides?: CallOverrides): Promise<BigNumber>;
+    priceFreeFounders(overrides?: CallOverrides): Promise<BigNumber>;
 
-    priceWL1(overrides?: CallOverrides): Promise<BigNumber>;
+    priceFreeKNFT(overrides?: CallOverrides): Promise<BigNumber>;
 
-    priceWL2(overrides?: CallOverrides): Promise<BigNumber>;
+    rootFounders020(overrides?: CallOverrides): Promise<BigNumber>;
 
-    publicMint(
-      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
+    rootFounders025(overrides?: CallOverrides): Promise<BigNumber>;
 
-    root(overrides?: CallOverrides): Promise<BigNumber>;
+    rootFreeFounders(overrides?: CallOverrides): Promise<BigNumber>;
 
-    rootOG(overrides?: CallOverrides): Promise<BigNumber>;
-
-    rootWL1(overrides?: CallOverrides): Promise<BigNumber>;
-
-    rootWL2(overrides?: CallOverrides): Promise<BigNumber>;
+    rootFreeKNFT(overrides?: CallOverrides): Promise<BigNumber>;
 
     setAuthority(
       _newAuthority: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    setPausedOG(
+    setKonduxFounders(
+      _konduxFounders: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    setPausedFounders020(
       _paused: PromiseOrValue<boolean>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    setPausedPublic(
+    setPausedFounders025(
       _paused: PromiseOrValue<boolean>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    setPausedWL1(
+    setPausedFreeFounders(
       _paused: PromiseOrValue<boolean>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    setPausedWL2(
+    setPausedFreeKNFT(
       _paused: PromiseOrValue<boolean>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    setPausedWhitelist(
-      _paused: PromiseOrValue<boolean>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
-    setPrice(
+    setPriceFounders020(
       _price: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    setPriceOG(
+    setPriceFounders025(
       _price: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    setPricePublic(
+    setPriceFreeFounders(
       _price: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    setPriceWL1(
+    setPriceFreeKNFT(
       _price: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    setPriceWL2(
-      _price: PromiseOrValue<BigNumberish>,
+    setRootFounders020(
+      _rootFounders020: PromiseOrValue<BytesLike>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    setRoot(
-      _root: PromiseOrValue<BytesLike>,
+    setRootFounders025(
+      _rootFounders025: PromiseOrValue<BytesLike>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    setRootOG(
-      _rootOG: PromiseOrValue<BytesLike>,
+    setRootFreeFounders(
+      _rootFreeFounders: PromiseOrValue<BytesLike>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    setRootWL1(
-      _rootWL1: PromiseOrValue<BytesLike>,
+    setRootFreeKNFT(
+      _rootFreeKNFT: PromiseOrValue<BytesLike>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    setRootWL2(
-      _rootWL2: PromiseOrValue<BytesLike>,
+    setTreasury(
+      _treasury: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     treasury(overrides?: CallOverrides): Promise<BigNumber>;
 
-    whitelistMint(
+    whitelistMintFounders020(
       _merkleProof: PromiseOrValue<BytesLike>[],
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    whitelistMintOG(
+    whitelistMintFounders025(
       _merkleProof: PromiseOrValue<BytesLike>[],
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    whitelistMintWL1(
+    whitelistMintFreeFounders(
       _merkleProof: PromiseOrValue<BytesLike>[],
-      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    whitelistMintWL2(
+    whitelistMintFreeKNFT(
       _merkleProof: PromiseOrValue<BytesLike>[],
-      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
   };
 
   populateTransaction: {
     authority(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    founders020Claimed(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    founders025Claimed(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    freeFoundersClaimed(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    freeKNFTClaimed(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    kondux(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     konduxFounders(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    pausedOG(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+    pausedFounders020(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    pausedPublic(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+    pausedFounders025(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    pausedWL1(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+    pausedFreeFounders(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
 
-    pausedWL2(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+    pausedFreeKNFT(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     pausedWhitelist(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    price(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+    priceFounders020(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    priceOG(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+    priceFounders025(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    pricePublic(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+    priceFreeFounders(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    priceWL1(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+    priceFreeKNFT(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    priceWL2(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+    rootFounders020(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    publicMint(
-      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
+    rootFounders025(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    root(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+    rootFreeFounders(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    rootOG(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    rootWL1(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    rootWL2(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+    rootFreeKNFT(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     setAuthority(
       _newAuthority: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
-    setPausedOG(
+    setKonduxFounders(
+      _konduxFounders: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setPausedFounders020(
       _paused: PromiseOrValue<boolean>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
-    setPausedPublic(
+    setPausedFounders025(
       _paused: PromiseOrValue<boolean>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
-    setPausedWL1(
+    setPausedFreeFounders(
       _paused: PromiseOrValue<boolean>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
-    setPausedWL2(
+    setPausedFreeKNFT(
       _paused: PromiseOrValue<boolean>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
-    setPausedWhitelist(
-      _paused: PromiseOrValue<boolean>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
-    setPrice(
+    setPriceFounders020(
       _price: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
-    setPriceOG(
+    setPriceFounders025(
       _price: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
-    setPricePublic(
+    setPriceFreeFounders(
       _price: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
-    setPriceWL1(
+    setPriceFreeKNFT(
       _price: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
-    setPriceWL2(
-      _price: PromiseOrValue<BigNumberish>,
+    setRootFounders020(
+      _rootFounders020: PromiseOrValue<BytesLike>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
-    setRoot(
-      _root: PromiseOrValue<BytesLike>,
+    setRootFounders025(
+      _rootFounders025: PromiseOrValue<BytesLike>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
-    setRootOG(
-      _rootOG: PromiseOrValue<BytesLike>,
+    setRootFreeFounders(
+      _rootFreeFounders: PromiseOrValue<BytesLike>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
-    setRootWL1(
-      _rootWL1: PromiseOrValue<BytesLike>,
+    setRootFreeKNFT(
+      _rootFreeKNFT: PromiseOrValue<BytesLike>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
-    setRootWL2(
-      _rootWL2: PromiseOrValue<BytesLike>,
+    setTreasury(
+      _treasury: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     treasury(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    whitelistMint(
+    whitelistMintFounders020(
       _merkleProof: PromiseOrValue<BytesLike>[],
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
-    whitelistMintOG(
+    whitelistMintFounders025(
       _merkleProof: PromiseOrValue<BytesLike>[],
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
-    whitelistMintWL1(
+    whitelistMintFreeFounders(
       _merkleProof: PromiseOrValue<BytesLike>[],
-      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
-    whitelistMintWL2(
+    whitelistMintFreeKNFT(
       _merkleProof: PromiseOrValue<BytesLike>[],
-      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
   };
 }

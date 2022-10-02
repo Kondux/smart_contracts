@@ -12,22 +12,22 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "./types/AccessControlled.sol";
 
 
-contract KonduxFounders is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Royalty, AccessControlled {
+contract KonduxFounders is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC721Royalty, AccessControlled {
     event BaseURIChanged(string baseURI);
     event Received(address sender, uint value);
     event DenominatorChanged(uint96 denominator);
 
     using Counters for Counters.Counter;
 
-    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public MINTER_ROLE = keccak256("MINTER_ROLE");
 
     string public baseURI;
     uint96 public denominator;
     
     Counters.Counter private _tokenIdCounter;
 
-    constructor(address _authority) 
-        ERC721("Kondux Founders", "fKNDX") 
+    constructor(string memory _name, string memory _ticker, address _authority) 
+        ERC721(_name, _ticker) 
         AccessControlled(IAuthority(_authority)) {
     }
 
@@ -64,13 +64,7 @@ contract KonduxFounders is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ER
         _unpause();
     }
 
-    function safeMint(address to) public onlyRole(MINTER_ROLE) {
-        uint256 tokenId = _tokenIdCounter.current();
-        _tokenIdCounter.increment();
-        _safeMint(to, tokenId);
-    }
-
-    function automaticMint(address to) external onlyRole(MINTER_ROLE) returns (uint256) {
+    function safeMint(address to) public onlyRole(MINTER_ROLE) returns (uint256) {
         uint256 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
         _safeMint(to, tokenId);

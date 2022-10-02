@@ -31,9 +31,13 @@ import type {
 export interface TreasuryInterface extends utils.Interface {
   functions: {
     "Kondux()": FunctionFragment;
+    "approvedTokens(address)": FunctionFragment;
+    "approvedTokensCount()": FunctionFragment;
+    "approvedTokensList(uint256)": FunctionFragment;
     "authority()": FunctionFragment;
     "deposit(uint256,address)": FunctionFragment;
     "depositEther()": FunctionFragment;
+    "isTokenApprooved(address)": FunctionFragment;
     "permissions(uint8,address)": FunctionFragment;
     "setAuthority(address)": FunctionFragment;
     "setPermission(uint8,address,bool)": FunctionFragment;
@@ -44,9 +48,13 @@ export interface TreasuryInterface extends utils.Interface {
   getFunction(
     nameOrSignatureOrTopic:
       | "Kondux"
+      | "approvedTokens"
+      | "approvedTokensCount"
+      | "approvedTokensList"
       | "authority"
       | "deposit"
       | "depositEther"
+      | "isTokenApprooved"
       | "permissions"
       | "setAuthority"
       | "setPermission"
@@ -55,6 +63,18 @@ export interface TreasuryInterface extends utils.Interface {
   ): FunctionFragment;
 
   encodeFunctionData(functionFragment: "Kondux", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "approvedTokens",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "approvedTokensCount",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "approvedTokensList",
+    values: [PromiseOrValue<BigNumberish>]
+  ): string;
   encodeFunctionData(functionFragment: "authority", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "deposit",
@@ -63,6 +83,10 @@ export interface TreasuryInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "depositEther",
     values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "isTokenApprooved",
+    values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
     functionFragment: "permissions",
@@ -90,10 +114,26 @@ export interface TreasuryInterface extends utils.Interface {
   ): string;
 
   decodeFunctionResult(functionFragment: "Kondux", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "approvedTokens",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "approvedTokensCount",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "approvedTokensList",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "authority", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "deposit", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "depositEther",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "isTokenApprooved",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -119,7 +159,7 @@ export interface TreasuryInterface extends utils.Interface {
     "Deposit(address,uint256)": EventFragment;
     "DepositEther(uint256)": EventFragment;
     "EtherDeposit(uint256)": EventFragment;
-    "EtherWithdrawal(uint256)": EventFragment;
+    "EtherWithdrawal(address,uint256)": EventFragment;
     "Withdrawal(address,uint256)": EventFragment;
   };
 
@@ -171,10 +211,11 @@ export type EtherDepositEvent = TypedEvent<
 export type EtherDepositEventFilter = TypedEventFilter<EtherDepositEvent>;
 
 export interface EtherWithdrawalEventObject {
+  to: string;
   amount: BigNumber;
 }
 export type EtherWithdrawalEvent = TypedEvent<
-  [BigNumber],
+  [string, BigNumber],
   EtherWithdrawalEventObject
 >;
 
@@ -220,6 +261,18 @@ export interface Treasury extends BaseContract {
   functions: {
     Kondux(overrides?: CallOverrides): Promise<[string]>;
 
+    approvedTokens(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[string]>;
+
+    approvedTokensCount(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    approvedTokensList(
+      arg0: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<[string]>;
+
     authority(overrides?: CallOverrides): Promise<[string]>;
 
     deposit(
@@ -231,6 +284,11 @@ export interface Treasury extends BaseContract {
     depositEther(
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
+
+    isTokenApprooved(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[boolean]>;
 
     permissions(
       arg0: PromiseOrValue<BigNumberish>,
@@ -264,6 +322,18 @@ export interface Treasury extends BaseContract {
 
   Kondux(overrides?: CallOverrides): Promise<string>;
 
+  approvedTokens(
+    arg0: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<string>;
+
+  approvedTokensCount(overrides?: CallOverrides): Promise<BigNumber>;
+
+  approvedTokensList(
+    arg0: PromiseOrValue<BigNumberish>,
+    overrides?: CallOverrides
+  ): Promise<string>;
+
   authority(overrides?: CallOverrides): Promise<string>;
 
   deposit(
@@ -275,6 +345,11 @@ export interface Treasury extends BaseContract {
   depositEther(
     overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
+
+  isTokenApprooved(
+    arg0: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<boolean>;
 
   permissions(
     arg0: PromiseOrValue<BigNumberish>,
@@ -308,6 +383,18 @@ export interface Treasury extends BaseContract {
   callStatic: {
     Kondux(overrides?: CallOverrides): Promise<string>;
 
+    approvedTokens(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<string>;
+
+    approvedTokensCount(overrides?: CallOverrides): Promise<BigNumber>;
+
+    approvedTokensList(
+      arg0: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<string>;
+
     authority(overrides?: CallOverrides): Promise<string>;
 
     deposit(
@@ -317,6 +404,11 @@ export interface Treasury extends BaseContract {
     ): Promise<void>;
 
     depositEther(overrides?: CallOverrides): Promise<void>;
+
+    isTokenApprooved(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<boolean>;
 
     permissions(
       arg0: PromiseOrValue<BigNumberish>,
@@ -367,8 +459,11 @@ export interface Treasury extends BaseContract {
     "EtherDeposit(uint256)"(amount?: null): EtherDepositEventFilter;
     EtherDeposit(amount?: null): EtherDepositEventFilter;
 
-    "EtherWithdrawal(uint256)"(amount?: null): EtherWithdrawalEventFilter;
-    EtherWithdrawal(amount?: null): EtherWithdrawalEventFilter;
+    "EtherWithdrawal(address,uint256)"(
+      to?: null,
+      amount?: null
+    ): EtherWithdrawalEventFilter;
+    EtherWithdrawal(to?: null, amount?: null): EtherWithdrawalEventFilter;
 
     "Withdrawal(address,uint256)"(
       token?: PromiseOrValue<string> | null,
@@ -383,6 +478,18 @@ export interface Treasury extends BaseContract {
   estimateGas: {
     Kondux(overrides?: CallOverrides): Promise<BigNumber>;
 
+    approvedTokens(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    approvedTokensCount(overrides?: CallOverrides): Promise<BigNumber>;
+
+    approvedTokensList(
+      arg0: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     authority(overrides?: CallOverrides): Promise<BigNumber>;
 
     deposit(
@@ -393,6 +500,11 @@ export interface Treasury extends BaseContract {
 
     depositEther(
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    isTokenApprooved(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     permissions(
@@ -428,6 +540,20 @@ export interface Treasury extends BaseContract {
   populateTransaction: {
     Kondux(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    approvedTokens(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    approvedTokensCount(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    approvedTokensList(
+      arg0: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     authority(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     deposit(
@@ -438,6 +564,11 @@ export interface Treasury extends BaseContract {
 
     depositEther(
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    isTokenApprooved(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     permissions(

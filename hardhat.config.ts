@@ -23,6 +23,7 @@ const COINMARKETCAP_API_KEY = process.env.COINMARKETCAP_API_KEY || "";
 const MATICVIGIL_API_KEY = process.env.MATICVIGIL_API_KEY || "";
 const POLYGONSCAN_API_KEY = process.env.POLYGONSCAN_API_KEY || "";
 const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY || "";
+const INFURA_API_KEY = process.env.INFURA_API_KEY || "";
 
 const chainIds = {
   goerli: 5,
@@ -35,6 +36,7 @@ const chainIds = {
   polygonMumbai: 80001,
   fuji: 43113,
   avalanche: 43114,
+  sepolia: 11155111,
 };
 
 // Ensure that we have all the environment variables we need.
@@ -66,9 +68,11 @@ function getChainRPC(network: keyof typeof chainIds): string {
   switch (network) {
     case "mainnet":
     case "rinkeby":
-    case "goerli":
     case "ropsten":
       return `https://eth-${network}.alchemyapi.io/v2/${ALCHEMY_API_KEY}`;
+    case "sepolia":
+    case "goerli":
+      return `https://${network}.infura.io/v3/${INFURA_API_KEY}`;
     case "polygon":
       return `https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`;
     case "polygonMumbai":
@@ -107,6 +111,7 @@ const config: HardhatUserConfig = {
     rinkeby: getChainConfig("rinkeby"),
     ropsten: getChainConfig("ropsten"),
     goerli: getChainConfig("goerli"),
+    sepolia: getChainConfig("sepolia"),
     polygon: getChainConfig("polygon"),
     polygonMumbai: getChainConfig("polygonMumbai"),
     avalanche: getChainConfig("avalanche"),
@@ -128,8 +133,9 @@ const config: HardhatUserConfig = {
       polygonMumbai: POLYGONSCAN_API_KEY,
       polygon: POLYGONSCAN_API_KEY,
       mainnet: ETHERSCAN_API_KEY,
-      rinkenby: ETHERSCAN_API_KEY,
+      rinkeby: ETHERSCAN_API_KEY,
       goerli: ETHERSCAN_API_KEY,
+      sepolia: ETHERSCAN_API_KEY,
     },
   },
 //   blockscoutVerify: {

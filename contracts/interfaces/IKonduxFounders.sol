@@ -17,10 +17,9 @@ interface IKonduxFounders {
 
     function unpause() external;
 
-    function safeMint(address to, uint256 dna) external;
+    function safeMint(address to) external returns (uint256);
 
     function setMinter(address _minter) external;
 
-    function automaticMint(address to) external returns (uint256);
 
 }

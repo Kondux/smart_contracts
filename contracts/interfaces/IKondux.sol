@@ -17,12 +17,10 @@ interface IKondux {
 
     function unpause() external;
 
-    function safeMint(address to, uint256 dna) external;
+    function safeMint(address to, uint256 dna) external returns (uint256);
 
     function setDna(uint256 _tokenID, uint256 _dna) external;
 
     function setMinter(address _minter) external;
-
-    function automaticMint(address to) external returns (uint256);
 
 }

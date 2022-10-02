@@ -25,10 +25,9 @@ import type {
 
 export interface IKonduxFoundersInterface extends utils.Interface {
   functions: {
-    "automaticMint(address)": FunctionFragment;
     "changeDenominator(uint96)": FunctionFragment;
     "pause()": FunctionFragment;
-    "safeMint(address,uint256)": FunctionFragment;
+    "safeMint(address)": FunctionFragment;
     "setBaseURI(string)": FunctionFragment;
     "setDefaultRoyalty(address,uint96)": FunctionFragment;
     "setMinter(address)": FunctionFragment;
@@ -38,7 +37,6 @@ export interface IKonduxFoundersInterface extends utils.Interface {
 
   getFunction(
     nameOrSignatureOrTopic:
-      | "automaticMint"
       | "changeDenominator"
       | "pause"
       | "safeMint"
@@ -50,17 +48,13 @@ export interface IKonduxFoundersInterface extends utils.Interface {
   ): FunctionFragment;
 
   encodeFunctionData(
-    functionFragment: "automaticMint",
-    values: [PromiseOrValue<string>]
-  ): string;
-  encodeFunctionData(
     functionFragment: "changeDenominator",
     values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(functionFragment: "pause", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "safeMint",
-    values: [PromiseOrValue<string>, PromiseOrValue<BigNumberish>]
+    values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
     functionFragment: "setBaseURI",
@@ -84,10 +78,6 @@ export interface IKonduxFoundersInterface extends utils.Interface {
   ): string;
   encodeFunctionData(functionFragment: "unpause", values?: undefined): string;
 
-  decodeFunctionResult(
-    functionFragment: "automaticMint",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(
     functionFragment: "changeDenominator",
     data: BytesLike
@@ -136,11 +126,6 @@ export interface IKonduxFounders extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
-    automaticMint(
-      to: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
     changeDenominator(
       _denominator: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -152,7 +137,6 @@ export interface IKonduxFounders extends BaseContract {
 
     safeMint(
       to: PromiseOrValue<string>,
-      dna: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
@@ -184,11 +168,6 @@ export interface IKonduxFounders extends BaseContract {
     ): Promise<ContractTransaction>;
   };
 
-  automaticMint(
-    to: PromiseOrValue<string>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
-
   changeDenominator(
     _denominator: PromiseOrValue<BigNumberish>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -200,7 +179,6 @@ export interface IKonduxFounders extends BaseContract {
 
   safeMint(
     to: PromiseOrValue<string>,
-    dna: PromiseOrValue<BigNumberish>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
@@ -232,11 +210,6 @@ export interface IKonduxFounders extends BaseContract {
   ): Promise<ContractTransaction>;
 
   callStatic: {
-    automaticMint(
-      to: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
     changeDenominator(
       _denominator: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
@@ -246,9 +219,8 @@ export interface IKonduxFounders extends BaseContract {
 
     safeMint(
       to: PromiseOrValue<string>,
-      dna: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
-    ): Promise<void>;
+    ): Promise<BigNumber>;
 
     setBaseURI(
       _newURI: PromiseOrValue<string>,
@@ -279,11 +251,6 @@ export interface IKonduxFounders extends BaseContract {
   filters: {};
 
   estimateGas: {
-    automaticMint(
-      to: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
     changeDenominator(
       _denominator: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -295,7 +262,6 @@ export interface IKonduxFounders extends BaseContract {
 
     safeMint(
       to: PromiseOrValue<string>,
-      dna: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
@@ -328,11 +294,6 @@ export interface IKonduxFounders extends BaseContract {
   };
 
   populateTransaction: {
-    automaticMint(
-      to: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
     changeDenominator(
       _denominator: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -344,7 +305,6 @@ export interface IKonduxFounders extends BaseContract {
 
     safeMint(
       to: PromiseOrValue<string>,
-      dna: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 

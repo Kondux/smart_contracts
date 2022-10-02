@@ -32,7 +32,6 @@ export interface KonduxFoundersInterface extends utils.Interface {
     "MINTER_ROLE()": FunctionFragment;
     "approve(address,uint256)": FunctionFragment;
     "authority()": FunctionFragment;
-    "automaticMint(address)": FunctionFragment;
     "balanceOf(address)": FunctionFragment;
     "baseURI()": FunctionFragment;
     "burn(uint256)": FunctionFragment;
@@ -68,7 +67,6 @@ export interface KonduxFoundersInterface extends utils.Interface {
       | "MINTER_ROLE"
       | "approve"
       | "authority"
-      | "automaticMint"
       | "balanceOf"
       | "baseURI"
       | "burn"
@@ -108,10 +106,6 @@ export interface KonduxFoundersInterface extends utils.Interface {
     values: [PromiseOrValue<string>, PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(functionFragment: "authority", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "automaticMint",
-    values: [PromiseOrValue<string>]
-  ): string;
   encodeFunctionData(
     functionFragment: "balanceOf",
     values: [PromiseOrValue<string>]
@@ -230,10 +224,6 @@ export interface KonduxFoundersInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "approve", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "authority", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "automaticMint",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(functionFragment: "balanceOf", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "baseURI", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "burn", data: BytesLike): Result;
@@ -464,11 +454,6 @@ export interface KonduxFounders extends BaseContract {
 
     authority(overrides?: CallOverrides): Promise<[string]>;
 
-    automaticMint(
-      to: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
     balanceOf(
       owner: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -534,7 +519,7 @@ export interface KonduxFounders extends BaseContract {
       from: PromiseOrValue<string>,
       to: PromiseOrValue<string>,
       tokenId: PromiseOrValue<BigNumberish>,
-      data: PromiseOrValue<BytesLike>,
+      _data: PromiseOrValue<BytesLike>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
@@ -614,11 +599,6 @@ export interface KonduxFounders extends BaseContract {
 
   authority(overrides?: CallOverrides): Promise<string>;
 
-  automaticMint(
-    to: PromiseOrValue<string>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
-
   balanceOf(
     owner: PromiseOrValue<string>,
     overrides?: CallOverrides
@@ -684,7 +664,7 @@ export interface KonduxFounders extends BaseContract {
     from: PromiseOrValue<string>,
     to: PromiseOrValue<string>,
     tokenId: PromiseOrValue<BigNumberish>,
-    data: PromiseOrValue<BytesLike>,
+    _data: PromiseOrValue<BytesLike>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
@@ -764,11 +744,6 @@ export interface KonduxFounders extends BaseContract {
 
     authority(overrides?: CallOverrides): Promise<string>;
 
-    automaticMint(
-      to: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
     balanceOf(
       owner: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -819,7 +794,7 @@ export interface KonduxFounders extends BaseContract {
     safeMint(
       to: PromiseOrValue<string>,
       overrides?: CallOverrides
-    ): Promise<void>;
+    ): Promise<BigNumber>;
 
     "safeTransferFrom(address,address,uint256)"(
       from: PromiseOrValue<string>,
@@ -832,7 +807,7 @@ export interface KonduxFounders extends BaseContract {
       from: PromiseOrValue<string>,
       to: PromiseOrValue<string>,
       tokenId: PromiseOrValue<BigNumberish>,
-      data: PromiseOrValue<BytesLike>,
+      _data: PromiseOrValue<BytesLike>,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -969,11 +944,6 @@ export interface KonduxFounders extends BaseContract {
 
     authority(overrides?: CallOverrides): Promise<BigNumber>;
 
-    automaticMint(
-      to: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
     balanceOf(
       owner: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -1039,7 +1009,7 @@ export interface KonduxFounders extends BaseContract {
       from: PromiseOrValue<string>,
       to: PromiseOrValue<string>,
       tokenId: PromiseOrValue<BigNumberish>,
-      data: PromiseOrValue<BytesLike>,
+      _data: PromiseOrValue<BytesLike>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
@@ -1120,11 +1090,6 @@ export interface KonduxFounders extends BaseContract {
 
     authority(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    automaticMint(
-      to: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
     balanceOf(
       owner: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -1190,7 +1155,7 @@ export interface KonduxFounders extends BaseContract {
       from: PromiseOrValue<string>,
       to: PromiseOrValue<string>,
       tokenId: PromiseOrValue<BigNumberish>,
-      data: PromiseOrValue<BytesLike>,
+      _data: PromiseOrValue<BytesLike>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 

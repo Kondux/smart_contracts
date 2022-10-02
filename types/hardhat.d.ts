@@ -145,10 +145,6 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.MinterFounders__factory>;
     getContractFactory(
-      name: "Minter",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.Minter__factory>;
-    getContractFactory(
       name: "Staking",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Staking__factory>;
@@ -338,11 +334,6 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.MinterFounders>;
-    getContractAt(
-      name: "Minter",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.Minter>;
     getContractAt(
       name: "Staking",
       address: string,

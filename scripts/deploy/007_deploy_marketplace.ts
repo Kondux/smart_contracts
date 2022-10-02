@@ -9,12 +9,12 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
 
     const authorityDeployment = await deployments.get(CONTRACTS.authority);
 
-    await deploy(CONTRACTS.marketplace, {
-        from: deployer,
-        args: [authorityDeployment.address],
-        log: true,
-        skipIfAlreadyDeployed: true,
-    });
+    // await deploy(CONTRACTS.marketplace, {
+    //     from: deployer,
+    //     args: [authorityDeployment.address],
+    //     log: true,
+    //     skipIfAlreadyDeployed: true,
+    // });
 };
 
 func.tags = [CONTRACTS.marketplace, "migration", "production"];

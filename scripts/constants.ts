@@ -16,19 +16,20 @@ export const CONTRACTS: Record<string, string> = {
 export const CONFIGURATION: Record<string, any> = {
   hardhatChainId: 1337,
   erc721: "Kondux NFT",
-  ticker: "KONDUX",
+  ticker: "kNFT",
   erc721Founders: "Kondux Founders NFT",
   tickerFounders: "fKNDX",
-  baseURI: "https://metadata.kondux.io/v1/", 
+  baseURIkNFTBox: "https://h7af1y611a.execute-api.us-east-1.amazonaws.com/getMetadataBox/",
+  baseURIFounders: "https://h7af1y611a.execute-api.us-east-1.amazonaws.com/getMetadataFounders/", 
   initialPrice: "1" + "0".repeat(15), // in wei
   // 0.15 eth in wei
-  initialPriceOG: "15" + "0".repeat(16), // in wei
+  initialPrice020: "200000000000000000", // in wei
   // 0.2 eth in wei
-  initialPriceWL1: "2" + "0".repeat(17), // in wei
+  initialPrice025: "250000000000000000", // in wei
   // 0.25 eth in wei
-  initialPricePublic: "25" + "0".repeat(16), // in wei
-  merkleRoot: "https://h7af1y611a.execute-api.us-east-1.amazonaws.com/root",
-  merkleRootOG: "https://h7af1y611a.execute-api.us-east-1.amazonaws.com/rootOG",
-  merkleRootWL1: "https://h7af1y611a.execute-api.us-east-1.amazonaws.com/rootWL1",
-  merkleRootWL2: "https://h7af1y611a.execute-api.us-east-1.amazonaws.com/rootWL2", 
+  initialPricePublic: "400000000000000000", // in wei
+  merkleRootFreeFounders: "https://h7af1y611a.execute-api.us-east-1.amazonaws.com/rootFreeFounders",
+  merkleRoot020: "https://h7af1y611a.execute-api.us-east-1.amazonaws.com/root020",
+  merkleRoot025: "https://h7af1y611a.execute-api.us-east-1.amazonaws.com/root025",
+  merkleRootFreeKNFT: "https://h7af1y611a.execute-api.us-east-1.amazonaws.com/rootFreeKNFT", 
 };

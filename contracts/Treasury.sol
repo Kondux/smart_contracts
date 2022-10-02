@@ -14,7 +14,7 @@ contract Treasury is AccessControlled {
     event DepositEther(uint256 amount);
     event EtherDeposit(uint256 amount);
     event Withdrawal(address indexed token, uint256 amount);
-    event EtherWithdrawal(uint256 amount);
+    event EtherWithdrawal(address to, uint256 amount);
 
     /* ========== DATA STRUCTURES ========== */
 
@@ -26,7 +26,7 @@ contract Treasury is AccessControlled {
 
     /* ========== STATE VARIABLES ========== */
 
-    IERC20 public immutable Kondux;
+    IERC20 public Kondux;
 
 
     string internal notAccepted = "Treasury: not accepted";
@@ -34,15 +34,16 @@ contract Treasury is AccessControlled {
     string internal invalidToken = "Treasury: invalid token";
 
     mapping(STATUS => mapping(address => bool)) public permissions;
+    mapping(address => bool) public isTokenApprooved;
+    mapping(address => IERC20) public approvedTokens;
+
+    address[] public approvedTokensList;
+    uint256 public approvedTokensCount;
 
     /* ========== CONSTRUCTOR ========== */
 
-    constructor(
-        address _authority,
-        address _kondux
-    ) AccessControlled(IAuthority(_authority)) {
-        require(_kondux != address(0), "Zero address: Kondux");
-        Kondux = IERC20(_kondux);
+    constructor(address _authority) AccessControlled(IAuthority(_authority)) {
+        approvedTokensCount = 0;
     }
 
 
@@ -67,7 +68,8 @@ contract Treasury is AccessControlled {
     }
 
     function depositEther () external payable {
-        require(permissions[STATUS.RESERVEDEPOSITOR][msg.sender], notApproved);                
+        require(permissions[STATUS.RESERVEDEPOSITOR][msg.sender], notApproved);  
+        console.log("Deposit Ether: %s", msg.value);              
                 
         emit DepositEther(msg.value);
     }
@@ -87,15 +89,20 @@ contract Treasury is AccessControlled {
     }
 
     receive() external payable {
-        // require(permissions[STATUS.RESERVEDEPOSITOR][msg.sender], notApproved);
+        console.log("Received Ether: %s", msg.value);
         emit EtherDeposit(msg.value);
+    }
+
+    fallback() external payable { 
+        console.log("Fallback Ether: %s", msg.value);
+        emit EtherDeposit(msg.value); 
     }
     
     function withdrawEther(uint _amount) external {
         require(permissions[STATUS.RESERVESPENDER][msg.sender], notApproved);
         require(payable(msg.sender).send(_amount));
 
-        emit EtherWithdrawal(_amount);
+        emit EtherWithdrawal(msg.sender, _amount);
     }
 
     function setPermission(
@@ -104,5 +111,13 @@ contract Treasury is AccessControlled {
         bool _permission
     ) public onlyGovernor {
         permissions[_status][_address] = _permission;
+        if (_status == STATUS.RESERVETOKEN) {
+            isTokenApprooved[_address] = _permission;
+            if (_permission) {
+                approvedTokens[_address] = IERC20(_address);
+                approvedTokensList.push(_address);
+                approvedTokensCount++;
+            }
+        }
     }
 }

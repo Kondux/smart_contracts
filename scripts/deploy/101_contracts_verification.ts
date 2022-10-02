@@ -19,9 +19,9 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
 
     const authorityDeployment = await deployments.get(CONTRACTS.authority);
     const konduxNFTDeployment = await deployments.get(CONTRACTS.kondux);
-    const minterDeployment = await deployments.get(CONTRACTS.minter);
-    const marketplaceDeployment = await deployments.get(CONTRACTS.marketplace);  
-    const stakingDeployment = await deployments.get(CONTRACTS.staking);
+    // const minterDeployment = await deployments.get(CONTRACTS.minter);
+    // const marketplaceDeployment = await deployments.get(CONTRACTS.marketplace);  
+    // const stakingDeployment = await deployments.get(CONTRACTS.staking);
     const treasuryDeployment = await deployments.get(CONTRACTS.treasury);
     const konduxFoundersDeployment = await deployments.get(CONTRACTS.konduxFounders);
     const minterFoundersDeployment = await deployments.get(CONTRACTS.minterFounders);
@@ -74,69 +74,68 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
             }                      
         }
 
-        try {
-            await hre.run("verify:verify", {
-                address: minterDeployment.address,
-                constructorArguments: [
-                    authorityDeployment.address,
-                    konduxNFTDeployment.address,
-                    treasuryDeployment.address
-                ],
-            });
-            console.log("Verified -- minter");
-        } catch (error) {
-            if (error instanceof NomicLabsHardhatPluginError) {
-                // specific error
-                console.log("Error verifying -- minter");
-                console.log(error.message);
-            } else {
-                throw error; // let others bubble up
-            }                      
-        }
+        // try {
+        //     await hre.run("verify:verify", {
+        //         address: minterDeployment.address,
+        //         constructorArguments: [
+        //             authorityDeployment.address,
+        //             konduxNFTDeployment.address,
+        //             treasuryDeployment.address
+        //         ],
+        //     });
+        //     console.log("Verified -- minter");
+        // } catch (error) {
+        //     if (error instanceof NomicLabsHardhatPluginError) {
+        //         // specific error
+        //         console.log("Error verifying -- minter");
+        //         console.log(error.message);
+        //     } else {
+        //         throw error; // let others bubble up
+        //     }                      
+        // }
 
-        try {
-            await hre.run("verify:verify", {
-                address: marketplaceDeployment.address,
-                constructorArguments: [
-                    authorityDeployment.address,
-                ],
-            });
-            console.log("Verified -- marketplace");
-        } catch (error) {
-            if (error instanceof NomicLabsHardhatPluginError) {
-                // specific error
-                console.log("Error verifying -- marketplace");
-                console.log(error.message);
-            } else {
-                throw error; // let others bubble up
-            }                      
-        }
+        // try {
+        //     await hre.run("verify:verify", {
+        //         address: marketplaceDeployment.address,
+        //         constructorArguments: [
+        //             authorityDeployment.address,
+        //         ],
+        //     });
+        //     console.log("Verified -- marketplace");
+        // } catch (error) {
+        //     if (error instanceof NomicLabsHardhatPluginError) {
+        //         // specific error
+        //         console.log("Error verifying -- marketplace");
+        //         console.log(error.message);
+        //     } else {
+        //         throw error; // let others bubble up
+        //     }                      
+        // }
 
-        try {
-            await hre.run("verify:verify", {
-                address: stakingDeployment.address,
-                constructorArguments: [
-                    authorityDeployment.address,
-                    treasuryDeployment.address
-                ],
-            });
-            console.log("Verified -- staking");
-        } catch (error) {
-            if (error instanceof NomicLabsHardhatPluginError) {
-                // specific error
-                console.log("Error verifying -- staking");
-                console.log(error.message);
-            } else {
-                throw error; // let others bubble up
-            }                      
-        }
+        // try {
+        //     await hre.run("verify:verify", {
+        //         address: stakingDeployment.address,
+        //         constructorArguments: [
+        //             authorityDeployment.address,
+        //             treasuryDeployment.address
+        //         ],
+        //     });
+        //     console.log("Verified -- staking");
+        // } catch (error) {
+        //     if (error instanceof NomicLabsHardhatPluginError) {
+        //         // specific error
+        //         console.log("Error verifying -- staking");
+        //         console.log(error.message);
+        //     } else {
+        //         throw error; // let others bubble up
+        //     }                      
+        // }
 
         try {
             await hre.run("verify:verify", {
                 address: treasuryDeployment.address,
                 constructorArguments: [
                     authorityDeployment.address,
-                    konduxNFTDeployment.address
                 ],
             });
             console.log("Verified -- treasury");
@@ -154,6 +153,8 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
             await hre.run("verify:verify", {
                 address: konduxFoundersDeployment.address,
                 constructorArguments: [
+                    CONFIGURATION.erc721Founders,
+                     CONFIGURATION.tickerFounders,
                     authorityDeployment.address,
                 ],
             });
@@ -176,6 +177,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
                 constructorArguments: [
                     authorityDeployment.address,
                     konduxFoundersDeployment.address,
+                    konduxNFTDeployment.address,
                     treasuryDeployment.address
                 ],
             });

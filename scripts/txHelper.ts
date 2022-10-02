@@ -49,6 +49,9 @@ function getGasStation(chainId: number) {
             return "https://gasstation-mumbai.matic.today/v2/";
         case 137:
             return "https://gasstation-mainnet.matic.network/v2/";
+        // case rinkeby
+        case 4:
+            return "https://ethgasstation.info/json/ethgasAPI.json";
         default:
             return "NONE";
     }

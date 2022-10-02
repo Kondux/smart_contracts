@@ -20,7 +20,7 @@ contract Kondux is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Roya
 
     using Counters for Counters.Counter;
 
-    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public MINTER_ROLE = keccak256("MINTER_ROLE");
 
     string public baseURI;
     uint96 public denominator;
@@ -67,22 +67,10 @@ contract Kondux is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Roya
         _unpause();
     }
 
-    function safeMint(address to, uint256 dna) public onlyGovernor {
+    function safeMint(address to, uint256 dna) public onlyRole(MINTER_ROLE) returns (uint256) {
         uint256 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
         _setDna(tokenId, dna);
-        _safeMint(to, tokenId);
-    }
-
-    function automaticMint(address to) external onlyRole(MINTER_ROLE) returns (uint256) {
-        uint256 tokenId = _tokenIdCounter.current();
-
-        _tokenIdCounter.increment();
-  
-        uint256 dna = _random();
-  
-        _setDna(tokenId, dna);
-  
         _safeMint(to, tokenId);
         return tokenId;
     }
@@ -97,10 +85,6 @@ contract Kondux is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Roya
     }  
 
     // Internal functions //
-
-    function _random() internal view returns(uint){
-        return uint(keccak256(abi.encodePacked(block.difficulty, block.timestamp, block.number, block.coinbase)));
-    }
 
     function _baseURI() internal view override returns (string memory) {
         return baseURI;
