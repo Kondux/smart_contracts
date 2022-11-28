@@ -177,7 +177,7 @@ describe("Whitelist minting", async function () {
     const treasurySpender = await treasury.setPermission(1, ownerAddress, true);
     await treasurySpender.wait();
 
-    const rootRes = await axios.get(BASE_URL + "rootFreeFounders")
+    const rootRes = await axios.get(BASE_URL + "rootFreeFounders");
     const root020 = rootRes.data.root;
     const setRoot020 = await minterFounders.setRootFreeFounders(root020);
     await setRoot020.wait();
