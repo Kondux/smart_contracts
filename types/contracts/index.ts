@@ -7,6 +7,8 @@ import type * as konduxNftSol from "./Kondux_NFT.sol";
 export type { konduxNftSol };
 import type * as minterFoundersSol from "./Minter_Founders.sol";
 export type { minterFoundersSol };
+import type * as minterPublicSol from "./Minter_Public.sol";
+export type { minterPublicSol };
 import type * as extensions from "./extensions";
 export type { extensions };
 import type * as interfaces from "./interfaces";

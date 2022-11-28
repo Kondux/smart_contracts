@@ -153,7 +153,7 @@ describe("Whitelist minting", async function () {
     // expect(await ethers.provider.getBalance(ownerAddress)).to.equal(ethers.utils.parseEther("100"));
   });
 
-  it("Should mint whitelisted NFT Free Founders", async function () {
+  it.skip("Should mint whitelisted NFT Free Founders", async function () {  // Deprecated
     const [owner, second] = await ethers.getSigners();
     const ownerAddress = await owner.getAddress();
     const secondAddress = await second.getAddress();
@@ -249,5 +249,58 @@ describe("Whitelist minting", async function () {
 
     await expect(minterFounders.whitelistMintFreeKNFT(proof)).to.be.revertedWith("Already claimed");
 
+  });
+
+  it("Should mint from public minter contract", async function () {
+    const [owner, second] = await ethers.getSigners();
+    const ownerAddress = await owner.getAddress();
+    const secondAddress = await second.getAddress();
+
+    const KonduxFounders = await ethers.getContractFactory("KonduxFounders");
+    const konduxFounders = await KonduxFounders.deploy("Kondux Founders NFT", "fKDX", authority.address);
+
+    const MinterPublic = await ethers.getContractFactory("MinterPublic");
+    const minterPublic = await MinterPublic.deploy(authority.address, konduxFounders.address, treasury.address);
+    
+    const pushMinter = await authority.pushRole(minterPublic.address, keccak256(ethers.utils.toUtf8Bytes("MINTER_ROLE")));
+    await pushMinter.wait();
+
+    const treasuryApprove = await treasury.setPermission(0, minterPublic.address, true);
+    await treasuryApprove.wait();
+    const treasurySpender = await treasury.setPermission(1, ownerAddress, true);
+    await treasurySpender.wait();
+
+    expect(await konduxFounders.totalSupply()).to.equal(0);
+
+    const address = "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266";
+    
+    await expect(minterPublic.publicMint({value: ethers.utils.parseEther("0.2")})).to.be.revertedWith("Not enough ETH sent");
+
+    const whitelistMint = await minterPublic.publicMint({value: ethers.utils.parseEther("0.25")});
+    await whitelistMint.wait();
+
+    expect(await konduxFounders.totalSupply()).to.equal(1);
+    expect(await konduxFounders.balanceOf(address)).to.equal(1);
+
+    const pause = await minterPublic.setPaused(true);
+    await pause.wait();
+
+    await expect(minterPublic.publicMint({value: ethers.utils.parseEther("0.25")})).to.be.revertedWith("Pausable: paused");
+
+    const unpause = await minterPublic.setPaused(false);
+    await unpause.wait();
+
+    for (let i = 0; i < 649; i++) {
+      const whitelistMint = await minterPublic.publicMint({value: ethers.utils.parseEther("0.25")});
+      await whitelistMint.wait();
+    }
+
+    expect(await konduxFounders.totalSupply()).to.equal(650);
+    expect(await konduxFounders.balanceOf(address)).to.equal(650);
+
+    await expect(minterPublic.publicMint({value: ethers.utils.parseEther("0.25")})).to.be.revertedWith("No more NFTs left");
+
+    const withdraw = await treasury.withdrawEther(ethers.utils.parseEther("0.25"));
+    await withdraw.wait();
   });
 });

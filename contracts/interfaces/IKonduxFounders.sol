@@ -21,5 +21,7 @@ interface IKonduxFounders {
 
     function setMinter(address _minter) external;
 
+    function totalSupply() external view returns (uint256);
+
 
 }

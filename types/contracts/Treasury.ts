@@ -30,7 +30,6 @@ import type {
 
 export interface TreasuryInterface extends utils.Interface {
   functions: {
-    "Kondux()": FunctionFragment;
     "approvedTokens(address)": FunctionFragment;
     "approvedTokensCount()": FunctionFragment;
     "approvedTokensList(uint256)": FunctionFragment;
@@ -47,7 +46,6 @@ export interface TreasuryInterface extends utils.Interface {
 
   getFunction(
     nameOrSignatureOrTopic:
-      | "Kondux"
       | "approvedTokens"
       | "approvedTokensCount"
       | "approvedTokensList"
@@ -62,7 +60,6 @@ export interface TreasuryInterface extends utils.Interface {
       | "withdrawEther"
   ): FunctionFragment;
 
-  encodeFunctionData(functionFragment: "Kondux", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "approvedTokens",
     values: [PromiseOrValue<string>]
@@ -113,7 +110,6 @@ export interface TreasuryInterface extends utils.Interface {
     values: [PromiseOrValue<BigNumberish>]
   ): string;
 
-  decodeFunctionResult(functionFragment: "Kondux", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "approvedTokens",
     data: BytesLike
@@ -259,8 +255,6 @@ export interface Treasury extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
-    Kondux(overrides?: CallOverrides): Promise<[string]>;
-
     approvedTokens(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -319,8 +313,6 @@ export interface Treasury extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
   };
-
-  Kondux(overrides?: CallOverrides): Promise<string>;
 
   approvedTokens(
     arg0: PromiseOrValue<string>,
@@ -381,8 +373,6 @@ export interface Treasury extends BaseContract {
   ): Promise<ContractTransaction>;
 
   callStatic: {
-    Kondux(overrides?: CallOverrides): Promise<string>;
-
     approvedTokens(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -476,8 +466,6 @@ export interface Treasury extends BaseContract {
   };
 
   estimateGas: {
-    Kondux(overrides?: CallOverrides): Promise<BigNumber>;
-
     approvedTokens(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -538,8 +526,6 @@ export interface Treasury extends BaseContract {
   };
 
   populateTransaction: {
-    Kondux(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
     approvedTokens(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides

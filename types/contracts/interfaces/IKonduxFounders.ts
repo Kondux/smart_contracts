@@ -32,6 +32,7 @@ export interface IKonduxFoundersInterface extends utils.Interface {
     "setDefaultRoyalty(address,uint96)": FunctionFragment;
     "setMinter(address)": FunctionFragment;
     "setTokenRoyalty(uint256,address,uint96)": FunctionFragment;
+    "totalSupply()": FunctionFragment;
     "unpause()": FunctionFragment;
   };
 
@@ -44,6 +45,7 @@ export interface IKonduxFoundersInterface extends utils.Interface {
       | "setDefaultRoyalty"
       | "setMinter"
       | "setTokenRoyalty"
+      | "totalSupply"
       | "unpause"
   ): FunctionFragment;
 
@@ -76,6 +78,10 @@ export interface IKonduxFoundersInterface extends utils.Interface {
       PromiseOrValue<BigNumberish>
     ]
   ): string;
+  encodeFunctionData(
+    functionFragment: "totalSupply",
+    values?: undefined
+  ): string;
   encodeFunctionData(functionFragment: "unpause", values?: undefined): string;
 
   decodeFunctionResult(
@@ -92,6 +98,10 @@ export interface IKonduxFoundersInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "setMinter", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "setTokenRoyalty",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "totalSupply",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "unpause", data: BytesLike): Result;
@@ -163,6 +173,8 @@ export interface IKonduxFounders extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
+    totalSupply(overrides?: CallOverrides): Promise<[BigNumber]>;
+
     unpause(
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
@@ -205,6 +217,8 @@ export interface IKonduxFounders extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
+  totalSupply(overrides?: CallOverrides): Promise<BigNumber>;
+
   unpause(
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
@@ -244,6 +258,8 @@ export interface IKonduxFounders extends BaseContract {
       feeNumerator: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
+
+    totalSupply(overrides?: CallOverrides): Promise<BigNumber>;
 
     unpause(overrides?: CallOverrides): Promise<void>;
   };
@@ -288,6 +304,8 @@ export interface IKonduxFounders extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
+    totalSupply(overrides?: CallOverrides): Promise<BigNumber>;
+
     unpause(
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
@@ -330,6 +348,8 @@ export interface IKonduxFounders extends BaseContract {
       feeNumerator: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
+
+    totalSupply(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     unpause(
       overrides?: Overrides & { from?: PromiseOrValue<string> }

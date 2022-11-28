@@ -9,13 +9,16 @@ import {
   Authority,
   Authority__factory,
   Kondux,
-  Minter,
+  Kondux__factory,
+  MinterPublic,
+  MinterPublic__factory,
   KonduxERC20,
   KonduxERC20__factory,
   Treasury,
   Treasury__factory,
 } from "../types";
 import { keccak256 } from 'ethers/lib/utils';
+import { KonduxFounders } from '../types/contracts/Kondux_Founders.sol/KonduxFounders';
  
 describe("Token contract", function () {
   let authority: Authority;
@@ -28,6 +31,8 @@ describe("Token contract", function () {
       ownerAddress,
       ownerAddress
     );
+    const pushMinter = await authority.pushRole(authority.governor(), keccak256(ethers.utils.toUtf8Bytes("MINTER_ROLE")));
+    await pushMinter.wait();
   });
   it("Deployment should assign the total supply of tokens to the owner", async function () {
     const [owner, second] = await ethers.getSigners();
@@ -51,6 +56,8 @@ describe("BaseURI setup", async function () {
       ownerAddress,
       ownerAddress
     );
+    const pushMinter = await authority.pushRole(authority.governor(), keccak256(ethers.utils.toUtf8Bytes("MINTER_ROLE")));
+    await pushMinter.wait();
   });
   it("BaseURI should start blank, will be changed later", async function () {
     const [owner, second] = await ethers.getSigners();
@@ -98,6 +105,8 @@ describe("Zero NFT", async function () {
       ownerAddress,
       ownerAddress
     );
+    const pushMinter = await authority.pushRole(authority.governor(), keccak256(ethers.utils.toUtf8Bytes("MINTER_ROLE")));
+    await pushMinter.wait();
   });
   it("Shouldn't have any NFT after deployment", async function () {
     const [owner, second] = await ethers.getSigners();
@@ -122,6 +131,8 @@ describe ("Mint NFT", async function () {
       ownerAddress
     );
     konduxERC20 = await new KonduxERC20__factory(owner).deploy();
+    const pushMinter = await authority.pushRole(authority.governor(), keccak256(ethers.utils.toUtf8Bytes("MINTER_ROLE")));
+    await pushMinter.wait();
   });
   it("Should test mint NFT", async function () {
     const [owner, second] = await ethers.getSigners();
@@ -200,6 +211,9 @@ describe ("NFT Royalty", async function () {
       ownerAddress,
       ownerAddress
     );
+
+    const pushMinter = await authority.pushRole(authority.governor(), keccak256(ethers.utils.toUtf8Bytes("MINTER_ROLE")));
+    await pushMinter.wait();
   });
   it("Should set NFT", async function () {
     const [owner, second] = await ethers.getSigners();
@@ -258,6 +272,9 @@ describe ("Burn NFT", async function () {
       ownerAddress,
       ownerAddress
     );
+
+    const pushMinter = await authority.pushRole(authority.governor(), keccak256(ethers.utils.toUtf8Bytes("MINTER_ROLE")));
+    await pushMinter.wait();
   });
   it("Should test NFT burn", async function () {
     const [owner, second] = await ethers.getSigners();
@@ -313,8 +330,11 @@ describe('Send Ether to contract', async function () {
 
     treasury = await new Treasury__factory(owner).deploy(
       authority.address,
-      konduxERC20.address
     );
+
+    const pushMinter = await authority.pushRole(authority.governor(), keccak256(ethers.utils.toUtf8Bytes("MINTER_ROLE")));
+    await pushMinter.wait();
+    
   });
   it('Should reject the transfer', async function () {
     const [owner, second] = await ethers.getSigners();
@@ -326,17 +346,21 @@ describe('Send Ether to contract', async function () {
     await expect(transfer).to.be.reverted;
     describe("Sending Ether to Minter should mint NFT", async function () {
       it("Minter should mint NFT", async function () {
+        const KonduxFounders = await ethers.getContractFactory("KonduxFounders");
+        const konduxFounders = await KonduxFounders.deploy("NAME", "TICKER", authority.address);
         expect(await kondux.totalSupply()).to.equal(0);
-        const Minter = await ethers.getContractFactory("Minter");
+        const Minter = await ethers.getContractFactory("MinterPublic");
         const minter = await Minter.deploy(authority.address, kondux.address, treasury.address);
-        const setMinter = await kondux.setMinter(minter.address);
-        await setMinter.wait();
+        const pushMinterPublic = await authority.pushRole(minter.address, keccak256(ethers.utils.toUtf8Bytes("MINTER_ROLE")));
+        await pushMinterPublic.wait();
+        const setKF = await minter.setKonduxFounders(konduxFounders.address);
+        await setKF.wait();
         const permission = await treasury.setPermission(0, minter.address, true);
         await permission.wait();
-        const mintTransfer = await second.sendTransaction({to: minter.address, value: ethers.utils.parseEther("1.0")});
+        const mintTransfer = await minter.connect(second).publicMint({value: ethers.utils.parseEther("1.0")});
         await mintTransfer.wait();
-        expect(await kondux.totalSupply()).to.equal(1);
-        expect(await kondux.balanceOf(secondAddress)).to.equal(1);
+        expect(await konduxFounders.totalSupply()).to.equal(1);
+        expect(await konduxFounders.balanceOf(secondAddress)).to.equal(1);
         expect(await ethers.provider.getBalance(treasury.address)).to.equal(ethers.utils.parseEther("1.0"));
       });
     });
@@ -362,16 +386,18 @@ describe("Whitelist minting", async function () {
 
     treasury = await new Treasury__factory(owner).deploy(
       authority.address,
-      konduxERC20.address
     );
+
+    const pushMinter = await authority.pushRole(authority.governor(), keccak256(ethers.utils.toUtf8Bytes("MINTER_ROLE")));
+    await pushMinter.wait();
   });
-  it("Should mint whitelisted NFT", async function () {
+  it.skip("Should mint whitelisted NFT", async function () { // Deprecated
     const [owner, second] = await ethers.getSigners();
     const secondAddress = await second.getAddress();
     const Kondux = await ethers.getContractFactory("Kondux");
     const kondux = await Kondux.deploy("Kondux NFT", "KDX", authority.address);
 
-    const Minter = await ethers.getContractFactory("Minter");
+    const Minter = await ethers.getContractFactory("MinterPublic");
     const minter = await Minter.deploy(authority.address, kondux.address, treasury.address);
     
     const pushMinter = await authority.pushRole(minter.address, keccak256(ethers.utils.toUtf8Bytes("MINTER_ROLE")));
@@ -407,6 +433,8 @@ describe ("Burn NFT", async function () {
       ownerAddress,
       ownerAddress
     );
+    const pushMinter = await authority.pushRole(authority.governor(), keccak256(ethers.utils.toUtf8Bytes("MINTER_ROLE")));
+    await pushMinter.wait();
   });
   it("Should test NFT burn", async function () {
     const [owner, second] = await ethers.getSigners();
@@ -468,11 +496,16 @@ describe("Marketplace", async function () {
     const {randomBytes} = await import('crypto');
     const dna = randomBytes(32);
 
+    const pushMinter = await authority.pushRole(authority.governor(), keccak256(ethers.utils.toUtf8Bytes("MINTER_ROLE")));
+    await pushMinter.wait();
+
     const baseURIString = "http://test.com/";
     const newBaseURI = await kondux.setBaseURI(baseURIString);
     await newBaseURI.wait();
     const minted = await kondux.safeMint(ownerAddress, dna);
     await minted.wait();  
+
+    
   });
   it("Should create ask ", async function () {	
     const [owner, second] = await ethers.getSigners();

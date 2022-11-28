@@ -26,9 +26,6 @@ contract Treasury is AccessControlled {
 
     /* ========== STATE VARIABLES ========== */
 
-    IERC20 public Kondux;
-
-
     string internal notAccepted = "Treasury: not accepted";
     string internal notApproved = "Treasury: not approved";
     string internal invalidToken = "Treasury: invalid token";

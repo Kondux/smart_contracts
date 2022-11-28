@@ -4,6 +4,7 @@
 export * as konduxFoundersSol from "./Kondux_Founders.sol";
 export * as konduxNftSol from "./Kondux_NFT.sol";
 export * as minterFoundersSol from "./Minter_Founders.sol";
+export * as minterPublicSol from "./Minter_Public.sol";
 export * as extensions from "./extensions";
 export * as interfaces from "./interfaces";
 export * as tests from "./tests";

@@ -72,6 +72,8 @@ export type { Marketplace } from "./contracts/Marketplace";
 export { Marketplace__factory } from "./factories/contracts/Marketplace__factory";
 export type { MinterFounders } from "./contracts/Minter_Founders.sol/MinterFounders";
 export { MinterFounders__factory } from "./factories/contracts/Minter_Founders.sol/MinterFounders__factory";
+export type { MinterPublic } from "./contracts/Minter_Public.sol/MinterPublic";
+export { MinterPublic__factory } from "./factories/contracts/Minter_Public.sol/MinterPublic__factory";
 export type { Staking } from "./contracts/Staking";
 export { Staking__factory } from "./factories/contracts/Staking__factory";
 export type { KonduxERC1155 } from "./contracts/tests/KonduxERC1155";
