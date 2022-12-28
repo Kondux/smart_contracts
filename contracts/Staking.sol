@@ -4,6 +4,7 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/ITreasury.sol";
 import "./types/AccessControlled.sol";
+import "hardhat/console.sol";
 
 contract Staking is AccessControlled {
     // Staker info
@@ -12,6 +13,8 @@ contract Staking is AccessControlled {
         uint256 deposited;
         // Last time of details update for Deposit
         uint256 timeOfLastUpdate;
+        // Last deposit time
+        uint256 lastDepositTime;
         // Calculated, but unclaimed rewards. These are calculated each time
         // a user writes to the contract.
         uint256 unclaimedRewards;
@@ -29,6 +32,10 @@ contract Staking is AccessControlled {
 
     // Mapping of address to Staker info
     mapping(address => Staker) internal stakers;
+
+    // Staked tokens minimum timelock
+    // uint256 public timelock = 60 * 60 * 24 * 7; // 7 days
+    uint256 public timelock = 60 * 60 * 2; // 2 hours
 
     // KonduxERC20 Contract
     IERC20 public konduxERC20;
@@ -53,6 +60,12 @@ contract Staking is AccessControlled {
             treasury = ITreasury(_treasury);
     }
 
+    modifier timelocked() {
+        require(block.timestamp >= stakers[msg.sender].lastDepositTime + timelock, "Timelock not passed");
+        _;
+    }
+
+
     // If address has no Staker struct, initiate one. If address already was a stake,
     // calculate the rewards and add them to unclaimedRewards, reset the last time of
     // deposit and then add _amount to the already deposited amount.
@@ -62,16 +75,15 @@ contract Staking is AccessControlled {
         require(konduxERC20.balanceOf(msg.sender) >= _amount, "Can't stake more than you own");
         if (stakers[msg.sender].deposited == 0) {
             stakers[msg.sender].deposited = _amount;
-            stakers[msg.sender].timeOfLastUpdate = block.timestamp;
             stakers[msg.sender].unclaimedRewards = 0;
         } else {
             uint256 rewards = calculateRewards(msg.sender);
             stakers[msg.sender].unclaimedRewards += rewards;
-            stakers[msg.sender].deposited += _amount;
-            stakers[msg.sender].timeOfLastUpdate = block.timestamp;
+            stakers[msg.sender].deposited += _amount;            
         }
+        stakers[msg.sender].timeOfLastUpdate = block.timestamp;
+        stakers[msg.sender].lastDepositTime = block.timestamp;
         konduxERC20.transferFrom(msg.sender, authority.vault(), _amount);
-        // treasury.deposit(_amount, address(konduxERC20));
         emit Stake(msg.sender, _amount);
     }
 
@@ -87,7 +99,7 @@ contract Staking is AccessControlled {
     }
 
     // Transfer rewards to msg.sender
-    function claimRewards() public {
+    function claimRewards() public timelocked {
         // console.log("Claiming rewards");
         // console.log("staking contract address", address(this));
 
@@ -98,14 +110,14 @@ contract Staking is AccessControlled {
         require(rewards > 0, "You have no rewards");
         stakers[msg.sender].unclaimedRewards = 0;
         stakers[msg.sender].timeOfLastUpdate = block.timestamp;
-        treasury.withdrawTo(rewards, address(konduxERC20), msg.sender);
+        konduxERC20.transferFrom(authority.vault(), msg.sender, rewards);
         // console.logString("Rewards claimed");
         // console.log(konduxERC20.balanceOf(authority.vault()));
         emit Reward(msg.sender, rewards);
     }
 
     // Withdraw specified amount of staked tokens
-    function withdraw(uint256 _amount) public  {
+    function withdraw(uint256 _amount) public timelocked {
         require(stakers[msg.sender].deposited >= _amount, "Can't withdraw more than you have");
         uint256 _rewards = calculateRewards(msg.sender);
         stakers[msg.sender].deposited -= _amount;
@@ -116,7 +128,7 @@ contract Staking is AccessControlled {
     }
 
     // Withdraw all stake and rewards and mints them to the msg.sender
-    function withdrawAll() public  {
+    function withdrawAll() public timelocked {
         require(stakers[msg.sender].deposited > 0, "You have no deposit");
         uint256 _rewards = calculateRewards(msg.sender) + stakers[msg.sender].unclaimedRewards;
         uint256 _deposit = stakers[msg.sender].deposited;
@@ -145,8 +157,15 @@ contract Staking is AccessControlled {
 
     // Calculate the rewards since the last update on Deposit info
     function calculateRewards(address _staker) public view returns (uint256 rewards) {
+        // console.log("Calculating rewards");
+        // console.log("stakers[_staker].timeOfLastUpdate: %s", stakers[_staker].timeOfLastUpdate);
+        // console.log("block.timestamp: %s", block.timestamp);
+        // console.log("stakers[_staker].deposited: %s", stakers[_staker].deposited);
+        // console.log("rewardsPerHour: %s", rewardsPerHour);
+        // console.log("((((block.timestamp - stakers[_staker].timeOfLastUpdate) * stakers[_staker].deposited) * rewardsPerHour) / 3600) / 10_000_000: %s", ((((block.timestamp - stakers[_staker].timeOfLastUpdate) * stakers[_staker].deposited) * rewardsPerHour) / 3600) / 10_000_000);
+
         return (((((block.timestamp - stakers[_staker].timeOfLastUpdate) * 
-            stakers[_staker].deposited) * rewardsPerHour) / 3600) / 10000000); // blocks * staked * rewards/hour / 3600 / 10^7
+            stakers[_staker].deposited) * rewardsPerHour) / 3600) / 10_000_000); // blocks * staked * rewards/hour / 3600 / 10^7
     }
 
     // Functions for modifying  staking mechanism variables:
@@ -176,4 +195,8 @@ contract Staking is AccessControlled {
         treasury = ITreasury(_treasury);
     }
 
+    // Set the time lock for withdraw and claim functions
+    function setTimeLock(uint256 _timelock) public onlyGovernor {
+        timelock = _timelock;        
+    }
 }

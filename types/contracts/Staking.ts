@@ -44,8 +44,10 @@ export interface StakingInterface extends utils.Interface {
     "setKonduxERC20(address)": FunctionFragment;
     "setMinStake(uint256)": FunctionFragment;
     "setRewards(uint256)": FunctionFragment;
+    "setTimeLock(uint256)": FunctionFragment;
     "setTreasury(address)": FunctionFragment;
     "stakeRewards()": FunctionFragment;
+    "timelock()": FunctionFragment;
     "treasury()": FunctionFragment;
     "withdraw(uint256)": FunctionFragment;
     "withdrawAll()": FunctionFragment;
@@ -68,8 +70,10 @@ export interface StakingInterface extends utils.Interface {
       | "setKonduxERC20"
       | "setMinStake"
       | "setRewards"
+      | "setTimeLock"
       | "setTreasury"
       | "stakeRewards"
+      | "timelock"
       | "treasury"
       | "withdraw"
       | "withdrawAll"
@@ -130,6 +134,10 @@ export interface StakingInterface extends utils.Interface {
     values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
+    functionFragment: "setTimeLock",
+    values: [PromiseOrValue<BigNumberish>]
+  ): string;
+  encodeFunctionData(
     functionFragment: "setTreasury",
     values: [PromiseOrValue<string>]
   ): string;
@@ -137,6 +145,7 @@ export interface StakingInterface extends utils.Interface {
     functionFragment: "stakeRewards",
     values?: undefined
   ): string;
+  encodeFunctionData(functionFragment: "timelock", values?: undefined): string;
   encodeFunctionData(functionFragment: "treasury", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "withdraw",
@@ -196,6 +205,10 @@ export interface StakingInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "setRewards", data: BytesLike): Result;
   decodeFunctionResult(
+    functionFragment: "setTimeLock",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "setTreasury",
     data: BytesLike
   ): Result;
@@ -203,6 +216,7 @@ export interface StakingInterface extends utils.Interface {
     functionFragment: "stakeRewards",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "timelock", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "treasury", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "withdraw", data: BytesLike): Result;
   decodeFunctionResult(
@@ -372,6 +386,11 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
+    setTimeLock(
+      _timelock: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
     setTreasury(
       _treasury: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -380,6 +399,8 @@ export interface Staking extends BaseContract {
     stakeRewards(
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
+
+    timelock(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     treasury(overrides?: CallOverrides): Promise<[string]>;
 
@@ -454,6 +475,11 @@ export interface Staking extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
+  setTimeLock(
+    _timelock: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
   setTreasury(
     _treasury: PromiseOrValue<string>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -462,6 +488,8 @@ export interface Staking extends BaseContract {
   stakeRewards(
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
+
+  timelock(overrides?: CallOverrides): Promise<BigNumber>;
 
   treasury(overrides?: CallOverrides): Promise<string>;
 
@@ -534,12 +562,19 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    setTimeLock(
+      _timelock: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     setTreasury(
       _treasury: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     stakeRewards(overrides?: CallOverrides): Promise<void>;
+
+    timelock(overrides?: CallOverrides): Promise<BigNumber>;
 
     treasury(overrides?: CallOverrides): Promise<string>;
 
@@ -661,6 +696,11 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
+    setTimeLock(
+      _timelock: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
     setTreasury(
       _treasury: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -669,6 +709,8 @@ export interface Staking extends BaseContract {
     stakeRewards(
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
+
+    timelock(overrides?: CallOverrides): Promise<BigNumber>;
 
     treasury(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -742,6 +784,11 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
+    setTimeLock(
+      _timelock: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
     setTreasury(
       _treasury: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -750,6 +797,8 @@ export interface Staking extends BaseContract {
     stakeRewards(
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
+
+    timelock(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     treasury(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
