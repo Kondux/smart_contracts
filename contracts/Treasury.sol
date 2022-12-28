@@ -65,7 +65,7 @@ contract Treasury is AccessControlled {
         // console.log(tx.origin);
         IKonduxERC20(_token).transferFrom(tx.origin, address(this), _amount);
         IKonduxERC20(_token).increaseAllowance(stakingContract, _amount);
-        uint256 allowance = IKonduxERC20(_token).allowance(address(this), stakingContract);
+        // uint256 allowance = IKonduxERC20(_token).allowance(address(this), stakingContract);
         // console.log("Allowance (deposit): %s", allowance);  
 
         emit Deposit(_token, _amount);
@@ -88,25 +88,6 @@ contract Treasury is AccessControlled {
         require(permissions[STATUS.RESERVESPENDER][msg.sender], notApproved);
 
         IKonduxERC20(_token).transferFrom(address(this), msg.sender, _amount);
-
-        emit Withdrawal(_token, _amount);
-    }
-
-    function withdrawTo(uint256 _amount, address _token, address _to) external  {
-        require(permissions[STATUS.RESERVETOKEN][_token], notAccepted); // Only reserves can be used for redemptions
-        require(permissions[STATUS.RESERVESPENDER][msg.sender], notApproved);
-
-        // console.log("WithdrawTo: ", _to);
-        // console.log("Msg.sender: ", msg.sender);
-        // console.log("Tx.origin: ", tx.origin);
-        uint256 allowance = IKonduxERC20(_token).allowance(address(this), msg.sender);
-        // console.log("WithdrawTo Allowance: %s", allowance);
-        // console.log("balanceOf: %s", IKonduxERC20(_token).balanceOf(address(this)));
-        // console.log("amount: %s", _amount);
-        // console.log("address this: %s", address(this));  
-
-        IKonduxERC20(_token).transferFrom(address(this), _to, _amount);
-        // console.log("balanceOf after: %s", IKonduxERC20(_token).balanceOf(address(this)));
 
         emit Withdrawal(_token, _amount);
     }

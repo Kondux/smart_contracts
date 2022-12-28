@@ -28,14 +28,17 @@ contract Staking is AccessControlled {
 
     // Compounding frequency limit in seconds
     //uint256 public compoundFreq = 60 * 60 * 24; // 24 hours
-    uint256 public compoundFreq = 60 * 60; // 1 hour
+    // uint256 public compoundFreq = 60 * 60; // 1 hour
+    uint256 public compoundFreq = 60; // 1 minute
 
     // Mapping of address to Staker info
     mapping(address => Staker) internal stakers;
 
     // Staked tokens minimum timelock
     // uint256 public timelock = 60 * 60 * 24 * 7; // 7 days
-    uint256 public timelock = 60 * 60 * 2; // 2 hours
+    // uint256 public timelock = 60 * 60 * 2; // 2 hours
+    uint256 public timelock = 60 * 2; // 2 minutes
+
 
     // KonduxERC20 Contract
     IERC20 public konduxERC20;
@@ -64,7 +67,6 @@ contract Staking is AccessControlled {
         require(block.timestamp >= stakers[msg.sender].lastDepositTime + timelock, "Timelock not passed");
         _;
     }
-
 
     // If address has no Staker struct, initiate one. If address already was a stake,
     // calculate the rewards and add them to unclaimedRewards, reset the last time of
@@ -165,7 +167,7 @@ contract Staking is AccessControlled {
         // console.log("((((block.timestamp - stakers[_staker].timeOfLastUpdate) * stakers[_staker].deposited) * rewardsPerHour) / 3600) / 10_000_000: %s", ((((block.timestamp - stakers[_staker].timeOfLastUpdate) * stakers[_staker].deposited) * rewardsPerHour) / 3600) / 10_000_000);
 
         return (((((block.timestamp - stakers[_staker].timeOfLastUpdate) * 
-            stakers[_staker].deposited) * rewardsPerHour) / 3600) / 10_000_000); // blocks * staked * rewards/hour / 3600 / 10^7
+            stakers[_staker].deposited) * rewardsPerHour) / 3600) / 10_000_000); // blocks * staked * rewards/hour / 1h / 10^7
     }
 
     // Functions for modifying  staking mechanism variables:

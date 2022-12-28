@@ -1,3 +1,0 @@
-# Royalty Reward
-
-TBD

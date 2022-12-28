@@ -18,34 +18,34 @@ import {
 
 // TODO: Shouldn't run setup methods if the contracts weren't redeployed.
 const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
-    // const { deployments, getNamedAccounts, ethers } = hre;
-    // const { deployer } = await getNamedAccounts();
-    // const signer = ethers.provider.getSigner(deployer);
-    // const signerAddress = await signer.getAddress();
+    const { deployments, getNamedAccounts, ethers } = hre;
+    const { deployer } = await getNamedAccounts();
+    const signer = ethers.provider.getSigner(deployer);
+    const signerAddress = await signer.getAddress();
 
-    // console.log(signerAddress, "account balance:", ethers.utils.formatEther((await signer.getBalance()).toString()), "ETH");
+    console.log(signerAddress, "account balance:", ethers.utils.formatEther((await signer.getBalance()).toString()), "ETH");
 
-    // const authorityDeployment = await deployments.get(CONTRACTS.authority);
-    // const konduxNFTDeployment = await deployments.get(CONTRACTS.kondux);
-    // const konduxFoundersNFTDeployment = await deployments.get(CONTRACTS.konduxFounders);
-    // // const minterDeployment = await deployments.get(CONTRACTS.minter);
-    // const minterFoundersDeployment = await deployments.get(CONTRACTS.minterFounders);
-    // const minterPublicDeployment = await deployments.get(CONTRACTS.minterPublic);
-    // const treasuryDeployment = await deployments.get(CONTRACTS.treasury);
-    // const stakingDeployment = await deployments.get(CONTRACTS.staking);
-    // const konduxERC20Deployment = await deployments.get(CONTRACTS.konduxERC20);
+    const authorityDeployment = await deployments.get(CONTRACTS.authority);
+    const konduxNFTDeployment = await deployments.get(CONTRACTS.kondux);
+    const konduxFoundersNFTDeployment = await deployments.get(CONTRACTS.konduxFounders);
+    // const minterDeployment = await deployments.get(CONTRACTS.minter);
+    const minterFoundersDeployment = await deployments.get(CONTRACTS.minterFounders);
+    const minterPublicDeployment = await deployments.get(CONTRACTS.minterPublic);
+    const treasuryDeployment = await deployments.get(CONTRACTS.treasury);
+    const stakingDeployment = await deployments.get(CONTRACTS.staking);
+    const konduxERC20Deployment = await deployments.get(CONTRACTS.konduxERC20);
     
-    // const authority = Authority__factory.connect(authorityDeployment.address, signer);
-    // console.log("Authority Governor Address:", await authority.governor());
+    const authority = Authority__factory.connect(authorityDeployment.address, signer);
+    console.log("Authority Governor Address:", await authority.governor());
 
-    // const kondux = Kondux__factory.connect(konduxNFTDeployment.address, signer);
-    // // const minter = Minter__factory.connect(minterDeployment.address, signer);
-    // const konduxFounders = KonduxFounders__factory.connect(konduxFoundersNFTDeployment.address, signer);
-    // const minterFounders = MinterFounders__factory.connect(minterFoundersDeployment.address, signer);
-    // const minterPublic = MinterPublic__factory.connect(minterPublicDeployment.address, signer);
-    // const treasury = Treasury__factory.connect(treasuryDeployment.address, signer);
-    // const staking = Staking__factory.connect(stakingDeployment.address, signer);
-    // const konduxERC20 = KonduxERC20__factory.connect(konduxERC20Deployment.address, signer);
+    const kondux = Kondux__factory.connect(konduxNFTDeployment.address, signer);
+    // const minter = Minter__factory.connect(minterDeployment.address, signer);
+    const konduxFounders = KonduxFounders__factory.connect(konduxFoundersNFTDeployment.address, signer);
+    const minterFounders = MinterFounders__factory.connect(minterFoundersDeployment.address, signer);
+    const minterPublic = MinterPublic__factory.connect(minterPublicDeployment.address, signer);
+    const treasury = Treasury__factory.connect(treasuryDeployment.address, signer);
+    const staking = Staking__factory.connect(stakingDeployment.address, signer);
+    const konduxERC20 = KonduxERC20__factory.connect(konduxERC20Deployment.address, signer);
 
     // // // Step 1: Set base URI
     // await waitFor(kondux.setBaseURI(CONFIGURATION.baseURIkNFTBox)); // PRODUCTION
@@ -93,20 +93,30 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     // console.log(await minterFounders.rootFounders020());
 
     // // Step 5: Configure treasury
-    // await waitFor(treasury.setPermission(0, minterFoundersDeployment.address, true)); // PRODUCTION
-    // console.log("Set minter founders as depositor");
-    // await waitFor(treasury.setPermission(0, minterPublicDeployment.address, true));
-    // console.log("Set minter public as depositor");
-    // await waitFor(treasury.setPermission(0, stakingDeployment.address, true));
-    // console.log("Set staking as depositor");
-    // await waitFor(treasury.setPermission(1, signerAddress, true));  // PRODUCTION
-    // console.log("Set deployer as spender");
-    // await waitFor(treasury.setPermission(1, stakingDeployment.address, true));
-    // console.log("Set staking as spender");
-    // await waitFor(treasury.setPermission(2, konduxERC20Deployment.address, true)); 
-    // console.log("Set konduxERC as reserve token");
-    // await waitFor(treasury.erc20ApprovalSetup(konduxERC20Deployment.address, 100_000_000_000_000));
-    // console.log("Set Approval for konduxERC");
+    await waitFor(treasury.setPermission(0, minterFoundersDeployment.address, true)); // PRODUCTION
+    console.log("Set minter founders as depositor");
+    await waitFor(treasury.setPermission(0, minterPublicDeployment.address, true));
+    console.log("Set minter public as depositor");
+    await waitFor(treasury.setPermission(0, stakingDeployment.address, true));
+    console.log("Set staking as depositor");
+    await waitFor(treasury.setPermission(1, signerAddress, true));  // PRODUCTION
+    console.log("Set deployer as spender");
+    await waitFor(treasury.setPermission(0, signerAddress, true));  // setting deployer as depositor
+    console.log("Set deployer as depositor");
+    await waitFor(treasury.setPermission(1, stakingDeployment.address, true));
+    console.log("Set staking as spender");
+    await waitFor(treasury.setPermission(2, konduxERC20Deployment.address, true)); 
+    console.log("Set konduxERC as reserve token");
+    await waitFor(treasury.erc20ApprovalSetup(konduxERC20Deployment.address, ethers.BigNumber.from(10).pow(28)));
+    console.log("Set Approval for konduxERC");
+    await waitFor(treasury.setStakingContract(stakingDeployment.address));
+    console.log("Set staking contract");
+
+    // TESTING ONLY
+    await waitFor(konduxERC20.approve(treasuryDeployment.address, ethers.BigNumber.from(10).pow(28)));
+    console.log("Set Approval for konduxERC");
+    await waitFor(treasury.deposit(ethers.BigNumber.from(10).pow(28), konduxERC20Deployment.address));
+    console.log("Deposit konduxERC");
 
 };
 
