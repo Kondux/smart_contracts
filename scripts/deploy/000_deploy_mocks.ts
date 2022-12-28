@@ -9,12 +9,12 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
 
     const feeData = await ethers.provider.getFeeData();
 
-    // await deploy(CONTRACTS.konduxERC20, {
-    //     from: deployer,
-    //     args: [],
-    //     log: true,
-    //     skipIfAlreadyDeployed: true,
-    // });
+    await deploy(CONTRACTS.konduxERC20, {
+        from: deployer,
+        args: [],
+        log: true,
+        skipIfAlreadyDeployed: true,
+    });
 };
 
 func.tags = [CONTRACTS.konduxERC20];

@@ -21,11 +21,12 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const konduxNFTDeployment = await deployments.get(CONTRACTS.kondux);
     // const minterDeployment = await deployments.get(CONTRACTS.minter);
     // const marketplaceDeployment = await deployments.get(CONTRACTS.marketplace);  
-    // const stakingDeployment = await deployments.get(CONTRACTS.staking);
+    const stakingDeployment = await deployments.get(CONTRACTS.staking);
     const treasuryDeployment = await deployments.get(CONTRACTS.treasury);
     const konduxFoundersDeployment = await deployments.get(CONTRACTS.konduxFounders);
     const minterFoundersDeployment = await deployments.get(CONTRACTS.minterFounders);
     const minterPublicDeployment = await deployments.get(CONTRACTS.minterPublic);
+    const konduxERC20Deployment = await deployments.get(CONTRACTS.konduxERC20);
     
     const network = await ethers.provider.getNetwork();
 
@@ -113,24 +114,25 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         //     }                      
         // }
 
-        // try {
-        //     await hre.run("verify:verify", {
-        //         address: stakingDeployment.address,
-        //         constructorArguments: [
-        //             authorityDeployment.address,
-        //             treasuryDeployment.address
-        //         ],
-        //     });
-        //     console.log("Verified -- staking");
-        // } catch (error) {
-        //     if (error instanceof NomicLabsHardhatPluginError) {
-        //         // specific error
-        //         console.log("Error verifying -- staking");
-        //         console.log(error.message);
-        //     } else {
-        //         throw error; // let others bubble up
-        //     }                      
-        // }
+        try {
+            await hre.run("verify:verify", {
+                address: stakingDeployment.address,
+                constructorArguments: [
+                    authorityDeployment.address,
+                    konduxERC20Deployment.address,
+                    treasuryDeployment.address
+                ],
+            });
+            console.log("Verified -- staking");
+        } catch (error) {
+            if (error instanceof NomicLabsHardhatPluginError) {
+                // specific error
+                console.log("Error verifying -- staking");
+                console.log(error.message);
+            } else {
+                throw error; // let others bubble up
+            }                      
+        }
 
         try {
             await hre.run("verify:verify", {
@@ -208,6 +210,22 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
             if (error instanceof NomicLabsHardhatPluginError) {
                 // specific error
                 console.log("Error verifying -- minterPublic");
+                console.log(error.message);
+            } else {
+                throw error; // let others bubble up
+            }                      
+        }
+
+        try {
+            await hre.run("verify:verify", {
+                address: konduxERC20Deployment.address,
+                constructorArguments: [],
+            });
+            console.log("Verified -- konduxERC20");
+        } catch (error) {
+            if (error instanceof NomicLabsHardhatPluginError) {
+                // specific error
+                console.log("Error verifying -- konduxERC20");
                 console.log(error.message);
             } else {
                 throw error; // let others bubble up

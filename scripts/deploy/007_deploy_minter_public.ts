@@ -20,7 +20,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
             treasuryDeployment.address
         ],
         log: true,
-        skipIfAlreadyDeployed: false,
+        skipIfAlreadyDeployed: true,
     });
 };
 

@@ -3,6 +3,7 @@
 /* eslint-disable */
 export type { IAuthority } from "./IAuthority";
 export type { IKondux } from "./IKondux";
+export type { IKonduxERC20 } from "./IKonduxERC20";
 export type { IKonduxFounders } from "./IKonduxFounders";
 export type { IMarketplace } from "./IMarketplace";
 export type { INFTContract } from "./INFTContract";

@@ -41,9 +41,12 @@ export interface StakingInterface extends utils.Interface {
     "rewardsPerHour()": FunctionFragment;
     "setAuthority(address)": FunctionFragment;
     "setCompFreq(uint256)": FunctionFragment;
+    "setKonduxERC20(address)": FunctionFragment;
     "setMinStake(uint256)": FunctionFragment;
     "setRewards(uint256)": FunctionFragment;
+    "setTreasury(address)": FunctionFragment;
     "stakeRewards()": FunctionFragment;
+    "treasury()": FunctionFragment;
     "withdraw(uint256)": FunctionFragment;
     "withdrawAll()": FunctionFragment;
   };
@@ -62,9 +65,12 @@ export interface StakingInterface extends utils.Interface {
       | "rewardsPerHour"
       | "setAuthority"
       | "setCompFreq"
+      | "setKonduxERC20"
       | "setMinStake"
       | "setRewards"
+      | "setTreasury"
       | "stakeRewards"
+      | "treasury"
       | "withdraw"
       | "withdrawAll"
   ): FunctionFragment;
@@ -112,6 +118,10 @@ export interface StakingInterface extends utils.Interface {
     values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
+    functionFragment: "setKonduxERC20",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
     functionFragment: "setMinStake",
     values: [PromiseOrValue<BigNumberish>]
   ): string;
@@ -120,9 +130,14 @@ export interface StakingInterface extends utils.Interface {
     values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
+    functionFragment: "setTreasury",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
     functionFragment: "stakeRewards",
     values?: undefined
   ): string;
+  encodeFunctionData(functionFragment: "treasury", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "withdraw",
     values: [PromiseOrValue<BigNumberish>]
@@ -172,14 +187,23 @@ export interface StakingInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "setKonduxERC20",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "setMinStake",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "setRewards", data: BytesLike): Result;
   decodeFunctionResult(
+    functionFragment: "setTreasury",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "stakeRewards",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "treasury", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "withdraw", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "withdrawAll",
@@ -333,6 +357,11 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
+    setKonduxERC20(
+      _konduxERC20: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
     setMinStake(
       _minStake: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -343,9 +372,16 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
+    setTreasury(
+      _treasury: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
     stakeRewards(
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
+
+    treasury(overrides?: CallOverrides): Promise<[string]>;
 
     withdraw(
       _amount: PromiseOrValue<BigNumberish>,
@@ -403,6 +439,11 @@ export interface Staking extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
+  setKonduxERC20(
+    _konduxERC20: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
   setMinStake(
     _minStake: PromiseOrValue<BigNumberish>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -413,9 +454,16 @@ export interface Staking extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
+  setTreasury(
+    _treasury: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
   stakeRewards(
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
+
+  treasury(overrides?: CallOverrides): Promise<string>;
 
   withdraw(
     _amount: PromiseOrValue<BigNumberish>,
@@ -471,6 +519,11 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    setKonduxERC20(
+      _konduxERC20: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     setMinStake(
       _minStake: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
@@ -481,7 +534,14 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    setTreasury(
+      _treasury: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     stakeRewards(overrides?: CallOverrides): Promise<void>;
+
+    treasury(overrides?: CallOverrides): Promise<string>;
 
     withdraw(
       _amount: PromiseOrValue<BigNumberish>,
@@ -586,6 +646,11 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
+    setKonduxERC20(
+      _konduxERC20: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
     setMinStake(
       _minStake: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -596,9 +661,16 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
+    setTreasury(
+      _treasury: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
     stakeRewards(
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
+
+    treasury(overrides?: CallOverrides): Promise<BigNumber>;
 
     withdraw(
       _amount: PromiseOrValue<BigNumberish>,
@@ -655,6 +727,11 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
+    setKonduxERC20(
+      _konduxERC20: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
     setMinStake(
       _minStake: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -665,9 +742,16 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
+    setTreasury(
+      _treasury: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
     stakeRewards(
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
+
+    treasury(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     withdraw(
       _amount: PromiseOrValue<BigNumberish>,

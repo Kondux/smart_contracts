@@ -11,6 +11,6 @@ contract KonduxERC20 is ERC20 {
     }
 
     function faucet() public {
-        _mint(msg.sender, 100_000_000);
+        _mint(msg.sender, 100_000_000_000_000_000);
     }
 }

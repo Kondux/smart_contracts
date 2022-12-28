@@ -2,6 +2,7 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./interfaces/ITreasury.sol";
 import "./types/AccessControlled.sol";
 
 contract Staking is AccessControlled {
@@ -23,13 +24,17 @@ contract Staking is AccessControlled {
     uint256 public minStake = 10_000_000; // 10,000,000 wei
 
     // Compounding frequency limit in seconds
-    uint256 public compoundFreq = 60 * 60 * 24; // 24 hours
+    //uint256 public compoundFreq = 60 * 60 * 24; // 24 hours
+    uint256 public compoundFreq = 60 * 60; // 1 hour
 
     // Mapping of address to Staker info
     mapping(address => Staker) internal stakers;
 
     // KonduxERC20 Contract
     IERC20 public konduxERC20;
+
+    // Treasury Contract
+    ITreasury public treasury;
 
     // Events
     event Withdraw(address indexed staker, uint256 amount);
@@ -40,10 +45,12 @@ contract Staking is AccessControlled {
 
 
     // Constructor function
-    constructor(address _authority, address _konduxERC20) 
+    constructor(address _authority, address _konduxERC20, address _treasury)
         AccessControlled(IAuthority(_authority)) {        
             require(_konduxERC20 != address(0), "Kondux ERC20 address is not set");
+            require(_treasury != address(0), "Treasury address is not set");
             konduxERC20 = IERC20(_konduxERC20);
+            treasury = ITreasury(_treasury);
     }
 
     // If address has no Staker struct, initiate one. If address already was a stake,
@@ -64,6 +71,7 @@ contract Staking is AccessControlled {
             stakers[msg.sender].timeOfLastUpdate = block.timestamp;
         }
         konduxERC20.transferFrom(msg.sender, authority.vault(), _amount);
+        // treasury.deposit(_amount, address(konduxERC20));
         emit Stake(msg.sender, _amount);
     }
 
@@ -80,11 +88,19 @@ contract Staking is AccessControlled {
 
     // Transfer rewards to msg.sender
     function claimRewards() public {
+        // console.log("Claiming rewards");
+        // console.log("staking contract address", address(this));
+
         uint256 rewards = calculateRewards(msg.sender) + stakers[msg.sender].unclaimedRewards;
+        // console.log("rewards: %s", rewards);
+        // console.log("pre-claiming balance vault: %s", konduxERC20.balanceOf(authority.vault()));
+        // console.log("ERC20 address: %s", address(konduxERC20));
         require(rewards > 0, "You have no rewards");
         stakers[msg.sender].unclaimedRewards = 0;
         stakers[msg.sender].timeOfLastUpdate = block.timestamp;
-        konduxERC20.transferFrom(authority.vault(), msg.sender, rewards);
+        treasury.withdrawTo(rewards, address(konduxERC20), msg.sender);
+        // console.logString("Rewards claimed");
+        // console.log(konduxERC20.balanceOf(authority.vault()));
         emit Reward(msg.sender, rewards);
     }
 
@@ -149,4 +165,15 @@ contract Staking is AccessControlled {
     function setCompFreq(uint256 _compoundFreq) public onlyGovernor {
         compoundFreq = _compoundFreq;
     }
+
+    // Set the address of the Kondux ERC20 token
+    function setKonduxERC20(address _konduxERC20) public onlyGovernor {
+        konduxERC20 = IERC20(_konduxERC20);
+    }
+
+    // Set the address of the Treasury contract
+    function setTreasury(address _treasury) public onlyGovernor {
+        treasury = ITreasury(_treasury);
+    }
+
 }

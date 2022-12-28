@@ -1,0 +1,573 @@
+{
+  "address": "0x0233c228603f615A2D2FbacCaC6F6b1769AA5747",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_authority",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_konduxERC20",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_treasury",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "contract IAuthority",
+          "name": "authority",
+          "type": "address"
+        }
+      ],
+      "name": "AuthorityUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "staker",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "Compound",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "staker",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "Reward",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "staker",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "Stake",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "staker",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "Unstake",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "staker",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "Withdraw",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "authority",
+      "outputs": [
+        {
+          "internalType": "contract IAuthority",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_staker",
+          "type": "address"
+        }
+      ],
+      "name": "calculateRewards",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "rewards",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "claimRewards",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "compoundFreq",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_user",
+          "type": "address"
+        }
+      ],
+      "name": "compoundRewardsTimer",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "_timer",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "deposit",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_user",
+          "type": "address"
+        }
+      ],
+      "name": "getDepositInfo",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "_stake",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_rewards",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "konduxERC20",
+      "outputs": [
+        {
+          "internalType": "contract IERC20",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "minStake",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "rewardsPerHour",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "contract IAuthority",
+          "name": "_newAuthority",
+          "type": "address"
+        }
+      ],
+      "name": "setAuthority",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_compoundFreq",
+          "type": "uint256"
+        }
+      ],
+      "name": "setCompFreq",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_konduxERC20",
+          "type": "address"
+        }
+      ],
+      "name": "setKonduxERC20",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_minStake",
+          "type": "uint256"
+        }
+      ],
+      "name": "setMinStake",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_rewardsPerHour",
+          "type": "uint256"
+        }
+      ],
+      "name": "setRewards",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_treasury",
+          "type": "address"
+        }
+      ],
+      "name": "setTreasury",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "stakeRewards",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "treasury",
+      "outputs": [
+        {
+          "internalType": "contract ITreasury",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "withdraw",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "withdrawAll",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0x80d5756ae782b8b4755b62bc022db2b393ccad6e5f696b65df9609742caee1ea",
+  "receipt": {
+    "to": null,
+    "from": "0x9f5Ea5Af0368E1d6F685F07978c8A22b2Df7c78D",
+    "contractAddress": "0x0233c228603f615A2D2FbacCaC6F6b1769AA5747",
+    "transactionIndex": 56,
+    "gasUsed": "1106792",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000",
+    "blockHash": "0xef5f66251f92bcdf062fb97e58a585a01320ba79e5439c00a4a5f9d57e0222b7",
+    "transactionHash": "0x80d5756ae782b8b4755b62bc022db2b393ccad6e5f696b65df9609742caee1ea",
+    "logs": [
+      {
+        "transactionIndex": 56,
+        "blockNumber": 8187813,
+        "transactionHash": "0x80d5756ae782b8b4755b62bc022db2b393ccad6e5f696b65df9609742caee1ea",
+        "address": "0x0233c228603f615A2D2FbacCaC6F6b1769AA5747",
+        "topics": [
+          "0x2f658b440c35314f52658ea8a740e05b284cdc84dc9ae01e891f21b8933e7cad"
+        ],
+        "data": "0x000000000000000000000000348e88f388417cb86ce2359b4108692ce43c6d85",
+        "logIndex": 113,
+        "blockHash": "0xef5f66251f92bcdf062fb97e58a585a01320ba79e5439c00a4a5f9d57e0222b7"
+      }
+    ],
+    "blockNumber": 8187813,
+    "cumulativeGasUsed": "11805171",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0x348e88f388417Cb86cE2359b4108692ce43c6D85",
+    "0x490BBcB65a3F8cCa06a5a52D780D2c3a0006e85e",
+    "0x0d132af9d27018A4F1f8947eD70f9aFFb552F1Aa"
+  ],
+  "numDeployments": 3,
+  "solcInputHash": "b915052c0b7f5616849079bb46a09e00",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.16+commit.07a7930e\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_authority\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_konduxERC20\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_treasury\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"contract IAuthority\",\"name\":\"authority\",\"type\":\"address\"}],\"name\":\"AuthorityUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"staker\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Compound\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"staker\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Reward\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"staker\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Stake\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"staker\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Unstake\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"staker\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Withdraw\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"authority\",\"outputs\":[{\"internalType\":\"contract IAuthority\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_staker\",\"type\":\"address\"}],\"name\":\"calculateRewards\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"rewards\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"claimRewards\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"compoundFreq\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_user\",\"type\":\"address\"}],\"name\":\"compoundRewardsTimer\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"_timer\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"}],\"name\":\"deposit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_user\",\"type\":\"address\"}],\"name\":\"getDepositInfo\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"_stake\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_rewards\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"konduxERC20\",\"outputs\":[{\"internalType\":\"contract IERC20\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"minStake\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"rewardsPerHour\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contract IAuthority\",\"name\":\"_newAuthority\",\"type\":\"address\"}],\"name\":\"setAuthority\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_compoundFreq\",\"type\":\"uint256\"}],\"name\":\"setCompFreq\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_konduxERC20\",\"type\":\"address\"}],\"name\":\"setKonduxERC20\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_minStake\",\"type\":\"uint256\"}],\"name\":\"setMinStake\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_rewardsPerHour\",\"type\":\"uint256\"}],\"name\":\"setRewards\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_treasury\",\"type\":\"address\"}],\"name\":\"setTreasury\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"stakeRewards\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"treasury\",\"outputs\":[{\"internalType\":\"contract ITreasury\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"}],\"name\":\"withdraw\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"withdrawAll\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/Staking.sol\":\"Staking\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"none\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":800},\"remappings\":[]},\"sources\":{\"@openzeppelin/contracts/token/ERC20/IERC20.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v4.6.0) (token/ERC20/IERC20.sol)\\n\\npragma solidity ^0.8.0;\\n\\n/**\\n * @dev Interface of the ERC20 standard as defined in the EIP.\\n */\\ninterface IERC20 {\\n    /**\\n     * @dev Emitted when `value` tokens are moved from one account (`from`) to\\n     * another (`to`).\\n     *\\n     * Note that `value` may be zero.\\n     */\\n    event Transfer(address indexed from, address indexed to, uint256 value);\\n\\n    /**\\n     * @dev Emitted when the allowance of a `spender` for an `owner` is set by\\n     * a call to {approve}. `value` is the new allowance.\\n     */\\n    event Approval(address indexed owner, address indexed spender, uint256 value);\\n\\n    /**\\n     * @dev Returns the amount of tokens in existence.\\n     */\\n    function totalSupply() external view returns (uint256);\\n\\n    /**\\n     * @dev Returns the amount of tokens owned by `account`.\\n     */\\n    function balanceOf(address account) external view returns (uint256);\\n\\n    /**\\n     * @dev Moves `amount` tokens from the caller's account to `to`.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * Emits a {Transfer} event.\\n     */\\n    function transfer(address to, uint256 amount) external returns (bool);\\n\\n    /**\\n     * @dev Returns the remaining number of tokens that `spender` will be\\n     * allowed to spend on behalf of `owner` through {transferFrom}. This is\\n     * zero by default.\\n     *\\n     * This value changes when {approve} or {transferFrom} are called.\\n     */\\n    function allowance(address owner, address spender) external view returns (uint256);\\n\\n    /**\\n     * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * IMPORTANT: Beware that changing an allowance with this method brings the risk\\n     * that someone may use both the old and the new allowance by unfortunate\\n     * transaction ordering. One possible solution to mitigate this race\\n     * condition is to first reduce the spender's allowance to 0 and set the\\n     * desired value afterwards:\\n     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729\\n     *\\n     * Emits an {Approval} event.\\n     */\\n    function approve(address spender, uint256 amount) external returns (bool);\\n\\n    /**\\n     * @dev Moves `amount` tokens from `from` to `to` using the\\n     * allowance mechanism. `amount` is then deducted from the caller's\\n     * allowance.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * Emits a {Transfer} event.\\n     */\\n    function transferFrom(\\n        address from,\\n        address to,\\n        uint256 amount\\n    ) external returns (bool);\\n}\\n\",\"keccak256\":\"0x9750c6b834f7b43000631af5cc30001c5f547b3ceb3635488f140f60e897ea6b\",\"license\":\"MIT\"},\"contracts/Staking.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\r\\npragma solidity ^0.8.9;\\r\\n\\r\\nimport \\\"@openzeppelin/contracts/token/ERC20/IERC20.sol\\\";\\r\\nimport \\\"./interfaces/ITreasury.sol\\\";\\r\\nimport \\\"./types/AccessControlled.sol\\\";\\r\\n\\r\\ncontract Staking is AccessControlled {\\r\\n    // Staker info\\r\\n    struct Staker {\\r\\n        // The deposited tokens of the Staker\\r\\n        uint256 deposited;\\r\\n        // Last time of details update for Deposit\\r\\n        uint256 timeOfLastUpdate;\\r\\n        // Calculated, but unclaimed rewards. These are calculated each time\\r\\n        // a user writes to the contract.\\r\\n        uint256 unclaimedRewards;\\r\\n    }\\r\\n\\r\\n    // Rewards per hour. A fraction calculated as x/10.000.000 to get the percentage\\r\\n    uint256 public rewardsPerHour = 285; // 0.00285%/h or 25% APR\\r\\n\\r\\n    // Minimum amount to stake\\r\\n    uint256 public minStake = 10_000_000; // 10,000,000 wei\\r\\n\\r\\n    // Compounding frequency limit in seconds\\r\\n    //uint256 public compoundFreq = 60 * 60 * 24; // 24 hours\\r\\n    uint256 public compoundFreq = 60 * 60; // 1 hour\\r\\n\\r\\n    // Mapping of address to Staker info\\r\\n    mapping(address => Staker) internal stakers;\\r\\n\\r\\n    // KonduxERC20 Contract\\r\\n    IERC20 public konduxERC20;\\r\\n\\r\\n    // Treasury Contract\\r\\n    ITreasury public treasury;\\r\\n\\r\\n    // Events\\r\\n    event Withdraw(address indexed staker, uint256 amount);\\r\\n    event Compound(address indexed staker, uint256 amount);\\r\\n    event Stake(address indexed staker, uint256 amount);\\r\\n    event Unstake(address indexed staker, uint256 amount);\\r\\n    event Reward(address indexed staker, uint256 amount);\\r\\n\\r\\n\\r\\n    // Constructor function\\r\\n    constructor(address _authority, address _konduxERC20, address _treasury)\\r\\n        AccessControlled(IAuthority(_authority)) {        \\r\\n            require(_konduxERC20 != address(0), \\\"Kondux ERC20 address is not set\\\");\\r\\n            require(_treasury != address(0), \\\"Treasury address is not set\\\");\\r\\n            konduxERC20 = IERC20(_konduxERC20);\\r\\n            treasury = ITreasury(_treasury);\\r\\n    }\\r\\n\\r\\n    // If address has no Staker struct, initiate one. If address already was a stake,\\r\\n    // calculate the rewards and add them to unclaimedRewards, reset the last time of\\r\\n    // deposit and then add _amount to the already deposited amount.\\r\\n    // Transfers the amount staked.\\r\\n    function deposit(uint256 _amount) public {\\r\\n        require(_amount >= minStake, \\\"Amount smaller than minimimum deposit\\\");\\r\\n        require(konduxERC20.balanceOf(msg.sender) >= _amount, \\\"Can't stake more than you own\\\");\\r\\n        if (stakers[msg.sender].deposited == 0) {\\r\\n            stakers[msg.sender].deposited = _amount;\\r\\n            stakers[msg.sender].timeOfLastUpdate = block.timestamp;\\r\\n            stakers[msg.sender].unclaimedRewards = 0;\\r\\n        } else {\\r\\n            uint256 rewards = calculateRewards(msg.sender);\\r\\n            stakers[msg.sender].unclaimedRewards += rewards;\\r\\n            stakers[msg.sender].deposited += _amount;\\r\\n            stakers[msg.sender].timeOfLastUpdate = block.timestamp;\\r\\n        }\\r\\n        konduxERC20.transferFrom(msg.sender, authority.vault(), _amount);\\r\\n        // treasury.deposit(_amount, address(konduxERC20));\\r\\n        emit Stake(msg.sender, _amount);\\r\\n    }\\r\\n\\r\\n    // Compound the rewards and reset the last time of update for Deposit info\\r\\n    function stakeRewards() public {\\r\\n        require(stakers[msg.sender].deposited > 0, \\\"You have no deposit\\\");\\r\\n        require(compoundRewardsTimer(msg.sender) == 0, \\\"Tried to compound rewards too soon\\\");\\r\\n        uint256 rewards = calculateRewards(msg.sender) + stakers[msg.sender].unclaimedRewards;\\r\\n        stakers[msg.sender].unclaimedRewards = 0;\\r\\n        stakers[msg.sender].deposited += rewards;\\r\\n        stakers[msg.sender].timeOfLastUpdate = block.timestamp;\\r\\n        emit Compound(msg.sender, rewards);\\r\\n    }\\r\\n\\r\\n    // Transfer rewards to msg.sender\\r\\n    function claimRewards() public {\\r\\n        // console.log(\\\"Claiming rewards\\\");\\r\\n        // console.log(\\\"staking contract address\\\", address(this));\\r\\n\\r\\n        uint256 rewards = calculateRewards(msg.sender) + stakers[msg.sender].unclaimedRewards;\\r\\n        // console.log(\\\"rewards: %s\\\", rewards);\\r\\n        // console.log(\\\"pre-claiming balance vault: %s\\\", konduxERC20.balanceOf(authority.vault()));\\r\\n        // console.log(\\\"ERC20 address: %s\\\", address(konduxERC20));\\r\\n        require(rewards > 0, \\\"You have no rewards\\\");\\r\\n        stakers[msg.sender].unclaimedRewards = 0;\\r\\n        stakers[msg.sender].timeOfLastUpdate = block.timestamp;\\r\\n        treasury.withdrawTo(rewards, address(konduxERC20), msg.sender);\\r\\n        // console.logString(\\\"Rewards claimed\\\");\\r\\n        // console.log(konduxERC20.balanceOf(authority.vault()));\\r\\n        emit Reward(msg.sender, rewards);\\r\\n    }\\r\\n\\r\\n    // Withdraw specified amount of staked tokens\\r\\n    function withdraw(uint256 _amount) public  {\\r\\n        require(stakers[msg.sender].deposited >= _amount, \\\"Can't withdraw more than you have\\\");\\r\\n        uint256 _rewards = calculateRewards(msg.sender);\\r\\n        stakers[msg.sender].deposited -= _amount;\\r\\n        stakers[msg.sender].timeOfLastUpdate = block.timestamp;\\r\\n        stakers[msg.sender].unclaimedRewards = _rewards;\\r\\n        konduxERC20.transferFrom(authority.vault(), msg.sender, _amount);\\r\\n        emit Withdraw(msg.sender, _amount);\\r\\n    }\\r\\n\\r\\n    // Withdraw all stake and rewards and mints them to the msg.sender\\r\\n    function withdrawAll() public  {\\r\\n        require(stakers[msg.sender].deposited > 0, \\\"You have no deposit\\\");\\r\\n        uint256 _rewards = calculateRewards(msg.sender) + stakers[msg.sender].unclaimedRewards;\\r\\n        uint256 _deposit = stakers[msg.sender].deposited;\\r\\n        stakers[msg.sender].deposited = 0;\\r\\n        stakers[msg.sender].timeOfLastUpdate = 0;\\r\\n        uint256 _amount = _rewards + _deposit;\\r\\n        konduxERC20.transferFrom(authority.vault(), msg.sender, _amount);\\r\\n        emit Withdraw(msg.sender, _amount);\\r\\n    }\\r\\n\\r\\n    // Function useful for fron-end that returns user stake and rewards by address\\r\\n    function getDepositInfo(address _user) public view returns (uint256 _stake, uint256 _rewards) {\\r\\n        _stake = stakers[_user].deposited;\\r\\n        _rewards = calculateRewards(_user) + stakers[msg.sender].unclaimedRewards;\\r\\n        return (_stake, _rewards);\\r\\n    }\\r\\n\\r\\n    // Utility function that returns the timer for restaking rewards\\r\\n    function compoundRewardsTimer(address _user) public view returns (uint256 _timer) {\\r\\n        if (stakers[_user].timeOfLastUpdate + compoundFreq <= block.timestamp) {\\r\\n            return 0;\\r\\n        } else {\\r\\n            return (stakers[_user].timeOfLastUpdate + compoundFreq) - block.timestamp;\\r\\n        }\\r\\n    }\\r\\n\\r\\n    // Calculate the rewards since the last update on Deposit info\\r\\n    function calculateRewards(address _staker) public view returns (uint256 rewards) {\\r\\n        return (((((block.timestamp - stakers[_staker].timeOfLastUpdate) * \\r\\n            stakers[_staker].deposited) * rewardsPerHour) / 3600) / 10000000); // blocks * staked * rewards/hour / 3600 / 10^7\\r\\n    }\\r\\n\\r\\n    // Functions for modifying  staking mechanism variables:\\r\\n\\r\\n    // Set rewards per hour as x/10.000.000 (Example: 100.000 = 1%)\\r\\n    function setRewards(uint256 _rewardsPerHour) public onlyGovernor {\\r\\n        rewardsPerHour = _rewardsPerHour;\\r\\n    }\\r\\n\\r\\n    // Set the minimum amount for staking in wei\\r\\n    function setMinStake(uint256 _minStake) public onlyGovernor {\\r\\n        minStake = _minStake;\\r\\n    }\\r\\n\\r\\n    // Set the minimum time that has to pass for a user to be able to restake rewards\\r\\n    function setCompFreq(uint256 _compoundFreq) public onlyGovernor {\\r\\n        compoundFreq = _compoundFreq;\\r\\n    }\\r\\n\\r\\n    // Set the address of the Kondux ERC20 token\\r\\n    function setKonduxERC20(address _konduxERC20) public onlyGovernor {\\r\\n        konduxERC20 = IERC20(_konduxERC20);\\r\\n    }\\r\\n\\r\\n    // Set the address of the Treasury contract\\r\\n    function setTreasury(address _treasury) public onlyGovernor {\\r\\n        treasury = ITreasury(_treasury);\\r\\n    }\\r\\n\\r\\n}\",\"keccak256\":\"0xf1d81953d69a120738e1cd8b553dba63a9fef98fdc59424817ea2ba6d4b774b1\",\"license\":\"MIT\"},\"contracts/interfaces/IAuthority.sol\":{\"content\":\"// SPDX-License-Identifier: AGPL-3.0\\r\\npragma solidity >=0.8.9;\\r\\n\\r\\ninterface IAuthority {\\r\\n    /* ========== EVENTS ========== */\\r\\n\\r\\n    event GovernorPushed(address indexed from, address indexed to, bool _effectiveImmediately);\\r\\n    event GuardianPushed(address indexed from, address indexed to, bool _effectiveImmediately);\\r\\n    event PolicyPushed(address indexed from, address indexed to, bool _effectiveImmediately);\\r\\n    event VaultPushed(address indexed from, address indexed to, bool _effectiveImmediately);\\r\\n    event RolePushed(address indexed account, bytes32 _role);\\r\\n\\r\\n    event GovernorPulled(address indexed from, address indexed to);\\r\\n    event GuardianPulled(address indexed from, address indexed to);\\r\\n    event PolicyPulled(address indexed from, address indexed to);\\r\\n    event VaultPulled(address indexed from, address indexed to);\\r\\n\\r\\n    /* ========== VIEW ========== */\\r\\n\\r\\n    function governor() external view returns (address);\\r\\n\\r\\n    function guardian() external view returns (address);\\r\\n\\r\\n    function policy() external view returns (address);\\r\\n\\r\\n    function vault() external view returns (address);\\r\\n\\r\\n    function roles(address _addr) external view returns (bytes32);\\r\\n\\r\\n}\\r\\n\",\"keccak256\":\"0x887a7eb2eeab95bba651b3d65b3d6a4695301acb16f27722524021afa1cf97d5\",\"license\":\"AGPL-3.0\"},\"contracts/interfaces/ITreasury.sol\":{\"content\":\"//SPDX-License-Identifier: MIT\\r\\npragma solidity >=0.8.9;\\r\\n\\r\\ninterface ITreasury {\\r\\n    function deposit(\\r\\n        uint256 _amount,\\r\\n        address _token\\r\\n    ) external;\\r\\n\\r\\n    function depositEther() external payable;\\r\\n\\r\\n    function withdraw(\\r\\n        uint256 _amount,\\r\\n        address _token\\r\\n    ) external;\\r\\n\\r\\n    function withdrawTo(\\r\\n        uint256 _amount,\\r\\n        address _token,\\r\\n        address _to\\r\\n    ) external;\\r\\n\\r\\n    function withdrawEther(\\r\\n        uint256 _amount\\r\\n    ) external;\\r\\n}\",\"keccak256\":\"0xf49bf308cba46e3ffe330f85fa0842c23ed5424eeda9055fa7cc6153f52ec10c\",\"license\":\"MIT\"},\"contracts/types/AccessControlled.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\r\\npragma solidity ^0.8.9;\\r\\n\\r\\nimport \\\"../interfaces/IAuthority.sol\\\";\\r\\n\\r\\n/// @dev Reasoning for this contract = modifiers literaly copy code\\r\\n/// instead of pointing towards the logic to execute. Over many\\r\\n/// functions this bloats contract size unnecessarily.\\r\\n/// imho modifiers are a meme.\\r\\nabstract contract AccessControlled {\\r\\n    /* ========== EVENTS ========== */\\r\\n\\r\\n    event AuthorityUpdated(IAuthority authority);\\r\\n\\r\\n    /* ========== STATE VARIABLES ========== */\\r\\n\\r\\n    IAuthority public authority;\\r\\n\\r\\n    /* ========== Constructor ========== */\\r\\n\\r\\n    constructor(IAuthority _authority) {\\r\\n        require(address(_authority) != address(0), \\\"Authority cannot be zero address\\\");\\r\\n        authority = _authority;\\r\\n        emit AuthorityUpdated(_authority);\\r\\n    }\\r\\n\\r\\n    /* ========== \\\"MODIFIERS\\\" ========== */\\r\\n\\r\\n    modifier onlyGovernor {\\r\\n        _onlyGovernor();\\r\\n        _;\\r\\n    }\\r\\n\\r\\n    modifier onlyGuardian {\\r\\n        _onlyGuardian();\\r\\n        _;\\r\\n    }\\r\\n\\r\\n    modifier onlyPolicy {\\r\\n        _onlyPolicy();\\r\\n        _;\\r\\n    }\\r\\n\\r\\n    modifier onlyVault {\\r\\n        _onlyVault();\\r\\n        _;\\r\\n    }\\r\\n\\r\\n    modifier onlyRole(bytes32 _role){\\r\\n        _onlyRole(_role);\\r\\n        _;\\r\\n    }\\r\\n\\r\\n    /* ========== GOV ONLY ========== */\\r\\n\\r\\n    function initializeAuthority(IAuthority _newAuthority) internal {\\r\\n        require(authority == IAuthority(address(0)), \\\"AUTHORITY_INITIALIZED\\\");\\r\\n        authority = _newAuthority;\\r\\n        emit AuthorityUpdated(_newAuthority);\\r\\n    }\\r\\n\\r\\n    function setAuthority(IAuthority _newAuthority) external {\\r\\n        _onlyGovernor();\\r\\n        authority = _newAuthority;\\r\\n        emit AuthorityUpdated(_newAuthority);\\r\\n    }\\r\\n\\r\\n    /* ========== INTERNAL CHECKS ========== */\\r\\n\\r\\n    function _onlyGovernor() internal view {\\r\\n        require(msg.sender == authority.governor(), \\\"UNAUTHORIZED\\\");\\r\\n    }\\r\\n\\r\\n    function _onlyGuardian() internal view {\\r\\n        require(msg.sender == authority.guardian(), \\\"UNAUTHORIZED\\\");\\r\\n    }\\r\\n\\r\\n    function _onlyPolicy() internal view {\\r\\n        require(msg.sender == authority.policy(), \\\"UNAUTHORIZED\\\");        \\r\\n    }\\r\\n\\r\\n    function _onlyVault() internal view {\\r\\n        require(msg.sender == authority.vault(), \\\"UNAUTHORIZED\\\");                \\r\\n    }\\r\\n\\r\\n    function _onlyRole(bytes32 _role) internal view {\\r\\n        require(authority.roles(msg.sender) == _role, \\\"UNAUTHORIZED\\\");\\r\\n    }\\r\\n\\r\\n  \\r\\n}\\r\\n\",\"keccak256\":\"0x69a30ff5614ccb42137005d86252f6a9009c36785ab7a3c25e2c49a24ba5af5e\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x608060405261011d60015562989680600255610e106003553480156200002457600080fd5b50604051620012c8380380620012c88339810160408190526200004791620001f6565b826001600160a01b038116620000a45760405162461bcd60e51b815260206004820181905260248201527f417574686f726974792063616e6e6f74206265207a65726f206164647265737360448201526064015b60405180910390fd5b600080546001600160a01b0319166001600160a01b0383169081179091556040519081527f2f658b440c35314f52658ea8a740e05b284cdc84dc9ae01e891f21b8933e7cad9060200160405180910390a1506001600160a01b0382166200014e5760405162461bcd60e51b815260206004820152601f60248201527f4b6f6e6475782045524332302061646472657373206973206e6f74207365740060448201526064016200009b565b6001600160a01b038116620001a65760405162461bcd60e51b815260206004820152601b60248201527f54726561737572792061646472657373206973206e6f7420736574000000000060448201526064016200009b565b600580546001600160a01b039384166001600160a01b031991821617909155600680549290931691161790555062000240565b80516001600160a01b0381168114620001f157600080fd5b919050565b6000806000606084860312156200020c57600080fd5b6200021784620001d9565b92506200022760208501620001d9565b91506200023760408501620001d9565b90509250925092565b61107880620002506000396000f3fe608060405234801561001057600080fd5b506004361061016c5760003560e01c8063853828b6116100cd578063bf7e214f11610081578063c7a29c6f11610066578063c7a29c6f146102c2578063cf9d0b5f146102d5578063f0f44260146102dd57600080fd5b8063bf7e214f1461029c578063c11479ab146102af57600080fd5b80638e7271fa116100b25780638e7271fa1461026d57806394a6899114610276578063b6b55f251461028957600080fd5b8063853828b6146102525780638c80fd901461025a57600080fd5b8063375b3c0a1161012457806361d027b31161010957806361d027b31461021957806364ab86751461022c5780637a9e5e4b1461023f57600080fd5b8063375b3c0a146101e85780635287ce12146101f157600080fd5b80632604b704116101555780632604b704146101a05780632e1a7d4d146101cb578063372500ab146101e057600080fd5b806312e0a053146101715780631a121d5414610197575b600080fd5b61018461017f366004610f59565b6102f0565b6040519081526020015b60405180910390f35b61018460035481565b6005546101b3906001600160a01b031681565b6040516001600160a01b03909116815260200161018e565b6101de6101d9366004610f7d565b610364565b005b6101de610548565b61018460025481565b6102046101ff366004610f59565b61068d565b6040805192835260208301919091520161018e565b6006546101b3906001600160a01b031681565b61018461023a366004610f59565b6106ce565b6101de61024d366004610f59565b61072f565b6101de610798565b6101de610268366004610f7d565b610975565b61018460015481565b6101de610284366004610f59565b610982565b6101de610297366004610f7d565b6109b9565b6000546101b3906001600160a01b031681565b6101de6102bd366004610f7d565b610cbc565b6101de6102d0366004610f7d565b610cc9565b6101de610cd6565b6101de6102eb366004610f59565b610e33565b6003546001600160a01b0382166000908152600460205260408120600101549091429161031d9190610fac565b1161032a57506000919050565b6003546001600160a01b038316600090815260046020526040902060010154429161035491610fac565b61035e9190610fbf565b92915050565b336000908152600460205260409020548111156103d25760405162461bcd60e51b815260206004820152602160248201527f43616e2774207769746864726177206d6f7265207468616e20796f75206861766044820152606560f81b60648201526084015b60405180910390fd5b60006103dd336106ce565b33600090815260046020526040812080549293508492909190610401908490610fbf565b90915550503360009081526004602081815260408084204260018201556002018590556005549354815163fbfa77cf60e01b815291516001600160a01b03958616956323b872dd9592169363fbfa77cf9380840193919291908290030181865afa158015610473573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906104979190610fd2565b6040516001600160e01b031960e084901b1681526001600160a01b039091166004820152336024820152604481018590526064016020604051808303816000875af11580156104ea573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061050e9190610fef565b5060405182815233907f884edad9ce6fa2440d8a54cc123490eb96d2768479d49ff9c7366125a94243649060200160405180910390a25050565b336000818152600460205260408120600201549091610566906106ce565b6105709190610fac565b9050600081116105c25760405162461bcd60e51b815260206004820152601360248201527f596f752068617665206e6f20726577617264730000000000000000000000000060448201526064016103c9565b336000818152600460208190526040808320600281019390935542600190930192909255600654600554925163b2178c1d60e01b81529182018590526001600160a01b039283166024830152604482019390935291169063b2178c1d90606401600060405180830381600087803b15801561063c57600080fd5b505af1158015610650573d6000803e3d6000fd5b50506040518381523392507f619caafabdd75649b302ba8419e48cccf64f37f1983ac4727cfb38b57703ffc991506020015b60405180910390a250565b6001600160a01b03811660009081526004602052604080822054338352908220600201549091906106bd846106ce565b6106c79190610fac565b9050915091565b600180546001600160a01b0383166000908152600460205260408120805493015490926298968092610e10929091906107079042610fbf565b6107119190611011565b61071b9190611011565b6107259190611030565b61035e9190611030565b610737610e6a565b6000805473ffffffffffffffffffffffffffffffffffffffff19166001600160a01b0383169081179091556040519081527f2f658b440c35314f52658ea8a740e05b284cdc84dc9ae01e891f21b8933e7cad9060200160405180910390a150565b336000908152600460205260409020546107f45760405162461bcd60e51b815260206004820152601360248201527f596f752068617665206e6f206465706f7369740000000000000000000000000060448201526064016103c9565b336000818152600460205260408120600201549091610812906106ce565b61081c9190610fac565b336000908152600460205260408120805482825560019091018290559192506108458284610fac565b6005546000546040805163fbfa77cf60e01b815290519394506001600160a01b03928316936323b872dd939092169163fbfa77cf916004808201926020929091908290030181865afa15801561089f573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906108c39190610fd2565b6040516001600160e01b031960e084901b1681526001600160a01b039091166004820152336024820152604481018490526064016020604051808303816000875af1158015610916573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061093a9190610fef565b5060405181815233907f884edad9ce6fa2440d8a54cc123490eb96d2768479d49ff9c7366125a94243649060200160405180910390a2505050565b61097d610e6a565b600255565b61098a610e6a565b6005805473ffffffffffffffffffffffffffffffffffffffff19166001600160a01b0392909216919091179055565b600254811015610a315760405162461bcd60e51b815260206004820152602560248201527f416d6f756e7420736d616c6c6572207468616e206d696e696d696d756d20646560448201527f706f73697400000000000000000000000000000000000000000000000000000060648201526084016103c9565b6005546040516370a0823160e01b815233600482015282916001600160a01b0316906370a0823190602401602060405180830381865afa158015610a79573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610a9d9190611052565b1015610aeb5760405162461bcd60e51b815260206004820152601d60248201527f43616e2774207374616b65206d6f7265207468616e20796f75206f776e00000060448201526064016103c9565b336000908152600460205260408120549003610b225733600090815260046020526040812082815542600182015560020155610b95565b6000610b2d336106ce565b33600090815260046020526040812060020180549293508392909190610b54908490610fac565b90915550503360009081526004602052604081208054849290610b78908490610fac565b909155505033600090815260046020526040902042600190910155505b6005546000546040805163fbfa77cf60e01b815290516001600160a01b03938416936323b872dd93339391169163fbfa77cf916004808201926020929091908290030181865afa158015610bed573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610c119190610fd2565b6040516001600160e01b031960e085901b1681526001600160a01b03928316600482015291166024820152604481018490526064016020604051808303816000875af1158015610c65573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610c899190610fef565b5060405181815233907febedb8b3c678666e7f36970bc8f57abf6d8fa2e828c0da91ea5b75bf68ed101a90602001610682565b610cc4610e6a565b600355565b610cd1610e6a565b600155565b33600090815260046020526040902054610d325760405162461bcd60e51b815260206004820152601360248201527f596f752068617665206e6f206465706f7369740000000000000000000000000060448201526064016103c9565b610d3b336102f0565b15610d935760405162461bcd60e51b815260206004820152602260248201527f547269656420746f20636f6d706f756e64207265776172647320746f6f20736f60448201526137b760f11b60648201526084016103c9565b336000818152600460205260408120600201549091610db1906106ce565b610dbb9190610fac565b3360009081526004602052604081206002810182905580549293508392909190610de6908490610fac565b9091555050336000818152600460205260409081902042600190910155517f169f1815ebdea059aac3bb00ec9a9594c7a5ffcb64a17e8392b5d84909a14556906106829084815260200190565b610e3b610e6a565b6006805473ffffffffffffffffffffffffffffffffffffffff19166001600160a01b0392909216919091179055565b60008054906101000a90046001600160a01b03166001600160a01b0316630c340a246040518163ffffffff1660e01b8152600401602060405180830381865afa158015610ebb573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610edf9190610fd2565b6001600160a01b0316336001600160a01b031614610f3f5760405162461bcd60e51b815260206004820152600c60248201527f554e415554484f52495a4544000000000000000000000000000000000000000060448201526064016103c9565b565b6001600160a01b0381168114610f5657600080fd5b50565b600060208284031215610f6b57600080fd5b8135610f7681610f41565b9392505050565b600060208284031215610f8f57600080fd5b5035919050565b634e487b7160e01b600052601160045260246000fd5b8082018082111561035e5761035e610f96565b8181038181111561035e5761035e610f96565b600060208284031215610fe457600080fd5b8151610f7681610f41565b60006020828403121561100157600080fd5b81518015158114610f7657600080fd5b600081600019048311821515161561102b5761102b610f96565b500290565b60008261104d57634e487b7160e01b600052601260045260246000fd5b500490565b60006020828403121561106457600080fd5b505191905056fea164736f6c6343000810000a",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b506004361061016c5760003560e01c8063853828b6116100cd578063bf7e214f11610081578063c7a29c6f11610066578063c7a29c6f146102c2578063cf9d0b5f146102d5578063f0f44260146102dd57600080fd5b8063bf7e214f1461029c578063c11479ab146102af57600080fd5b80638e7271fa116100b25780638e7271fa1461026d57806394a6899114610276578063b6b55f251461028957600080fd5b8063853828b6146102525780638c80fd901461025a57600080fd5b8063375b3c0a1161012457806361d027b31161010957806361d027b31461021957806364ab86751461022c5780637a9e5e4b1461023f57600080fd5b8063375b3c0a146101e85780635287ce12146101f157600080fd5b80632604b704116101555780632604b704146101a05780632e1a7d4d146101cb578063372500ab146101e057600080fd5b806312e0a053146101715780631a121d5414610197575b600080fd5b61018461017f366004610f59565b6102f0565b6040519081526020015b60405180910390f35b61018460035481565b6005546101b3906001600160a01b031681565b6040516001600160a01b03909116815260200161018e565b6101de6101d9366004610f7d565b610364565b005b6101de610548565b61018460025481565b6102046101ff366004610f59565b61068d565b6040805192835260208301919091520161018e565b6006546101b3906001600160a01b031681565b61018461023a366004610f59565b6106ce565b6101de61024d366004610f59565b61072f565b6101de610798565b6101de610268366004610f7d565b610975565b61018460015481565b6101de610284366004610f59565b610982565b6101de610297366004610f7d565b6109b9565b6000546101b3906001600160a01b031681565b6101de6102bd366004610f7d565b610cbc565b6101de6102d0366004610f7d565b610cc9565b6101de610cd6565b6101de6102eb366004610f59565b610e33565b6003546001600160a01b0382166000908152600460205260408120600101549091429161031d9190610fac565b1161032a57506000919050565b6003546001600160a01b038316600090815260046020526040902060010154429161035491610fac565b61035e9190610fbf565b92915050565b336000908152600460205260409020548111156103d25760405162461bcd60e51b815260206004820152602160248201527f43616e2774207769746864726177206d6f7265207468616e20796f75206861766044820152606560f81b60648201526084015b60405180910390fd5b60006103dd336106ce565b33600090815260046020526040812080549293508492909190610401908490610fbf565b90915550503360009081526004602081815260408084204260018201556002018590556005549354815163fbfa77cf60e01b815291516001600160a01b03958616956323b872dd9592169363fbfa77cf9380840193919291908290030181865afa158015610473573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906104979190610fd2565b6040516001600160e01b031960e084901b1681526001600160a01b039091166004820152336024820152604481018590526064016020604051808303816000875af11580156104ea573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061050e9190610fef565b5060405182815233907f884edad9ce6fa2440d8a54cc123490eb96d2768479d49ff9c7366125a94243649060200160405180910390a25050565b336000818152600460205260408120600201549091610566906106ce565b6105709190610fac565b9050600081116105c25760405162461bcd60e51b815260206004820152601360248201527f596f752068617665206e6f20726577617264730000000000000000000000000060448201526064016103c9565b336000818152600460208190526040808320600281019390935542600190930192909255600654600554925163b2178c1d60e01b81529182018590526001600160a01b039283166024830152604482019390935291169063b2178c1d90606401600060405180830381600087803b15801561063c57600080fd5b505af1158015610650573d6000803e3d6000fd5b50506040518381523392507f619caafabdd75649b302ba8419e48cccf64f37f1983ac4727cfb38b57703ffc991506020015b60405180910390a250565b6001600160a01b03811660009081526004602052604080822054338352908220600201549091906106bd846106ce565b6106c79190610fac565b9050915091565b600180546001600160a01b0383166000908152600460205260408120805493015490926298968092610e10929091906107079042610fbf565b6107119190611011565b61071b9190611011565b6107259190611030565b61035e9190611030565b610737610e6a565b6000805473ffffffffffffffffffffffffffffffffffffffff19166001600160a01b0383169081179091556040519081527f2f658b440c35314f52658ea8a740e05b284cdc84dc9ae01e891f21b8933e7cad9060200160405180910390a150565b336000908152600460205260409020546107f45760405162461bcd60e51b815260206004820152601360248201527f596f752068617665206e6f206465706f7369740000000000000000000000000060448201526064016103c9565b336000818152600460205260408120600201549091610812906106ce565b61081c9190610fac565b336000908152600460205260408120805482825560019091018290559192506108458284610fac565b6005546000546040805163fbfa77cf60e01b815290519394506001600160a01b03928316936323b872dd939092169163fbfa77cf916004808201926020929091908290030181865afa15801561089f573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906108c39190610fd2565b6040516001600160e01b031960e084901b1681526001600160a01b039091166004820152336024820152604481018490526064016020604051808303816000875af1158015610916573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061093a9190610fef565b5060405181815233907f884edad9ce6fa2440d8a54cc123490eb96d2768479d49ff9c7366125a94243649060200160405180910390a2505050565b61097d610e6a565b600255565b61098a610e6a565b6005805473ffffffffffffffffffffffffffffffffffffffff19166001600160a01b0392909216919091179055565b600254811015610a315760405162461bcd60e51b815260206004820152602560248201527f416d6f756e7420736d616c6c6572207468616e206d696e696d696d756d20646560448201527f706f73697400000000000000000000000000000000000000000000000000000060648201526084016103c9565b6005546040516370a0823160e01b815233600482015282916001600160a01b0316906370a0823190602401602060405180830381865afa158015610a79573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610a9d9190611052565b1015610aeb5760405162461bcd60e51b815260206004820152601d60248201527f43616e2774207374616b65206d6f7265207468616e20796f75206f776e00000060448201526064016103c9565b336000908152600460205260408120549003610b225733600090815260046020526040812082815542600182015560020155610b95565b6000610b2d336106ce565b33600090815260046020526040812060020180549293508392909190610b54908490610fac565b90915550503360009081526004602052604081208054849290610b78908490610fac565b909155505033600090815260046020526040902042600190910155505b6005546000546040805163fbfa77cf60e01b815290516001600160a01b03938416936323b872dd93339391169163fbfa77cf916004808201926020929091908290030181865afa158015610bed573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610c119190610fd2565b6040516001600160e01b031960e085901b1681526001600160a01b03928316600482015291166024820152604481018490526064016020604051808303816000875af1158015610c65573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610c899190610fef565b5060405181815233907febedb8b3c678666e7f36970bc8f57abf6d8fa2e828c0da91ea5b75bf68ed101a90602001610682565b610cc4610e6a565b600355565b610cd1610e6a565b600155565b33600090815260046020526040902054610d325760405162461bcd60e51b815260206004820152601360248201527f596f752068617665206e6f206465706f7369740000000000000000000000000060448201526064016103c9565b610d3b336102f0565b15610d935760405162461bcd60e51b815260206004820152602260248201527f547269656420746f20636f6d706f756e64207265776172647320746f6f20736f60448201526137b760f11b60648201526084016103c9565b336000818152600460205260408120600201549091610db1906106ce565b610dbb9190610fac565b3360009081526004602052604081206002810182905580549293508392909190610de6908490610fac565b9091555050336000818152600460205260409081902042600190910155517f169f1815ebdea059aac3bb00ec9a9594c7a5ffcb64a17e8392b5d84909a14556906106829084815260200190565b610e3b610e6a565b6006805473ffffffffffffffffffffffffffffffffffffffff19166001600160a01b0392909216919091179055565b60008054906101000a90046001600160a01b03166001600160a01b0316630c340a246040518163ffffffff1660e01b8152600401602060405180830381865afa158015610ebb573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610edf9190610fd2565b6001600160a01b0316336001600160a01b031614610f3f5760405162461bcd60e51b815260206004820152600c60248201527f554e415554484f52495a4544000000000000000000000000000000000000000060448201526064016103c9565b565b6001600160a01b0381168114610f5657600080fd5b50565b600060208284031215610f6b57600080fd5b8135610f7681610f41565b9392505050565b600060208284031215610f8f57600080fd5b5035919050565b634e487b7160e01b600052601160045260246000fd5b8082018082111561035e5761035e610f96565b8181038181111561035e5761035e610f96565b600060208284031215610fe457600080fd5b8151610f7681610f41565b60006020828403121561100157600080fd5b81518015158114610f7657600080fd5b600081600019048311821515161561102b5761102b610f96565b500290565b60008261104d57634e487b7160e01b600052601260045260246000fd5b500490565b60006020828403121561106457600080fd5b505191905056fea164736f6c6343000810000a",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {},
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 10799,
+        "contract": "contracts/Staking.sol:Staking",
+        "label": "authority",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_contract(IAuthority)10283"
+      },
+      {
+        "astId": 9042,
+        "contract": "contracts/Staking.sol:Staking",
+        "label": "rewardsPerHour",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_uint256"
+      },
+      {
+        "astId": 9045,
+        "contract": "contracts/Staking.sol:Staking",
+        "label": "minStake",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_uint256"
+      },
+      {
+        "astId": 9050,
+        "contract": "contracts/Staking.sol:Staking",
+        "label": "compoundFreq",
+        "offset": 0,
+        "slot": "3",
+        "type": "t_uint256"
+      },
+      {
+        "astId": 9055,
+        "contract": "contracts/Staking.sol:Staking",
+        "label": "stakers",
+        "offset": 0,
+        "slot": "4",
+        "type": "t_mapping(t_address,t_struct(Staker)9039_storage)"
+      },
+      {
+        "astId": 9058,
+        "contract": "contracts/Staking.sol:Staking",
+        "label": "konduxERC20",
+        "offset": 0,
+        "slot": "5",
+        "type": "t_contract(IERC20)2305"
+      },
+      {
+        "astId": 9061,
+        "contract": "contracts/Staking.sol:Staking",
+        "label": "treasury",
+        "offset": 0,
+        "slot": "6",
+        "type": "t_contract(ITreasury)10688"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_contract(IAuthority)10283": {
+        "encoding": "inplace",
+        "label": "contract IAuthority",
+        "numberOfBytes": "20"
+      },
+      "t_contract(IERC20)2305": {
+        "encoding": "inplace",
+        "label": "contract IERC20",
+        "numberOfBytes": "20"
+      },
+      "t_contract(ITreasury)10688": {
+        "encoding": "inplace",
+        "label": "contract ITreasury",
+        "numberOfBytes": "20"
+      },
+      "t_mapping(t_address,t_struct(Staker)9039_storage)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => struct Staking.Staker)",
+        "numberOfBytes": "32",
+        "value": "t_struct(Staker)9039_storage"
+      },
+      "t_struct(Staker)9039_storage": {
+        "encoding": "inplace",
+        "label": "struct Staking.Staker",
+        "members": [
+          {
+            "astId": 9034,
+            "contract": "contracts/Staking.sol:Staking",
+            "label": "deposited",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint256"
+          },
+          {
+            "astId": 9036,
+            "contract": "contracts/Staking.sol:Staking",
+            "label": "timeOfLastUpdate",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_uint256"
+          },
+          {
+            "astId": 9038,
+            "contract": "contracts/Staking.sol:Staking",
+            "label": "unclaimedRewards",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_uint256"
+          }
+        ],
+        "numberOfBytes": "96"
+      },
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      }
+    }
+  }
+}

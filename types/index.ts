@@ -56,6 +56,8 @@ export type { IAuthority } from "./contracts/interfaces/IAuthority";
 export { IAuthority__factory } from "./factories/contracts/interfaces/IAuthority__factory";
 export type { IKondux } from "./contracts/interfaces/IKondux";
 export { IKondux__factory } from "./factories/contracts/interfaces/IKondux__factory";
+export type { IKonduxERC20 } from "./contracts/interfaces/IKonduxERC20";
+export { IKonduxERC20__factory } from "./factories/contracts/interfaces/IKonduxERC20__factory";
 export type { IKonduxFounders } from "./contracts/interfaces/IKonduxFounders";
 export { IKonduxFounders__factory } from "./factories/contracts/interfaces/IKonduxFounders__factory";
 export type { IMarketplace } from "./contracts/interfaces/IMarketplace";

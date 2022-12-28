@@ -30,6 +30,7 @@ export interface ITreasuryInterface extends utils.Interface {
     "depositEther()": FunctionFragment;
     "withdraw(uint256,address)": FunctionFragment;
     "withdrawEther(uint256)": FunctionFragment;
+    "withdrawTo(uint256,address,address)": FunctionFragment;
   };
 
   getFunction(
@@ -38,6 +39,7 @@ export interface ITreasuryInterface extends utils.Interface {
       | "depositEther"
       | "withdraw"
       | "withdrawEther"
+      | "withdrawTo"
   ): FunctionFragment;
 
   encodeFunctionData(
@@ -56,6 +58,14 @@ export interface ITreasuryInterface extends utils.Interface {
     functionFragment: "withdrawEther",
     values: [PromiseOrValue<BigNumberish>]
   ): string;
+  encodeFunctionData(
+    functionFragment: "withdrawTo",
+    values: [
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<string>,
+      PromiseOrValue<string>
+    ]
+  ): string;
 
   decodeFunctionResult(functionFragment: "deposit", data: BytesLike): Result;
   decodeFunctionResult(
@@ -67,6 +77,7 @@ export interface ITreasuryInterface extends utils.Interface {
     functionFragment: "withdrawEther",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "withdrawTo", data: BytesLike): Result;
 
   events: {};
 }
@@ -118,6 +129,13 @@ export interface ITreasury extends BaseContract {
       _amount: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
+
+    withdrawTo(
+      _amount: PromiseOrValue<BigNumberish>,
+      _token: PromiseOrValue<string>,
+      _to: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
   };
 
   deposit(
@@ -141,6 +159,13 @@ export interface ITreasury extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
+  withdrawTo(
+    _amount: PromiseOrValue<BigNumberish>,
+    _token: PromiseOrValue<string>,
+    _to: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
   callStatic: {
     deposit(
       _amount: PromiseOrValue<BigNumberish>,
@@ -158,6 +183,13 @@ export interface ITreasury extends BaseContract {
 
     withdrawEther(
       _amount: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    withdrawTo(
+      _amount: PromiseOrValue<BigNumberish>,
+      _token: PromiseOrValue<string>,
+      _to: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<void>;
   };
@@ -185,6 +217,13 @@ export interface ITreasury extends BaseContract {
       _amount: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
+
+    withdrawTo(
+      _amount: PromiseOrValue<BigNumberish>,
+      _token: PromiseOrValue<string>,
+      _to: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
   };
 
   populateTransaction: {
@@ -206,6 +245,13 @@ export interface ITreasury extends BaseContract {
 
     withdrawEther(
       _amount: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    withdrawTo(
+      _amount: PromiseOrValue<BigNumberish>,
+      _token: PromiseOrValue<string>,
+      _to: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
   };

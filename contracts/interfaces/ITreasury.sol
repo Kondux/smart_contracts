@@ -14,6 +14,12 @@ interface ITreasury {
         address _token
     ) external;
 
+    function withdrawTo(
+        uint256 _amount,
+        address _token,
+        address _to
+    ) external;
+
     function withdrawEther(
         uint256 _amount
     ) external;

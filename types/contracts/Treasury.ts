@@ -36,12 +36,16 @@ export interface TreasuryInterface extends utils.Interface {
     "authority()": FunctionFragment;
     "deposit(uint256,address)": FunctionFragment;
     "depositEther()": FunctionFragment;
+    "erc20ApprovalSetup(address,uint256)": FunctionFragment;
     "isTokenApprooved(address)": FunctionFragment;
     "permissions(uint8,address)": FunctionFragment;
     "setAuthority(address)": FunctionFragment;
     "setPermission(uint8,address,bool)": FunctionFragment;
+    "setStakingContract(address)": FunctionFragment;
+    "stakingContract()": FunctionFragment;
     "withdraw(uint256,address)": FunctionFragment;
     "withdrawEther(uint256)": FunctionFragment;
+    "withdrawTo(uint256,address,address)": FunctionFragment;
   };
 
   getFunction(
@@ -52,12 +56,16 @@ export interface TreasuryInterface extends utils.Interface {
       | "authority"
       | "deposit"
       | "depositEther"
+      | "erc20ApprovalSetup"
       | "isTokenApprooved"
       | "permissions"
       | "setAuthority"
       | "setPermission"
+      | "setStakingContract"
+      | "stakingContract"
       | "withdraw"
       | "withdrawEther"
+      | "withdrawTo"
   ): FunctionFragment;
 
   encodeFunctionData(
@@ -82,6 +90,10 @@ export interface TreasuryInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "erc20ApprovalSetup",
+    values: [PromiseOrValue<string>, PromiseOrValue<BigNumberish>]
+  ): string;
+  encodeFunctionData(
     functionFragment: "isTokenApprooved",
     values: [PromiseOrValue<string>]
   ): string;
@@ -102,12 +114,28 @@ export interface TreasuryInterface extends utils.Interface {
     ]
   ): string;
   encodeFunctionData(
+    functionFragment: "setStakingContract",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "stakingContract",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "withdraw",
     values: [PromiseOrValue<BigNumberish>, PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
     functionFragment: "withdrawEther",
     values: [PromiseOrValue<BigNumberish>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "withdrawTo",
+    values: [
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<string>,
+      PromiseOrValue<string>
+    ]
   ): string;
 
   decodeFunctionResult(
@@ -129,6 +157,10 @@ export interface TreasuryInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "erc20ApprovalSetup",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "isTokenApprooved",
     data: BytesLike
   ): Result;
@@ -144,11 +176,20 @@ export interface TreasuryInterface extends utils.Interface {
     functionFragment: "setPermission",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "setStakingContract",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "stakingContract",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "withdraw", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "withdrawEther",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "withdrawTo", data: BytesLike): Result;
 
   events: {
     "AuthorityUpdated(address)": EventFragment;
@@ -279,6 +320,12 @@ export interface Treasury extends BaseContract {
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
+    erc20ApprovalSetup(
+      _token: PromiseOrValue<string>,
+      _amount: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
     isTokenApprooved(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -302,6 +349,13 @@ export interface Treasury extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
+    setStakingContract(
+      _stakingContract: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    stakingContract(overrides?: CallOverrides): Promise<[string]>;
+
     withdraw(
       _amount: PromiseOrValue<BigNumberish>,
       _token: PromiseOrValue<string>,
@@ -310,6 +364,13 @@ export interface Treasury extends BaseContract {
 
     withdrawEther(
       _amount: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    withdrawTo(
+      _amount: PromiseOrValue<BigNumberish>,
+      _token: PromiseOrValue<string>,
+      _to: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
   };
@@ -338,6 +399,12 @@ export interface Treasury extends BaseContract {
     overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
+  erc20ApprovalSetup(
+    _token: PromiseOrValue<string>,
+    _amount: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
   isTokenApprooved(
     arg0: PromiseOrValue<string>,
     overrides?: CallOverrides
@@ -361,6 +428,13 @@ export interface Treasury extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
+  setStakingContract(
+    _stakingContract: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  stakingContract(overrides?: CallOverrides): Promise<string>;
+
   withdraw(
     _amount: PromiseOrValue<BigNumberish>,
     _token: PromiseOrValue<string>,
@@ -369,6 +443,13 @@ export interface Treasury extends BaseContract {
 
   withdrawEther(
     _amount: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  withdrawTo(
+    _amount: PromiseOrValue<BigNumberish>,
+    _token: PromiseOrValue<string>,
+    _to: PromiseOrValue<string>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
@@ -395,6 +476,12 @@ export interface Treasury extends BaseContract {
 
     depositEther(overrides?: CallOverrides): Promise<void>;
 
+    erc20ApprovalSetup(
+      _token: PromiseOrValue<string>,
+      _amount: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     isTokenApprooved(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -418,6 +505,13 @@ export interface Treasury extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    setStakingContract(
+      _stakingContract: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    stakingContract(overrides?: CallOverrides): Promise<string>;
+
     withdraw(
       _amount: PromiseOrValue<BigNumberish>,
       _token: PromiseOrValue<string>,
@@ -426,6 +520,13 @@ export interface Treasury extends BaseContract {
 
     withdrawEther(
       _amount: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    withdrawTo(
+      _amount: PromiseOrValue<BigNumberish>,
+      _token: PromiseOrValue<string>,
+      _to: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<void>;
   };
@@ -490,6 +591,12 @@ export interface Treasury extends BaseContract {
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
+    erc20ApprovalSetup(
+      _token: PromiseOrValue<string>,
+      _amount: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
     isTokenApprooved(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -513,6 +620,13 @@ export interface Treasury extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
+    setStakingContract(
+      _stakingContract: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    stakingContract(overrides?: CallOverrides): Promise<BigNumber>;
+
     withdraw(
       _amount: PromiseOrValue<BigNumberish>,
       _token: PromiseOrValue<string>,
@@ -521,6 +635,13 @@ export interface Treasury extends BaseContract {
 
     withdrawEther(
       _amount: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    withdrawTo(
+      _amount: PromiseOrValue<BigNumberish>,
+      _token: PromiseOrValue<string>,
+      _to: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
   };
@@ -552,6 +673,12 @@ export interface Treasury extends BaseContract {
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
+    erc20ApprovalSetup(
+      _token: PromiseOrValue<string>,
+      _amount: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
     isTokenApprooved(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -575,6 +702,13 @@ export interface Treasury extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
+    setStakingContract(
+      _stakingContract: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    stakingContract(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     withdraw(
       _amount: PromiseOrValue<BigNumberish>,
       _token: PromiseOrValue<string>,
@@ -583,6 +717,13 @@ export interface Treasury extends BaseContract {
 
     withdrawEther(
       _amount: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    withdrawTo(
+      _amount: PromiseOrValue<BigNumberish>,
+      _token: PromiseOrValue<string>,
+      _to: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
   };
