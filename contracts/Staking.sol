@@ -22,23 +22,24 @@ contract Staking is AccessControlled {
     }
 
     // Rewards per hour. A fraction calculated as x/10.000.000 to get the percentage
+    // https://www.buybitcoinbank.com/crypto-apy-staking-calculator
     uint256 public rewardsPerHour = 285; // 0.00285%/h or 25% APR
 
     // Minimum amount to stake
     uint256 public minStake = 10_000_000; // 10,000,000 wei
 
     // Compounding frequency limit in seconds
-    //uint256 public compoundFreq = 60 * 60 * 24; // 24 hours
+    uint256 public compoundFreq = 60 * 60 * 24; // 24 hours
     // uint256 public compoundFreq = 60 * 60; // 1 hour
-    uint256 public compoundFreq = 60; // 1 minute
+    // uint256 public compoundFreq = 60; // 1 minute // gives bugs when unstaking
 
     // Mapping of address to Staker info
     mapping(address => Staker) internal stakers;
 
     // Staked tokens minimum timelock
-    // uint256 public timelock = 60 * 60 * 24 * 7; // 7 days
+    uint256 public timelock = 60 * 60 * 24 * 1; // 1 days
     // uint256 public timelock = 60 * 60 * 2; // 2 hours
-    uint256 public timelock = 60 * 2; // 2 minutes
+    // uint256 public timelock = 60 * 2; // 2 minutes
 
 
     // KonduxERC20 Contract
@@ -107,13 +108,13 @@ contract Staking is AccessControlled {
 
     // Transfer rewards to msg.sender
     function claimRewards() public timelocked {
-        // console.log("Claiming rewards");
+        console.log("Claiming rewards");
         // console.log("staking contract address", address(this));
 
         uint256 rewards = calculateRewards(msg.sender) + stakers[msg.sender].unclaimedRewards;
-        // console.log("rewards: %s", rewards);
-        // console.log("pre-claiming balance vault: %s", konduxERC20.balanceOf(authority.vault()));
-        // console.log("ERC20 address: %s", address(konduxERC20));
+        console.log("rewards: %s", rewards);
+        console.log("pre-claiming balance vault: %s", konduxERC20.balanceOf(authority.vault()));
+        console.log("ERC20 address: %s", address(konduxERC20));
         require(rewards > 0, "You have no rewards");
         stakers[msg.sender].unclaimedRewards = 0;
         stakers[msg.sender].timeOfLastUpdate = block.timestamp;
