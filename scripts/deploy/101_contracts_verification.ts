@@ -27,6 +27,8 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const minterFoundersDeployment = await deployments.get(CONTRACTS.minterFounders);
     const minterPublicDeployment = await deployments.get(CONTRACTS.minterPublic);
     const konduxERC20Deployment = await deployments.get(CONTRACTS.konduxERC20);
+    const konduxERC721FoundersDeployment = await deployments.get(CONTRACTS.konduxERC721Founders);
+    const konduxERC721kNFTDeployment = await deployments.get(CONTRACTS.konduxERC721kNFT);
     
     const network = await ethers.provider.getNetwork();
 
@@ -120,7 +122,9 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
                 constructorArguments: [
                     authorityDeployment.address,
                     konduxERC20Deployment.address,
-                    treasuryDeployment.address
+                    treasuryDeployment.address,
+                    konduxERC721FoundersDeployment.address,
+                    konduxERC721kNFTDeployment.address,
                 ],
             });
             console.log("Verified -- staking");
@@ -226,6 +230,40 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
             if (error instanceof NomicLabsHardhatPluginError) {
                 // specific error
                 console.log("Error verifying -- konduxERC20");
+                console.log(error.message);
+            } else {
+                throw error; // let others bubble up
+            }                      
+        }
+
+        try {
+            await hre.run("verify:verify", {
+                address: konduxERC721FoundersDeployment.address,
+                constructorArguments: [],
+                contract: "contracts/tests/KonduxERC721Founders.sol:KonduxERC721Founders"
+            });
+            console.log("Verified -- konduxERC721Founders");
+        } catch (error) {
+            if (error instanceof NomicLabsHardhatPluginError) {
+                // specific error
+                console.log("Error verifying -- konduxERC721Founders");
+                console.log(error.message);
+            } else {
+                throw error; // let others bubble up
+            }                      
+        }
+
+        try {
+            await hre.run("verify:verify", {
+                address: konduxERC721kNFTDeployment.address,
+                constructorArguments: [],
+                contract: "contracts/tests/KonduxERC721kNFT.sol:KonduxERC721kNFT"
+            });
+            console.log("Verified -- konduxERC721kNFT");
+        } catch (error) {
+            if (error instanceof NomicLabsHardhatPluginError) {
+                // specific error
+                console.log("Error verifying -- konduxERC721kNFT");
                 console.log(error.message);
             } else {
                 throw error; // let others bubble up

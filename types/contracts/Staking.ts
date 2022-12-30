@@ -37,11 +37,15 @@ export interface StakingInterface extends utils.Interface {
     "deposit(uint256)": FunctionFragment;
     "getDepositInfo(address)": FunctionFragment;
     "konduxERC20()": FunctionFragment;
+    "konduxERC721Founders()": FunctionFragment;
+    "konduxERC721kNFT()": FunctionFragment;
     "minStake()": FunctionFragment;
     "rewardsPerHour()": FunctionFragment;
     "setAuthority(address)": FunctionFragment;
     "setCompFreq(uint256)": FunctionFragment;
     "setKonduxERC20(address)": FunctionFragment;
+    "setKonduxERC721Founders(address)": FunctionFragment;
+    "setKonduxERC721kNFT(address)": FunctionFragment;
     "setMinStake(uint256)": FunctionFragment;
     "setRewards(uint256)": FunctionFragment;
     "setTimeLock(uint256)": FunctionFragment;
@@ -63,11 +67,15 @@ export interface StakingInterface extends utils.Interface {
       | "deposit"
       | "getDepositInfo"
       | "konduxERC20"
+      | "konduxERC721Founders"
+      | "konduxERC721kNFT"
       | "minStake"
       | "rewardsPerHour"
       | "setAuthority"
       | "setCompFreq"
       | "setKonduxERC20"
+      | "setKonduxERC721Founders"
+      | "setKonduxERC721kNFT"
       | "setMinStake"
       | "setRewards"
       | "setTimeLock"
@@ -108,6 +116,14 @@ export interface StakingInterface extends utils.Interface {
     functionFragment: "konduxERC20",
     values?: undefined
   ): string;
+  encodeFunctionData(
+    functionFragment: "konduxERC721Founders",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "konduxERC721kNFT",
+    values?: undefined
+  ): string;
   encodeFunctionData(functionFragment: "minStake", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "rewardsPerHour",
@@ -123,6 +139,14 @@ export interface StakingInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "setKonduxERC20",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setKonduxERC721Founders",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setKonduxERC721kNFT",
     values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
@@ -182,6 +206,14 @@ export interface StakingInterface extends utils.Interface {
     functionFragment: "konduxERC20",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "konduxERC721Founders",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "konduxERC721kNFT",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "minStake", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "rewardsPerHour",
@@ -197,6 +229,14 @@ export interface StakingInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "setKonduxERC20",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setKonduxERC721Founders",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setKonduxERC721kNFT",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -357,6 +397,10 @@ export interface Staking extends BaseContract {
 
     konduxERC20(overrides?: CallOverrides): Promise<[string]>;
 
+    konduxERC721Founders(overrides?: CallOverrides): Promise<[string]>;
+
+    konduxERC721kNFT(overrides?: CallOverrides): Promise<[string]>;
+
     minStake(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     rewardsPerHour(overrides?: CallOverrides): Promise<[BigNumber]>;
@@ -373,6 +417,16 @@ export interface Staking extends BaseContract {
 
     setKonduxERC20(
       _konduxERC20: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    setKonduxERC721Founders(
+      _konduxERC721Founders: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    setKonduxERC721kNFT(
+      _konduxERC721kNFT: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
@@ -446,6 +500,10 @@ export interface Staking extends BaseContract {
 
   konduxERC20(overrides?: CallOverrides): Promise<string>;
 
+  konduxERC721Founders(overrides?: CallOverrides): Promise<string>;
+
+  konduxERC721kNFT(overrides?: CallOverrides): Promise<string>;
+
   minStake(overrides?: CallOverrides): Promise<BigNumber>;
 
   rewardsPerHour(overrides?: CallOverrides): Promise<BigNumber>;
@@ -462,6 +520,16 @@ export interface Staking extends BaseContract {
 
   setKonduxERC20(
     _konduxERC20: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  setKonduxERC721Founders(
+    _konduxERC721Founders: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  setKonduxERC721kNFT(
+    _konduxERC721kNFT: PromiseOrValue<string>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
@@ -533,6 +601,10 @@ export interface Staking extends BaseContract {
 
     konduxERC20(overrides?: CallOverrides): Promise<string>;
 
+    konduxERC721Founders(overrides?: CallOverrides): Promise<string>;
+
+    konduxERC721kNFT(overrides?: CallOverrides): Promise<string>;
+
     minStake(overrides?: CallOverrides): Promise<BigNumber>;
 
     rewardsPerHour(overrides?: CallOverrides): Promise<BigNumber>;
@@ -549,6 +621,16 @@ export interface Staking extends BaseContract {
 
     setKonduxERC20(
       _konduxERC20: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setKonduxERC721Founders(
+      _konduxERC721Founders: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setKonduxERC721kNFT(
+      _konduxERC721kNFT: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -667,6 +749,10 @@ export interface Staking extends BaseContract {
 
     konduxERC20(overrides?: CallOverrides): Promise<BigNumber>;
 
+    konduxERC721Founders(overrides?: CallOverrides): Promise<BigNumber>;
+
+    konduxERC721kNFT(overrides?: CallOverrides): Promise<BigNumber>;
+
     minStake(overrides?: CallOverrides): Promise<BigNumber>;
 
     rewardsPerHour(overrides?: CallOverrides): Promise<BigNumber>;
@@ -683,6 +769,16 @@ export interface Staking extends BaseContract {
 
     setKonduxERC20(
       _konduxERC20: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    setKonduxERC721Founders(
+      _konduxERC721Founders: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    setKonduxERC721kNFT(
+      _konduxERC721kNFT: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
@@ -755,6 +851,12 @@ export interface Staking extends BaseContract {
 
     konduxERC20(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    konduxERC721Founders(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    konduxERC721kNFT(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     minStake(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     rewardsPerHour(overrides?: CallOverrides): Promise<PopulatedTransaction>;
@@ -771,6 +873,16 @@ export interface Staking extends BaseContract {
 
     setKonduxERC20(
       _konduxERC20: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setKonduxERC721Founders(
+      _konduxERC721Founders: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setKonduxERC721kNFT(
+      _konduxERC721kNFT: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 

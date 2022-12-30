@@ -165,9 +165,13 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.KonduxERC20__factory>;
     getContractFactory(
-      name: "KonduxERC721",
+      name: "KonduxERC721Founders",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.KonduxERC721__factory>;
+    ): Promise<Contracts.KonduxERC721Founders__factory>;
+    getContractFactory(
+      name: "KonduxERC721kNFT",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.KonduxERC721kNFT__factory>;
     getContractFactory(
       name: "Treasury",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -368,10 +372,15 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.KonduxERC20>;
     getContractAt(
-      name: "KonduxERC721",
+      name: "KonduxERC721Founders",
       address: string,
       signer?: ethers.Signer
-    ): Promise<Contracts.KonduxERC721>;
+    ): Promise<Contracts.KonduxERC721Founders>;
+    getContractAt(
+      name: "KonduxERC721kNFT",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.KonduxERC721kNFT>;
     getContractAt(
       name: "Treasury",
       address: string,

@@ -12,6 +12,8 @@ export const CONTRACTS: Record<string, string> = {
   konduxFounders: "KonduxFounders",
   minterFounders: "MinterFounders",
   minterPublic: "MinterPublic",
+  konduxERC721Founders: "KonduxERC721Founders",
+  konduxERC721kNFT: "KonduxERC721kNFT",
 };
 
 export const CONFIGURATION: Record<string, any> = {

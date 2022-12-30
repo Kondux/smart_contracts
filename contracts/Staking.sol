@@ -2,6 +2,7 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "./interfaces/ITreasury.sol";
 import "./types/AccessControlled.sol";
 import "hardhat/console.sol";
@@ -42,6 +43,8 @@ contract Staking is AccessControlled {
 
     // KonduxERC20 Contract
     IERC20 public konduxERC20;
+    IERC721 public konduxERC721Founders;
+    IERC721 public konduxERC721kNFT;
 
     // Treasury Contract
     ITreasury public treasury;
@@ -55,11 +58,13 @@ contract Staking is AccessControlled {
 
 
     // Constructor function
-    constructor(address _authority, address _konduxERC20, address _treasury)
+    constructor(address _authority, address _konduxERC20, address _treasury, address _konduxERC721Founders, address _konduxERC721kNFT)
         AccessControlled(IAuthority(_authority)) {        
             require(_konduxERC20 != address(0), "Kondux ERC20 address is not set");
             require(_treasury != address(0), "Treasury address is not set");
             konduxERC20 = IERC20(_konduxERC20);
+            konduxERC721Founders = IERC721(_konduxERC721Founders);
+            konduxERC721kNFT = IERC721(_konduxERC721kNFT);
             treasury = ITreasury(_treasury);
     }
 
@@ -159,15 +164,33 @@ contract Staking is AccessControlled {
 
     // Calculate the rewards since the last update on Deposit info
     function calculateRewards(address _staker) public view returns (uint256 rewards) {
-        // console.log("Calculating rewards");
-        // console.log("stakers[_staker].timeOfLastUpdate: %s", stakers[_staker].timeOfLastUpdate);
-        // console.log("block.timestamp: %s", block.timestamp);
-        // console.log("stakers[_staker].deposited: %s", stakers[_staker].deposited);
-        // console.log("rewardsPerHour: %s", rewardsPerHour);
-        // console.log("((((block.timestamp - stakers[_staker].timeOfLastUpdate) * stakers[_staker].deposited) * rewardsPerHour) / 3600) / 10_000_000: %s", ((((block.timestamp - stakers[_staker].timeOfLastUpdate) * stakers[_staker].deposited) * rewardsPerHour) / 3600) / 10_000_000);
+        console.log("Calculating rewards");
+        console.log("stakers[_staker].timeOfLastUpdate: %s", stakers[_staker].timeOfLastUpdate);
+        console.log("block.timestamp: %s", block.timestamp);
+        console.log("stakers[_staker].deposited: %s", stakers[_staker].deposited);
+        console.log("rewardsPerHour: %s", rewardsPerHour);
+        console.log("((((block.timestamp - stakers[_staker].timeOfLastUpdate) * stakers[_staker].deposited) * rewardsPerHour) / 3600) / 10_000_000: %s", ((((block.timestamp - stakers[_staker].timeOfLastUpdate) * stakers[_staker].deposited) * rewardsPerHour) / 3600) / 10_000_000);
 
-        return (((((block.timestamp - stakers[_staker].timeOfLastUpdate) * 
+        uint256 _reward = (((((block.timestamp - stakers[_staker].timeOfLastUpdate) * 
             stakers[_staker].deposited) * rewardsPerHour) / 3600) / 10_000_000); // blocks * staked * rewards/hour / 1h / 10^7
+
+        console.log("reward: %s", _reward);
+        
+        if (IERC721(konduxERC721Founders).balanceOf(_staker) > 0) {
+            _reward = _reward * 110 / 100;
+            console.log("reward after founders: %s", _reward);
+        }
+
+        if (IERC721(konduxERC721kNFT).balanceOf(_staker) > 0) {
+            uint256 _kNFTBalance = IERC721(konduxERC721kNFT).balanceOf(_staker);
+            if (_kNFTBalance > 5) {
+                _kNFTBalance = 5;
+            }
+            _reward = _reward * (100 + (5 * _kNFTBalance)) / 100;
+            console.log("reward after kNFT: %s", _reward);
+        }
+
+        return _reward;
     }
 
     // Functions for modifying  staking mechanism variables:
@@ -190,6 +213,16 @@ contract Staking is AccessControlled {
     // Set the address of the Kondux ERC20 token
     function setKonduxERC20(address _konduxERC20) public onlyGovernor {
         konduxERC20 = IERC20(_konduxERC20);
+    }
+
+    // Set the address of konduxERC721Founders contract
+    function setKonduxERC721Founders(address _konduxERC721Founders) public onlyGovernor {
+        konduxERC721Founders = IERC721(_konduxERC721Founders);
+    }
+
+    // Set the address of konduxERC721kNFT contract
+    function setKonduxERC721kNFT(address _konduxERC721kNFT) public onlyGovernor {
+        konduxERC721kNFT = IERC721(_konduxERC721kNFT);
     }
 
     // Set the address of the Treasury contract

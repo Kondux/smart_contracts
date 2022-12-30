@@ -13,7 +13,9 @@ import {
     MinterPublic__factory,
     Treasury__factory,
     Staking__factory,
-    KonduxERC20__factory
+    KonduxERC20__factory,
+    KonduxERC721Founders__factory,
+    KonduxERC721kNFT__factory,
 } from "../../types";
 
 // TODO: Shouldn't run setup methods if the contracts weren't redeployed.
@@ -34,6 +36,8 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const treasuryDeployment = await deployments.get(CONTRACTS.treasury);
     const stakingDeployment = await deployments.get(CONTRACTS.staking);
     const konduxERC20Deployment = await deployments.get(CONTRACTS.konduxERC20);
+    const konduxERC721FoundersDeployment = await deployments.get(CONTRACTS.konduxERC721Founders);
+    const konduxERC721kNFTDeployment = await deployments.get(CONTRACTS.konduxERC721kNFT);
     
     const authority = Authority__factory.connect(authorityDeployment.address, signer);
     console.log("Authority Governor Address:", await authority.governor());
@@ -45,7 +49,11 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const minterPublic = MinterPublic__factory.connect(minterPublicDeployment.address, signer);
     const treasury = Treasury__factory.connect(treasuryDeployment.address, signer);
     const staking = Staking__factory.connect(stakingDeployment.address, signer);
+
+    // Testing only
     const konduxERC20 = KonduxERC20__factory.connect(konduxERC20Deployment.address, signer);
+    const konduxERC721Founders = KonduxERC721Founders__factory.connect(konduxERC721FoundersDeployment.address, signer);
+    const konduxERC721kNFT = KonduxERC721kNFT__factory.connect(konduxERC721kNFTDeployment.address, signer);
 
     // // // Step 1: Set base URI
     // await waitFor(kondux.setBaseURI(CONFIGURATION.baseURIkNFTBox)); // PRODUCTION
@@ -93,6 +101,8 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     // console.log(await minterFounders.rootFounders020());
 
     // // Step 5: Configure treasury
+    await waitFor(authority.pushVault(treasuryDeployment.address, true)); // PRODUCTION
+    console.log("Set treasury as vault");
     await waitFor(treasury.setPermission(0, minterFoundersDeployment.address, true)); // PRODUCTION
     console.log("Set minter founders as depositor");
     await waitFor(treasury.setPermission(0, minterPublicDeployment.address, true));

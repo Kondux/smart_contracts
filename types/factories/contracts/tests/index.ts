@@ -3,4 +3,5 @@
 /* eslint-disable */
 export { KonduxERC1155__factory } from "./KonduxERC1155__factory";
 export { KonduxERC20__factory } from "./KonduxERC20__factory";
-export { KonduxERC721__factory } from "./KonduxERC721__factory";
+export { KonduxERC721Founders__factory } from "./KonduxERC721Founders__factory";
+export { KonduxERC721kNFT__factory } from "./KonduxERC721kNFT__factory";

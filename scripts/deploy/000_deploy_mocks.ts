@@ -7,9 +7,21 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const { deploy } = deployments;
     const { deployer } = await getNamedAccounts();
 
-    const feeData = await ethers.provider.getFeeData();
-
     await deploy(CONTRACTS.konduxERC20, {
+        from: deployer,
+        args: [],
+        log: true,
+        skipIfAlreadyDeployed: false,
+    });
+
+    await deploy(CONTRACTS.konduxERC721Founders, {
+        from: deployer,
+        args: [],
+        log: true,
+        skipIfAlreadyDeployed: false,
+    });
+
+    await deploy(CONTRACTS.konduxERC721kNFT, {
         from: deployer,
         args: [],
         log: true,
