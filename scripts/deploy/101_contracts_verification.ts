@@ -29,6 +29,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const konduxERC20Deployment = await deployments.get(CONTRACTS.konduxERC20);
     const konduxERC721FoundersDeployment = await deployments.get(CONTRACTS.konduxERC721Founders);
     const konduxERC721kNFTDeployment = await deployments.get(CONTRACTS.konduxERC721kNFT);
+    const helixDeployment = await deployments.get(CONTRACTS.helix);
     
     const network = await ethers.provider.getNetwork();
 
@@ -125,6 +126,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
                     treasuryDeployment.address,
                     konduxERC721FoundersDeployment.address,
                     konduxERC721kNFTDeployment.address,
+                    helixDeployment.address,
                 ],
             });
             console.log("Verified -- staking");
@@ -264,6 +266,26 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
             if (error instanceof NomicLabsHardhatPluginError) {
                 // specific error
                 console.log("Error verifying -- konduxERC721kNFT");
+                console.log(error.message);
+            } else {
+                throw error; // let others bubble up
+            }                      
+        }
+
+        try {
+            await hre.run("verify:verify", {
+                address: helixDeployment.address,
+                constructorArguments: [
+                    CONFIGURATION.helixName,
+                    CONFIGURATION.helixTicker,
+                    authorityDeployment.address,
+                ],
+            });
+            console.log("Verified -- helix");
+        } catch (error) {
+            if (error instanceof NomicLabsHardhatPluginError) {
+                // specific error
+                console.log("Error verifying -- helix");
                 console.log(error.message);
             } else {
                 throw error; // let others bubble up

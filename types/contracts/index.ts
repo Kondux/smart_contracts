@@ -18,6 +18,7 @@ export type { tests };
 import type * as types from "./types";
 export type { types };
 export type { Authority } from "./Authority";
+export type { Helix } from "./Helix";
 export type { Marketplace } from "./Marketplace";
 export type { Staking } from "./Staking";
 export type { Treasury } from "./Treasury";

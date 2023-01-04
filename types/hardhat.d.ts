@@ -49,6 +49,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ERC20__factory>;
     getContractFactory(
+      name: "ERC20Burnable",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ERC20Burnable__factory>;
+    getContractFactory(
       name: "IERC20Metadata",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IERC20Metadata__factory>;
@@ -105,9 +109,17 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.MarketplaceFeeCollector__factory>;
     getContractFactory(
+      name: "Helix",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Helix__factory>;
+    getContractFactory(
       name: "IAuthority",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IAuthority__factory>;
+    getContractFactory(
+      name: "IHelix",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IHelix__factory>;
     getContractFactory(
       name: "IKondux",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -128,6 +140,10 @@ declare module "hardhat/types/runtime" {
       name: "INFTContract",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.INFTContract__factory>;
+    getContractFactory(
+      name: "IStaking",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IStaking__factory>;
     getContractFactory(
       name: "ITreasury",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -227,6 +243,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.ERC20>;
     getContractAt(
+      name: "ERC20Burnable",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ERC20Burnable>;
+    getContractAt(
       name: "IERC20Metadata",
       address: string,
       signer?: ethers.Signer
@@ -297,10 +318,20 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.MarketplaceFeeCollector>;
     getContractAt(
+      name: "Helix",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Helix>;
+    getContractAt(
       name: "IAuthority",
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.IAuthority>;
+    getContractAt(
+      name: "IHelix",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IHelix>;
     getContractAt(
       name: "IKondux",
       address: string,
@@ -326,6 +357,11 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.INFTContract>;
+    getContractAt(
+      name: "IStaking",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IStaking>;
     getContractAt(
       name: "ITreasury",
       address: string,

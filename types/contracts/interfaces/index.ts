@@ -2,9 +2,11 @@
 /* tslint:disable */
 /* eslint-disable */
 export type { IAuthority } from "./IAuthority";
+export type { IHelix } from "./IHelix";
 export type { IKondux } from "./IKondux";
 export type { IKonduxERC20 } from "./IKonduxERC20";
 export type { IKonduxFounders } from "./IKonduxFounders";
 export type { IMarketplace } from "./IMarketplace";
 export type { INFTContract } from "./INFTContract";
+export type { IStaking } from "./IStaking";
 export type { ITreasury } from "./ITreasury";

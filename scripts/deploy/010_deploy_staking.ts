@@ -12,6 +12,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const treasuryDeployment = await deployments.get(CONTRACTS.treasury);
     const konduxERC721FoundersDeployment = await deployments.get(CONTRACTS.konduxERC721Founders);
     const konduxERC721kNFTDeployment = await deployments.get(CONTRACTS.konduxERC721kNFT);
+    const helix = await deployments.get(CONTRACTS.helix);
 
     await deploy(CONTRACTS.staking, {
         from: deployer,
@@ -21,6 +22,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
             treasuryDeployment.address,
             konduxERC721FoundersDeployment.address,
             konduxERC721kNFTDeployment.address,
+            helix.address
         ],
         log: true,
         skipIfAlreadyDeployed: false,

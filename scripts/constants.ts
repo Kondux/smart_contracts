@@ -14,6 +14,7 @@ export const CONTRACTS: Record<string, string> = {
   minterPublic: "MinterPublic",
   konduxERC721Founders: "KonduxERC721Founders",
   konduxERC721kNFT: "KonduxERC721kNFT",
+  helix: "Helix",
 };
 
 export const CONFIGURATION: Record<string, any> = {
@@ -35,4 +36,6 @@ export const CONFIGURATION: Record<string, any> = {
   merkleRoot020: "https://h7af1y611a.execute-api.us-east-1.amazonaws.com/root020",
   merkleRoot025: "https://h7af1y611a.execute-api.us-east-1.amazonaws.com/root025",
   merkleRootFreeKNFT: "https://h7af1y611a.execute-api.us-east-1.amazonaws.com/rootFreeKNFT", 
+  helixName: "Helix",
+  helixTicker: "HLX",
 };

@@ -4,6 +4,7 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "./interfaces/ITreasury.sol";
+import "./interfaces/IHelix.sol";
 import "./types/AccessControlled.sol";
 import "hardhat/console.sol";
 
@@ -20,6 +21,18 @@ contract Staking is AccessControlled {
         // a user writes to the contract.
         uint256 unclaimedRewards;
     }
+
+    // Withdrawal fee in basis points
+    uint256 public withdrawalFee = 100_000; // 1% fee on withdrawal or 100_000/10_000_000
+    uint256 public withdrawalFeeDivisor = 10_000_000; // 10_000_000 basis points
+
+    // Founder's reward boost in basis points
+    uint256 public foundersRewardBoost = 1_000_000; // 10% boost on rewards or 1_000_000/10_000_000
+    uint256 public foundersRewardBoostDivisor = 10_000_000; // 10_000_000 basis points
+
+    // kNFT reward boost in basis points
+    uint256 public kNFTRewardBoost = 100_000; // 1% boost on rewards or 100_000/10_000_000
+    uint256 public kNFTRewardBoostDivisor = 10_000_000; // 10_000_000 basis points
 
     // Rewards per hour. A fraction calculated as x/10.000.000 to get the percentage
     // https://www.buybitcoinbank.com/crypto-apy-staking-calculator
@@ -44,6 +57,7 @@ contract Staking is AccessControlled {
 
     // KonduxERC20 Contract
     IERC20 public konduxERC20;
+    IHelix public helixERC20;
     IERC721 public konduxERC721Founders;
     IERC721 public konduxERC721kNFT;
 
@@ -59,13 +73,14 @@ contract Staking is AccessControlled {
 
 
     // Constructor function
-    constructor(address _authority, address _konduxERC20, address _treasury, address _konduxERC721Founders, address _konduxERC721kNFT)
+    constructor(address _authority, address _konduxERC20, address _treasury, address _konduxERC721Founders, address _konduxERC721kNFT, address _helixERC20)
         AccessControlled(IAuthority(_authority)) {        
             require(_konduxERC20 != address(0), "Kondux ERC20 address is not set");
             require(_treasury != address(0), "Treasury address is not set");
             konduxERC20 = IERC20(_konduxERC20);
             konduxERC721Founders = IERC721(_konduxERC721Founders);
             konduxERC721kNFT = IERC721(_konduxERC721kNFT);
+            helixERC20 = IHelix(_helixERC20);
             treasury = ITreasury(_treasury);
     }
 
@@ -92,6 +107,7 @@ contract Staking is AccessControlled {
         stakers[msg.sender].timeOfLastUpdate = block.timestamp;
         stakers[msg.sender].lastDepositTime = block.timestamp;
         konduxERC20.transferFrom(msg.sender, authority.vault(), _amount);
+        helixERC20.mint(msg.sender, _amount);
         emit Stake(msg.sender, _amount);
     }
 
@@ -127,12 +143,15 @@ contract Staking is AccessControlled {
     // Withdraw specified amount of staked tokens
     function withdraw(uint256 _amount) public timelocked {
         require(stakers[msg.sender].deposited >= _amount, "Can't withdraw more than you have");
+        require(_amount >= helixERC20.balanceOf(msg.sender), "Can't withdraw more tokens than the collateral you have");
         uint256 _rewards = calculateRewards(msg.sender);
         stakers[msg.sender].deposited -= _amount;
         stakers[msg.sender].timeOfLastUpdate = block.timestamp;
         stakers[msg.sender].unclaimedRewards = _rewards;
-        konduxERC20.transferFrom(authority.vault(), msg.sender, _amount);
-        emit Withdraw(msg.sender, _amount);
+        uint256 _liquid = (_amount * withdrawalFee) / withdrawalFeeDivisor;
+        helixERC20.burn(msg.sender, _amount);
+        konduxERC20.transferFrom(authority.vault(), msg.sender, _liquid);
+        emit Withdraw(msg.sender, _liquid);
     }
 
     // Withdraw all stake and rewards and mints them to the msg.sender
@@ -143,8 +162,11 @@ contract Staking is AccessControlled {
         stakers[msg.sender].deposited = 0;
         stakers[msg.sender].timeOfLastUpdate = 0;
         uint256 _amount = _rewards + _deposit;
-        konduxERC20.transferFrom(authority.vault(), msg.sender, _amount);
-        emit Withdraw(msg.sender, _amount);
+        require(_amount >= helixERC20.balanceOf(msg.sender), "Can't withdraw more tokens than the collateral you have");
+        uint256 _liquid = (_amount * withdrawalFee) / withdrawalFeeDivisor;
+        helixERC20.burn(msg.sender, _amount);
+        konduxERC20.transferFrom(authority.vault(), msg.sender, _liquid);
+        emit Withdraw(msg.sender, _liquid);
     }
 
     // Function useful for fron-end that returns user stake and rewards by address
@@ -178,7 +200,7 @@ contract Staking is AccessControlled {
         console.log("reward: %s", _reward);
         
         if (IERC721(konduxERC721Founders).balanceOf(_staker) > 0) {
-            _reward = _reward * 110 / 100;
+            _reward = (_reward * foundersRewardBoost) / foundersRewardBoostDivisor;
             console.log("reward after founders: %s", _reward);
         }
 
@@ -187,7 +209,7 @@ contract Staking is AccessControlled {
             if (_kNFTBalance > 5) {
                 _kNFTBalance = 5;
             }
-            _reward = _reward * (100 + (5 * _kNFTBalance)) / 100;
+            _reward = _reward * (kNFTRewardBoost + (5 * _kNFTBalance)) / kNFTRewardBoostDivisor;
             console.log("reward after kNFT: %s", _reward);
         }
 
@@ -216,6 +238,11 @@ contract Staking is AccessControlled {
         konduxERC20 = IERC20(_konduxERC20);
     }
 
+    // Set the address of Helix Contract
+    function setHelixERC20(address _helix) public onlyGovernor {
+        helixERC20 = IHelix(_helix);
+    }
+
     // Set the address of konduxERC721Founders contract
     function setKonduxERC721Founders(address _konduxERC721Founders) public onlyGovernor {
         konduxERC721Founders = IERC721(_konduxERC721Founders);
@@ -234,5 +261,77 @@ contract Staking is AccessControlled {
     // Set the time lock for withdraw and claim functions
     function setTimeLock(uint256 _timelock) public onlyGovernor {
         timelock = _timelock;        
+    }
+
+    // Set the withdrawal fee
+    function setWithdrawalFee(uint256 _withdrawalFee) public onlyGovernor {
+        withdrawalFee = _withdrawalFee;
+    }
+
+    // Set the withdrawal fee divisor
+    function setWithdrawalFeeDivisor(uint256 _withdrawalFeeDivisor) public onlyGovernor {
+        withdrawalFeeDivisor = _withdrawalFeeDivisor;
+    }
+
+    // Set the founders reward boost
+    function setFoundersRewardBoost(uint256 _foundersRewardBoost) public onlyGovernor {
+        foundersRewardBoost = _foundersRewardBoost;
+    }
+
+    // Set the founders reward boost divisor
+    function setFoundersRewardBoostDivisor(uint256 _foundersRewardBoostDivisor) public onlyGovernor {
+        foundersRewardBoostDivisor = _foundersRewardBoostDivisor;
+    }
+
+    // Set the kNFT reward boost
+    function setkNFTRewardBoost(uint256 _kNFTRewardBoost) public onlyGovernor {
+        kNFTRewardBoost = _kNFTRewardBoost;
+    }
+
+    // Set the kNFT reward boost divisor
+    function setkNFTRewardBoostDivisor(uint256 _kNFTRewardBoostDivisor) public onlyGovernor {
+        kNFTRewardBoostDivisor = _kNFTRewardBoostDivisor;
+    }
+
+    // Functions for getting staking mechanism variables:
+
+    // Get staker's time of last update
+    function getTimeOfLastUpdate(address _staker) public view returns (uint256 _timeOfLastUpdate) {
+        return stakers[_staker].timeOfLastUpdate;
+    }
+
+    // Get staker's deposited amount
+    function getStakedAmount(address _staker) public view returns (uint256 _deposited) {
+        return stakers[_staker].deposited;
+    }
+
+    // Get rewards per hour
+    function getRewardsPerHour() public view returns (uint256 _rewardsPerHour) {
+        return rewardsPerHour;
+    }
+
+    // Get Founder's reward boost
+    function getFoundersRewardBoost() public view returns (uint256 _foundersRewardBoost) {
+        return foundersRewardBoost;
+    }
+
+    // Get Founder's reward boost divisor
+    function getFoundersRewardBoostDenominator() public view returns (uint256 _foundersRewardBoostDivisor) {
+        return foundersRewardBoostDivisor;
+    }
+
+    // Get kNFT reward boost
+    function getkNFTRewardBoost() public view returns (uint256 _kNFTRewardBoost) {
+        return kNFTRewardBoost;
+    }
+
+    // Get kNFT reward boost divisor
+    function getKnftRewardBoostDenominator() public view returns (uint256 _kNFTRewardBoostDivisor) {
+        return kNFTRewardBoostDivisor;
+    }
+
+    // Get minimum stake
+    function getMinStake() public view returns (uint256 _minStake) {
+        return minStake;
     }
 }

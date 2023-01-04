@@ -16,6 +16,7 @@ import {
     KonduxERC20__factory,
     KonduxERC721Founders__factory,
     KonduxERC721kNFT__factory,
+    Helix__factory,
 } from "../../types";
 
 // TODO: Shouldn't run setup methods if the contracts weren't redeployed.
@@ -38,6 +39,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const konduxERC20Deployment = await deployments.get(CONTRACTS.konduxERC20);
     const konduxERC721FoundersDeployment = await deployments.get(CONTRACTS.konduxERC721Founders);
     const konduxERC721kNFTDeployment = await deployments.get(CONTRACTS.konduxERC721kNFT);
+    const helixDeployment = await deployments.get(CONTRACTS.helix);
     
     const authority = Authority__factory.connect(authorityDeployment.address, signer);
     console.log("Authority Governor Address:", await authority.governor());
@@ -49,6 +51,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const minterPublic = MinterPublic__factory.connect(minterPublicDeployment.address, signer);
     const treasury = Treasury__factory.connect(treasuryDeployment.address, signer);
     const staking = Staking__factory.connect(stakingDeployment.address, signer);
+    const helix = Helix__factory.connect(helixDeployment.address, signer);
 
     // Testing only
     const konduxERC20 = KonduxERC20__factory.connect(konduxERC20Deployment.address, signer);
@@ -61,11 +64,13 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     // await waitFor(konduxFounders.setBaseURI(CONFIGURATION.baseURIFounders)); // PRODUCTION
     // console.log("Setup -- kondux.setBaseURI: set baseURI to " + CONFIGURATION.baseURIFounders); // PRODUCTION
 
-    // // // Step 2: Set Minter
-    // await waitFor(authority.pushRole(minterFoundersDeployment.address, ethers.utils.keccak256(ethers.utils.toUtf8Bytes("MINTER_ROLE")))); // PRODUCTION
-    // console.log("Setup -- authority.setRole: set minter to " + minterFoundersDeployment.address);
-    // await waitFor(authority.pushRole(minterPublicDeployment.address, ethers.utils.keccak256(ethers.utils.toUtf8Bytes("MINTER_ROLE"))));
-    // console.log("Setup -- authority.setRole: set minter to " + minterPublicDeployment.address);
+    // // Step 2: Set Minter
+    await waitFor(authority.pushRole(minterFoundersDeployment.address, ethers.utils.keccak256(ethers.utils.toUtf8Bytes("MINTER_ROLE")))); // PRODUCTION
+    console.log("Setup -- authority.setRole: set minter to " + minterFoundersDeployment.address);
+    await waitFor(authority.pushRole(minterPublicDeployment.address, ethers.utils.keccak256(ethers.utils.toUtf8Bytes("MINTER_ROLE"))));
+    console.log("Setup -- authority.setRole: set minter to " + minterPublicDeployment.address);
+    await waitFor(authority.pushRole(staking.address, ethers.utils.keccak256(ethers.utils.toUtf8Bytes("MINTER_ROLE")))); // setting staking as minter to mint helix
+    console.log("Setup -- authority.setRole: set minter to " + staking.address);
 
     // // // Step 3: Merkle root
     // let { data } = await axios.get(CONFIGURATION.merkleRootFreeFounders);  
@@ -121,6 +126,10 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     console.log("Set Approval for konduxERC");
     await waitFor(treasury.setStakingContract(stakingDeployment.address));
     console.log("Set staking contract");
+
+    // // Step 6: Configure helix
+    await waitFor(helix.setStaking(stakingDeployment.address));
+    console.log("Set staking contract @ Helix");
 
     // TESTING ONLY
     await waitFor(konduxERC20.approve(treasuryDeployment.address, ethers.BigNumber.from(10).pow(28)));

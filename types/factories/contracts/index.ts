@@ -10,6 +10,7 @@ export * as interfaces from "./interfaces";
 export * as tests from "./tests";
 export * as types from "./types";
 export { Authority__factory } from "./Authority__factory";
+export { Helix__factory } from "./Helix__factory";
 export { Marketplace__factory } from "./Marketplace__factory";
 export { Staking__factory } from "./Staking__factory";
 export { Treasury__factory } from "./Treasury__factory";
