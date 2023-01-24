@@ -34,7 +34,7 @@ export interface StakingInterface extends utils.Interface {
     "claimRewards()": FunctionFragment;
     "compoundFreq()": FunctionFragment;
     "compoundRewardsTimer(address)": FunctionFragment;
-    "deposit(uint256)": FunctionFragment;
+    "deposit(uint256,uint8)": FunctionFragment;
     "foundersRewardBoost()": FunctionFragment;
     "foundersRewardBoostDivisor()": FunctionFragment;
     "getDepositInfo(address)": FunctionFragment;
@@ -45,6 +45,8 @@ export interface StakingInterface extends utils.Interface {
     "getRewardsPerHour()": FunctionFragment;
     "getStakedAmount(address)": FunctionFragment;
     "getTimeOfLastUpdate(address)": FunctionFragment;
+    "getTimelock(address)": FunctionFragment;
+    "getTimelockCategory(address)": FunctionFragment;
     "getkNFTRewardBoost()": FunctionFragment;
     "helixERC20()": FunctionFragment;
     "kNFTRewardBoost()": FunctionFragment;
@@ -64,14 +66,12 @@ export interface StakingInterface extends utils.Interface {
     "setKonduxERC721kNFT(address)": FunctionFragment;
     "setMinStake(uint256)": FunctionFragment;
     "setRewards(uint256)": FunctionFragment;
-    "setTimeLock(uint256)": FunctionFragment;
     "setTreasury(address)": FunctionFragment;
     "setWithdrawalFee(uint256)": FunctionFragment;
     "setWithdrawalFeeDivisor(uint256)": FunctionFragment;
     "setkNFTRewardBoost(uint256)": FunctionFragment;
     "setkNFTRewardBoostDivisor(uint256)": FunctionFragment;
     "stakeRewards()": FunctionFragment;
-    "timelock()": FunctionFragment;
     "treasury()": FunctionFragment;
     "withdraw(uint256)": FunctionFragment;
     "withdrawAll()": FunctionFragment;
@@ -97,6 +97,8 @@ export interface StakingInterface extends utils.Interface {
       | "getRewardsPerHour"
       | "getStakedAmount"
       | "getTimeOfLastUpdate"
+      | "getTimelock"
+      | "getTimelockCategory"
       | "getkNFTRewardBoost"
       | "helixERC20"
       | "kNFTRewardBoost"
@@ -116,14 +118,12 @@ export interface StakingInterface extends utils.Interface {
       | "setKonduxERC721kNFT"
       | "setMinStake"
       | "setRewards"
-      | "setTimeLock"
       | "setTreasury"
       | "setWithdrawalFee"
       | "setWithdrawalFeeDivisor"
       | "setkNFTRewardBoost"
       | "setkNFTRewardBoostDivisor"
       | "stakeRewards"
-      | "timelock"
       | "treasury"
       | "withdraw"
       | "withdrawAll"
@@ -150,7 +150,7 @@ export interface StakingInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "deposit",
-    values: [PromiseOrValue<BigNumberish>]
+    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "foundersRewardBoost",
@@ -190,6 +190,14 @@ export interface StakingInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "getTimeOfLastUpdate",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getTimelock",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getTimelockCategory",
     values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
@@ -266,10 +274,6 @@ export interface StakingInterface extends utils.Interface {
     values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
-    functionFragment: "setTimeLock",
-    values: [PromiseOrValue<BigNumberish>]
-  ): string;
-  encodeFunctionData(
     functionFragment: "setTreasury",
     values: [PromiseOrValue<string>]
   ): string;
@@ -293,7 +297,6 @@ export interface StakingInterface extends utils.Interface {
     functionFragment: "stakeRewards",
     values?: undefined
   ): string;
-  encodeFunctionData(functionFragment: "timelock", values?: undefined): string;
   encodeFunctionData(functionFragment: "treasury", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "withdraw",
@@ -371,6 +374,14 @@ export interface StakingInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "getTimelock",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getTimelockCategory",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "getkNFTRewardBoost",
     data: BytesLike
   ): Result;
@@ -438,10 +449,6 @@ export interface StakingInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "setRewards", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "setTimeLock",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "setTreasury",
     data: BytesLike
   ): Result;
@@ -465,7 +472,6 @@ export interface StakingInterface extends utils.Interface {
     functionFragment: "stakeRewards",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "timelock", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "treasury", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "withdraw", data: BytesLike): Result;
   decodeFunctionResult(
@@ -602,6 +608,7 @@ export interface Staking extends BaseContract {
 
     deposit(
       _amount: PromiseOrValue<BigNumberish>,
+      _timelock: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
@@ -645,6 +652,16 @@ export interface Staking extends BaseContract {
       _staker: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<[BigNumber] & { _timeOfLastUpdate: BigNumber }>;
+
+    getTimelock(
+      _staker: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber] & { _timelock: BigNumber }>;
+
+    getTimelockCategory(
+      _staker: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[number] & { _timelockCategory: number }>;
 
     getkNFTRewardBoost(
       overrides?: CallOverrides
@@ -716,11 +733,6 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    setTimeLock(
-      _timelock: PromiseOrValue<BigNumberish>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
     setTreasury(
       _treasury: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -749,8 +761,6 @@ export interface Staking extends BaseContract {
     stakeRewards(
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
-
-    timelock(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     treasury(overrides?: CallOverrides): Promise<[string]>;
 
@@ -788,6 +798,7 @@ export interface Staking extends BaseContract {
 
   deposit(
     _amount: PromiseOrValue<BigNumberish>,
+    _timelock: PromiseOrValue<BigNumberish>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
@@ -823,6 +834,16 @@ export interface Staking extends BaseContract {
     _staker: PromiseOrValue<string>,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
+
+  getTimelock(
+    _staker: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  getTimelockCategory(
+    _staker: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<number>;
 
   getkNFTRewardBoost(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -892,11 +913,6 @@ export interface Staking extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  setTimeLock(
-    _timelock: PromiseOrValue<BigNumberish>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
-
   setTreasury(
     _treasury: PromiseOrValue<string>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -925,8 +941,6 @@ export interface Staking extends BaseContract {
   stakeRewards(
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
-
-  timelock(overrides?: CallOverrides): Promise<BigNumber>;
 
   treasury(overrides?: CallOverrides): Promise<string>;
 
@@ -962,6 +976,7 @@ export interface Staking extends BaseContract {
 
     deposit(
       _amount: PromiseOrValue<BigNumberish>,
+      _timelock: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -999,6 +1014,16 @@ export interface Staking extends BaseContract {
       _staker: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
+
+    getTimelock(
+      _staker: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getTimelockCategory(
+      _staker: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<number>;
 
     getkNFTRewardBoost(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -1068,11 +1093,6 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setTimeLock(
-      _timelock: PromiseOrValue<BigNumberish>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
     setTreasury(
       _treasury: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -1099,8 +1119,6 @@ export interface Staking extends BaseContract {
     ): Promise<void>;
 
     stakeRewards(overrides?: CallOverrides): Promise<void>;
-
-    timelock(overrides?: CallOverrides): Promise<BigNumber>;
 
     treasury(overrides?: CallOverrides): Promise<string>;
 
@@ -1187,6 +1205,7 @@ export interface Staking extends BaseContract {
 
     deposit(
       _amount: PromiseOrValue<BigNumberish>,
+      _timelock: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
@@ -1219,6 +1238,16 @@ export interface Staking extends BaseContract {
     ): Promise<BigNumber>;
 
     getTimeOfLastUpdate(
+      _staker: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getTimelock(
+      _staker: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getTimelockCategory(
       _staker: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -1291,11 +1320,6 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    setTimeLock(
-      _timelock: PromiseOrValue<BigNumberish>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
     setTreasury(
       _treasury: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -1324,8 +1348,6 @@ export interface Staking extends BaseContract {
     stakeRewards(
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
-
-    timelock(overrides?: CallOverrides): Promise<BigNumber>;
 
     treasury(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -1364,6 +1386,7 @@ export interface Staking extends BaseContract {
 
     deposit(
       _amount: PromiseOrValue<BigNumberish>,
+      _timelock: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
@@ -1402,6 +1425,16 @@ export interface Staking extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     getTimeOfLastUpdate(
+      _staker: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getTimelock(
+      _staker: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getTimelockCategory(
       _staker: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
@@ -1480,11 +1513,6 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
-    setTimeLock(
-      _timelock: PromiseOrValue<BigNumberish>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
     setTreasury(
       _treasury: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -1513,8 +1541,6 @@ export interface Staking extends BaseContract {
     stakeRewards(
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
-
-    timelock(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     treasury(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 

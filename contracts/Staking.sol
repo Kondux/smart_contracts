@@ -20,6 +20,16 @@ contract Staking is AccessControlled {
         // Calculated, but unclaimed rewards. These are calculated each time
         // a user writes to the contract.
         uint256 unclaimedRewards;
+        uint256 timelock;
+        uint8 timelockCategory;
+    }
+
+    enum LockingTimes {        
+        OneMonth,
+        ThreeMonths,
+        SixMonths,
+        OneYear,
+        Test
     }
 
     // Withdrawal fee in basis points
@@ -42,15 +52,16 @@ contract Staking is AccessControlled {
     uint256 public minStake = 10_000_000; // 10,000,000 wei
 
     // Compounding frequency limit in seconds
-    uint256 public compoundFreq = 60 * 60 * 24; // 24 hours
-    // uint256 public compoundFreq = 60 * 60; // 1 hour
+    // uint256 public compoundFreq = 60 * 60 * 24; // 24 hours // PROD
+    uint256 public compoundFreq = 60 * 60; // 1 hour
     // uint256 public compoundFreq = 60; // 1 minute // gives bugs when unstaking
 
     // Mapping of address to Staker info
     mapping(address => Staker) internal stakers;
+    mapping (address => uint) name;
 
     // Staked tokens minimum timelock
-    uint256 public timelock = 60 * 60 * 24 * 1; // 1 days
+    //uint256 public timelock = 60 * 60 * 24 * 1; // 1 days
     // uint256 public timelock = 60 * 60 * 2; // 2 hours
     // uint256 public timelock = 60 * 2; // 2 minutes
 
@@ -85,7 +96,7 @@ contract Staking is AccessControlled {
     }
 
     modifier timelocked() {
-        require(block.timestamp >= stakers[msg.sender].lastDepositTime + timelock, "Timelock not passed");
+        require(block.timestamp >= stakers[msg.sender].timelock, "Timelock not passed");
         _;
     }
 
@@ -93,9 +104,19 @@ contract Staking is AccessControlled {
     // calculate the rewards and add them to unclaimedRewards, reset the last time of
     // deposit and then add _amount to the already deposited amount.
     // Transfers the amount staked.
-    function deposit(uint256 _amount) public {
+    function deposit(uint256 _amount, uint8 _timelock) public {
         require(_amount >= minStake, "Amount smaller than minimimum deposit");
         require(konduxERC20.balanceOf(msg.sender) >= _amount, "Can't stake more than you own");
+        require(konduxERC20.allowance(msg.sender, address(this)) >= _amount, "Allowance not set");
+        require(_timelock >= 0 && _timelock <= 4, "Invalid timelock"); // PROD: 3
+        require(stakers[msg.sender].timelockCategory <= _timelock, "Can't decrease timelock category");
+
+        console.log(konduxERC20.balanceOf(msg.sender));
+        console.log(_amount);
+        console.log(konduxERC20.allowance(msg.sender, address(this))); 
+
+        stakers[msg.sender].timelockCategory = _timelock; 
+
         if (stakers[msg.sender].deposited == 0) {
             stakers[msg.sender].deposited = _amount;
             stakers[msg.sender].unclaimedRewards = 0;
@@ -104,21 +125,51 @@ contract Staking is AccessControlled {
             stakers[msg.sender].unclaimedRewards += rewards;
             stakers[msg.sender].deposited += _amount;            
         }
+
         stakers[msg.sender].timeOfLastUpdate = block.timestamp;
         stakers[msg.sender].lastDepositTime = block.timestamp;
+        
+        if (_timelock == uint8(LockingTimes.OneMonth) && stakers[msg.sender].timelock < block.timestamp + 30 days) {
+            stakers[msg.sender].timelock = block.timestamp + 30 days; // 1 month
+        } else if (_timelock == uint8(LockingTimes.ThreeMonths) && stakers[msg.sender].timelock < block.timestamp + 90 days) {
+            stakers[msg.sender].timelock = block.timestamp + 90 days; // 3 months
+        } else if (_timelock == uint8(LockingTimes.SixMonths) && stakers[msg.sender].timelock < block.timestamp + 180 days) {
+            stakers[msg.sender].timelock = block.timestamp + 180 days; // 6 months
+        } else if (_timelock == uint8(LockingTimes.OneYear) && stakers[msg.sender].timelock < block.timestamp + 365 days) {
+            stakers[msg.sender].timelock = block.timestamp + 365 days; // 1 year 
+        } else if (_timelock == uint8(LockingTimes.Test)) {
+            stakers[msg.sender].timelock = block.timestamp + 2 minutes; // 2 minutes // TEST
+        }        
+
         konduxERC20.transferFrom(msg.sender, authority.vault(), _amount);
         helixERC20.mint(msg.sender, _amount);
         emit Stake(msg.sender, _amount);
     }
 
     // Compound the rewards and reset the last time of update for Deposit info
-    function stakeRewards() public {
+    function stakeRewards(uint8 _timelock) public {
         require(stakers[msg.sender].deposited > 0, "You have no deposit");
         require(compoundRewardsTimer(msg.sender) == 0, "Tried to compound rewards too soon");
+        require(_timelock >= 0 && _timelock <= 4, "Invalid timelock"); // PROD: 3 
+        require(stakers[msg.sender].timelockCategory <= _timelock, "Can't decrease timelock category");
+
         uint256 rewards = calculateRewards(msg.sender) + stakers[msg.sender].unclaimedRewards;
         stakers[msg.sender].unclaimedRewards = 0;
         stakers[msg.sender].deposited += rewards;
         stakers[msg.sender].timeOfLastUpdate = block.timestamp;
+
+        if (_timelock == uint8(LockingTimes.OneMonth) && stakers[msg.sender].timelock < block.timestamp + 30 days) {
+            stakers[msg.sender].timelock = block.timestamp + 30 days; // 1 month
+        } else if (_timelock == uint8(LockingTimes.ThreeMonths) && stakers[msg.sender].timelock < block.timestamp + 90 days) {
+            stakers[msg.sender].timelock = block.timestamp + 90 days; // 3 months
+        } else if (_timelock == uint8(LockingTimes.SixMonths) && stakers[msg.sender].timelock < block.timestamp + 180 days) {
+            stakers[msg.sender].timelock = block.timestamp + 180 days; // 6 months
+        } else if (_timelock == uint8(LockingTimes.OneYear) && stakers[msg.sender].timelock < block.timestamp + 365 days) {
+            stakers[msg.sender].timelock = block.timestamp + 365 days; // 1 year 
+        } else if (_timelock == uint8(LockingTimes.Test)) {
+            stakers[msg.sender].timelock = block.timestamp + 2 minutes; // 2 minutes // TEST
+        }   
+
         emit Compound(msg.sender, rewards);
     }
 
@@ -213,6 +264,15 @@ contract Staking is AccessControlled {
             console.log("reward after kNFT: %s", _reward);
         }
 
+        // add 0% if reward category is 0; add 1% if reward category is 1; add 3% if reward category is 2; add 9% if reward category is 3;
+        if (stakers[_staker].timelockCategory == 1) { 
+            _reward = (_reward * 10100) / 10000;
+        } else if (stakers[_staker].timelockCategory == 2) {
+            _reward = (_reward * 10300) / 10000;
+        } else if (stakers[_staker].timelockCategory == 3) { 
+            _reward = (_reward * 10900) / 10000;
+        }
+
         return _reward;
     }
 
@@ -256,11 +316,6 @@ contract Staking is AccessControlled {
     // Set the address of the Treasury contract
     function setTreasury(address _treasury) public onlyGovernor {
         treasury = ITreasury(_treasury);
-    }
-
-    // Set the time lock for withdraw and claim functions
-    function setTimeLock(uint256 _timelock) public onlyGovernor {
-        timelock = _timelock;        
     }
 
     // Set the withdrawal fee
@@ -334,4 +389,14 @@ contract Staking is AccessControlled {
     function getMinStake() public view returns (uint256 _minStake) {
         return minStake;
     }
+
+    function getTimelockCategory(address _staker) public view returns (uint8 _timelockCategory) {
+        return stakers[_staker].timelockCategory;
+    }
+
+    function getTimelock(address _staker) public view returns (uint256 _timelock) {
+        return stakers[_staker].timelock; 
+    }
+
+
 }
