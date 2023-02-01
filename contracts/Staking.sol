@@ -3,16 +3,23 @@ pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
 import "./interfaces/ITreasury.sol";
 import "./interfaces/IHelix.sol";
 import "./types/AccessControlled.sol";
 import "hardhat/console.sol";
 
 contract Staking is AccessControlled {
+    using Counters for Counters.Counter;
+
+    Counters.Counter private _depositIds;
+
     // Staker info
     struct Staker {
+        address staker;
         // The deposited tokens of the Staker
         uint256 deposited;
+        uint256 redeemed;
         // Last time of details update for Deposit
         uint256 timeOfLastUpdate;
         // Last deposit time
@@ -37,7 +44,7 @@ contract Staking is AccessControlled {
     uint256 public withdrawalFeeDivisor = 10_000_000; // 10_000_000 basis points
 
     // Founder's reward boost in basis points
-    uint256 public foundersRewardBoost = 1_000_000; // 10% boost on rewards or 1_000_000/10_000_000
+    uint256 public foundersRewardBoost = 11_000_000; // 10% boost (=110%) on rewards or 1_000_000/10_000_000
     uint256 public foundersRewardBoostDivisor = 10_000_000; // 10_000_000 basis points
 
     // kNFT reward boost in basis points
@@ -57,8 +64,10 @@ contract Staking is AccessControlled {
     // uint256 public compoundFreq = 60; // 1 minute // gives bugs when unstaking
 
     // Mapping of address to Staker info
-    mapping(address => Staker) internal stakers;
-    mapping (address => uint) name;
+    //mapping(address => Staker) internal stakers;
+    mapping(address => uint) name;
+    mapping(address => uint[]) public userDepositsIds;
+    mapping(uint => Staker) public userDeposits;
 
     // Staked tokens minimum timelock
     //uint256 public timelock = 60 * 60 * 24 * 1; // 1 days
@@ -77,9 +86,10 @@ contract Staking is AccessControlled {
 
     // Events
     event Withdraw(address indexed staker, uint256 amount);
+    event WithdrawAll(address indexed staker, uint256 amount);
     event Compound(address indexed staker, uint256 amount);
-    event Stake(address indexed staker, uint256 amount);
-    event Unstake(address indexed staker, uint256 amount);
+    event Stake(uint indexed id, address indexed staker, uint256 amount);
+    event Unstake(address indexed staker, uint256 amount); 
     event Reward(address indexed staker, uint256 amount);
 
 
@@ -95,96 +105,93 @@ contract Staking is AccessControlled {
             treasury = ITreasury(_treasury);
     }
 
-    modifier timelocked() {
-        require(block.timestamp >= stakers[msg.sender].timelock, "Timelock not passed");
-        _;
-    }
+    // modifier timelocked(uint _id) {
+    //     require(block.timestamp >= stakers[msg.sender].timelock, "Timelock not passed");
+    //     _;
+    // }
 
     // If address has no Staker struct, initiate one. If address already was a stake,
     // calculate the rewards and add them to unclaimedRewards, reset the last time of
     // deposit and then add _amount to the already deposited amount.
     // Transfers the amount staked.
-    function deposit(uint256 _amount, uint8 _timelock) public {
+    function deposit(uint256 _amount, uint8 _timelock) public returns (uint) {
         require(_amount >= minStake, "Amount smaller than minimimum deposit");
         require(konduxERC20.balanceOf(msg.sender) >= _amount, "Can't stake more than you own");
         require(konduxERC20.allowance(msg.sender, address(this)) >= _amount, "Allowance not set");
         require(_timelock >= 0 && _timelock <= 4, "Invalid timelock"); // PROD: 3
-        require(stakers[msg.sender].timelockCategory <= _timelock, "Can't decrease timelock category");
+        // require(stakers[msg.sender].timelockCategory <= _timelock, "Can't decrease timelock category");
 
-        console.log(konduxERC20.balanceOf(msg.sender));
+        console.log(konduxERC20.balanceOf(msg.sender)); 
         console.log(_amount);
         console.log(konduxERC20.allowance(msg.sender, address(this))); 
 
-        stakers[msg.sender].timelockCategory = _timelock; 
+        uint _id = _depositIds.current();
 
-        if (stakers[msg.sender].deposited == 0) {
-            stakers[msg.sender].deposited = _amount;
-            stakers[msg.sender].unclaimedRewards = 0;
-        } else {
-            uint256 rewards = calculateRewards(msg.sender);
-            stakers[msg.sender].unclaimedRewards += rewards;
-            stakers[msg.sender].deposited += _amount;            
+        userDeposits[_id] = Staker({
+            staker: msg.sender,
+            deposited: _amount,
+            unclaimedRewards: 0,
+            timelock: 0,
+            timelockCategory: _timelock,
+            timeOfLastUpdate: block.timestamp,
+            lastDepositTime: block.timestamp,
+            redeemed: 0
+        });             
+        
+        if (_timelock == uint8(LockingTimes.OneMonth)) {
+            userDeposits[_id].timelock = block.timestamp + 30 days; // 1 month
+        } else if (_timelock == uint8(LockingTimes.ThreeMonths)) {
+            userDeposits[_id].timelock = block.timestamp + 90 days; // 3 months
+        } else if (_timelock == uint8(LockingTimes.SixMonths)) {
+            userDeposits[_id].timelock = block.timestamp + 180 days; // 6 months
+        } else if (_timelock == uint8(LockingTimes.OneYear)) {
+            userDeposits[_id].timelock = block.timestamp + 365 days; // 1 year 
+        } else if (_timelock == uint8(LockingTimes.Test)) {
+            userDeposits[_id].timelock = block.timestamp + 2 minutes; // 2 minutes // TEST
         }
 
-        stakers[msg.sender].timeOfLastUpdate = block.timestamp;
-        stakers[msg.sender].lastDepositTime = block.timestamp;
-        
-        if (_timelock == uint8(LockingTimes.OneMonth) && stakers[msg.sender].timelock < block.timestamp + 30 days) {
-            stakers[msg.sender].timelock = block.timestamp + 30 days; // 1 month
-        } else if (_timelock == uint8(LockingTimes.ThreeMonths) && stakers[msg.sender].timelock < block.timestamp + 90 days) {
-            stakers[msg.sender].timelock = block.timestamp + 90 days; // 3 months
-        } else if (_timelock == uint8(LockingTimes.SixMonths) && stakers[msg.sender].timelock < block.timestamp + 180 days) {
-            stakers[msg.sender].timelock = block.timestamp + 180 days; // 6 months
-        } else if (_timelock == uint8(LockingTimes.OneYear) && stakers[msg.sender].timelock < block.timestamp + 365 days) {
-            stakers[msg.sender].timelock = block.timestamp + 365 days; // 1 year 
-        } else if (_timelock == uint8(LockingTimes.Test)) {
-            stakers[msg.sender].timelock = block.timestamp + 2 minutes; // 2 minutes // TEST
-        }        
+        userDepositsIds[msg.sender].push(_id);         
 
         konduxERC20.transferFrom(msg.sender, authority.vault(), _amount);
         helixERC20.mint(msg.sender, _amount);
-        emit Stake(msg.sender, _amount);
+        
+        _depositIds.increment(); 
+
+        emit Stake(_id, msg.sender, _amount);
+
+        return _id;
     }
 
     // Compound the rewards and reset the last time of update for Deposit info
-    function stakeRewards(uint8 _timelock) public {
-        require(stakers[msg.sender].deposited > 0, "You have no deposit");
-        require(compoundRewardsTimer(msg.sender) == 0, "Tried to compound rewards too soon");
-        require(_timelock >= 0 && _timelock <= 4, "Invalid timelock"); // PROD: 3 
-        require(stakers[msg.sender].timelockCategory <= _timelock, "Can't decrease timelock category");
+    function stakeRewards(uint _depositId) public {
+        require(msg.sender == userDeposits[_depositId].staker, "You are not the owner of this deposit");
+        require(compoundRewardsTimer(_depositId) == 0, "Tried to compound rewards too soon"); // incluir depositId
 
-        uint256 rewards = calculateRewards(msg.sender) + stakers[msg.sender].unclaimedRewards;
-        stakers[msg.sender].unclaimedRewards = 0;
-        stakers[msg.sender].deposited += rewards;
-        stakers[msg.sender].timeOfLastUpdate = block.timestamp;
+        uint256 rewards = calculateRewards(msg.sender, _depositId) + userDeposits[_depositId].unclaimedRewards; 
+        userDeposits[_depositId].unclaimedRewards = 0; 
+        userDeposits[_depositId].deposited += rewards;
+        userDeposits[_depositId].timeOfLastUpdate = block.timestamp; 
 
-        if (_timelock == uint8(LockingTimes.OneMonth) && stakers[msg.sender].timelock < block.timestamp + 30 days) {
-            stakers[msg.sender].timelock = block.timestamp + 30 days; // 1 month
-        } else if (_timelock == uint8(LockingTimes.ThreeMonths) && stakers[msg.sender].timelock < block.timestamp + 90 days) {
-            stakers[msg.sender].timelock = block.timestamp + 90 days; // 3 months
-        } else if (_timelock == uint8(LockingTimes.SixMonths) && stakers[msg.sender].timelock < block.timestamp + 180 days) {
-            stakers[msg.sender].timelock = block.timestamp + 180 days; // 6 months
-        } else if (_timelock == uint8(LockingTimes.OneYear) && stakers[msg.sender].timelock < block.timestamp + 365 days) {
-            stakers[msg.sender].timelock = block.timestamp + 365 days; // 1 year 
-        } else if (_timelock == uint8(LockingTimes.Test)) {
-            stakers[msg.sender].timelock = block.timestamp + 2 minutes; // 2 minutes // TEST
-        }   
+        helixERC20.mint(msg.sender, rewards);
 
         emit Compound(msg.sender, rewards);
     }
 
     // Transfer rewards to msg.sender
-    function claimRewards() public timelocked {
-        console.log("Claiming rewards");
+    function claimRewards(uint _depositId) public {
+        require(msg.sender == userDeposits[_depositId].staker, "You are not the owner of this deposit");
+        require(block.timestamp >= userDeposits[_depositId].timelock, "Timelock not passed");
+        // console.log("Claiming rewards");
         // console.log("staking contract address", address(this));
 
-        uint256 rewards = calculateRewards(msg.sender) + stakers[msg.sender].unclaimedRewards;
-        console.log("rewards: %s", rewards);
-        console.log("pre-claiming balance vault: %s", konduxERC20.balanceOf(authority.vault()));
-        console.log("ERC20 address: %s", address(konduxERC20));
+        uint256 rewards = calculateRewards(msg.sender, _depositId) + userDeposits[_depositId].unclaimedRewards; 
+        // console.log("rewards: %s", rewards);
+        // console.log("pre-claiming balance vault: %s", konduxERC20.balanceOf(authority.vault()));
+        // console.log("ERC20 address: %s", address(konduxERC20));
         require(rewards > 0, "You have no rewards");
-        stakers[msg.sender].unclaimedRewards = 0;
-        stakers[msg.sender].timeOfLastUpdate = block.timestamp;
+        userDeposits[_depositId].unclaimedRewards = 0;
+        userDeposits[_depositId].timeOfLastUpdate = block.timestamp;
+        helixERC20.burn(msg.sender, rewards);
         konduxERC20.transferFrom(authority.vault(), msg.sender, rewards);
         // console.logString("Rewards claimed");
         // console.log(konduxERC20.balanceOf(authority.vault()));
@@ -192,61 +199,95 @@ contract Staking is AccessControlled {
     }
 
     // Withdraw specified amount of staked tokens
-    function withdraw(uint256 _amount) public timelocked {
-        require(stakers[msg.sender].deposited >= _amount, "Can't withdraw more than you have");
-        require(_amount >= helixERC20.balanceOf(msg.sender), "Can't withdraw more tokens than the collateral you have");
-        uint256 _rewards = calculateRewards(msg.sender);
-        stakers[msg.sender].deposited -= _amount;
-        stakers[msg.sender].timeOfLastUpdate = block.timestamp;
-        stakers[msg.sender].unclaimedRewards = _rewards;
-        uint256 _liquid = (_amount * withdrawalFee) / withdrawalFeeDivisor;
+    function withdraw(uint256 _amount, uint _depositId) public {
+        require(msg.sender == userDeposits[_depositId].staker, "You are not the owner of this deposit");
+        require(block.timestamp >= userDeposits[_depositId].timelock, "Timelock not passed");
+        require(userDeposits[_depositId].deposited >= _amount, "Can't withdraw more than you have");
+        require(_amount <= helixERC20.balanceOf(msg.sender), "Can't withdraw more tokens than the collateral you have");
+        console.log("Withdrawing");
+        console.log("Amount to withdraw: %s", _amount);
+        console.log("Deposit ID: %s", _depositId);
+        console.log("Staker: %s", userDeposits[_depositId].staker);
+        console.log("Staker address: %s", msg.sender);
+        console.log("Staker balance: %s", helixERC20.balanceOf(msg.sender)); 
+        uint256 _rewards = calculateRewards(msg.sender, _depositId);
+        userDeposits[_depositId].deposited -= _amount;
+        userDeposits[_depositId].timeOfLastUpdate = block.timestamp;
+        userDeposits[_depositId].unclaimedRewards = _rewards;
+        console.log("Rewards: %s", _rewards);
+        console.log("withdrawalFee: %s", withdrawalFee);
+        console.log("withdrawalFeeDivisor: %s", withdrawalFeeDivisor);
+        uint256 _liquid = (_amount * (withdrawalFeeDivisor - withdrawalFee)) / withdrawalFeeDivisor;
+        console.log("Liquid: %s", _liquid);
         helixERC20.burn(msg.sender, _amount);
         konduxERC20.transferFrom(authority.vault(), msg.sender, _liquid);
         emit Withdraw(msg.sender, _liquid);
     }
 
     // Withdraw all stake and rewards and mints them to the msg.sender
-    function withdrawAll() public timelocked {
-        require(stakers[msg.sender].deposited > 0, "You have no deposit");
-        uint256 _rewards = calculateRewards(msg.sender) + stakers[msg.sender].unclaimedRewards;
-        uint256 _deposit = stakers[msg.sender].deposited;
-        stakers[msg.sender].deposited = 0;
-        stakers[msg.sender].timeOfLastUpdate = 0;
-        uint256 _amount = _rewards + _deposit;
-        require(_amount >= helixERC20.balanceOf(msg.sender), "Can't withdraw more tokens than the collateral you have");
-        uint256 _liquid = (_amount * withdrawalFee) / withdrawalFeeDivisor;
+    function withdrawAll() public { // fazer depois q tiver view q pega todos os depositos do usuario
+        console.log("Withdrawing all");
+        uint[] memory _userDepositIds = getDepositIds(msg.sender); 
+        uint _liquid = 0;
+        uint _rewards = 0;
+        uint _deposit = 0;
+        for (uint i = 0; i < _userDepositIds.length; i++) {
+            console.log("Deposit ID: %s", _userDepositIds[i]);
+            require(block.timestamp >= userDeposits[_userDepositIds[i]].timelock, "Timelock not passed");
+            console.log("calculated rewards: %s", calculateRewards(msg.sender, _userDepositIds[i]));
+            console.log("unclaimed rewards: %s", userDeposits[_userDepositIds[i]].unclaimedRewards);
+            _rewards = _rewards + calculateRewards(msg.sender, _userDepositIds[i]) + userDeposits[_userDepositIds[i]].unclaimedRewards;
+            _deposit = _deposit + userDeposits[_userDepositIds[i]].deposited;
+            userDeposits[_userDepositIds[i]].deposited = 0;
+            userDeposits[_userDepositIds[i]].timeOfLastUpdate = 0;
+            console.log("Rewards: %s", _rewards);
+            
+         //   helixERC20.burn(msg.sender, _amount);
+           // konduxERC20.transferFrom(authority.vault(), msg.sender, _liquid);
+           // emit Withdraw(msg.sender, _liquid);
+        }
+
+        helixERC20.mint(msg.sender, _rewards);
+
+        uint _amount = _rewards + _deposit; 
+        console.log("Amount: %s", _amount); 
+        console.log("withdrawalFee: %s", withdrawalFee);
+        console.log("withdrawalFeeDivisor: %s", withdrawalFeeDivisor);
+        _liquid = (_amount * (withdrawalFeeDivisor - withdrawalFee)) / withdrawalFeeDivisor;
+        console.log("****** Liquid: %s", _liquid);
+        require(_amount <= helixERC20.balanceOf(msg.sender), "Can't withdraw more tokens than the collateral you have");
         helixERC20.burn(msg.sender, _amount);
         konduxERC20.transferFrom(authority.vault(), msg.sender, _liquid);
-        emit Withdraw(msg.sender, _liquid);
+        emit WithdrawAll(msg.sender, _liquid);
     }
 
     // Function useful for fron-end that returns user stake and rewards by address
-    function getDepositInfo(address _user) public view returns (uint256 _stake, uint256 _rewards) {
-        _stake = stakers[_user].deposited;
-        _rewards = calculateRewards(_user) + stakers[msg.sender].unclaimedRewards;
-        return (_stake, _rewards);
+    function getDepositInfo(address _staker, uint _depositId) public view returns (uint256 _stake, uint256 _rewards) {
+        _stake = userDeposits[_depositId].deposited;  
+        _rewards = calculateRewards(_staker, _depositId) + userDeposits[_depositId].unclaimedRewards;
+        return (_stake, _rewards); 
     }
 
     // Utility function that returns the timer for restaking rewards
-    function compoundRewardsTimer(address _user) public view returns (uint256 _timer) {
-        if (stakers[_user].timeOfLastUpdate + compoundFreq <= block.timestamp) {
+    function compoundRewardsTimer(uint _depositId) public view returns (uint256 _timer) {
+        if (userDeposits[_depositId].timeOfLastUpdate + compoundFreq <= block.timestamp) {
             return 0;
         } else {
-            return (stakers[_user].timeOfLastUpdate + compoundFreq) - block.timestamp;
-        }
+            return (userDeposits[_depositId].timeOfLastUpdate + compoundFreq) - block.timestamp;
+        } 
     }
 
     // Calculate the rewards since the last update on Deposit info
-    function calculateRewards(address _staker) public view returns (uint256 rewards) {
+    function calculateRewards(address _staker, uint _depositId) public view returns (uint256 rewards) {
         console.log("Calculating rewards");
-        console.log("stakers[_staker].timeOfLastUpdate: %s", stakers[_staker].timeOfLastUpdate);
+        console.log("stakers[_staker].timeOfLastUpdate: %s", userDeposits[_depositId].timeOfLastUpdate);
         console.log("block.timestamp: %s", block.timestamp);
-        console.log("stakers[_staker].deposited: %s", stakers[_staker].deposited);
+        console.log("stakers[_staker].deposited: %s", userDeposits[_depositId].deposited);
         console.log("rewardsPerHour: %s", rewardsPerHour);
-        console.log("((((block.timestamp - stakers[_staker].timeOfLastUpdate) * stakers[_staker].deposited) * rewardsPerHour) / 3600) / 10_000_000: %s", ((((block.timestamp - stakers[_staker].timeOfLastUpdate) * stakers[_staker].deposited) * rewardsPerHour) / 3600) / 10_000_000);
+        console.log("((((block.timestamp - userDeposits[_depositId].timeOfLastUpdate) * userDeposits[_depositId].deposited) * rewardsPerHour) / 3600) / 10_000_000: %s", ((((block.timestamp - userDeposits[_depositId].timeOfLastUpdate) * userDeposits[_depositId].deposited) * rewardsPerHour) / 3600) / 10_000_000);
 
-        uint256 _reward = (((((block.timestamp - stakers[_staker].timeOfLastUpdate) * 
-            stakers[_staker].deposited) * rewardsPerHour) / 3600) / 10_000_000); // blocks * staked * rewards/hour / 1h / 10^7
+        uint256 _reward = (((((block.timestamp - userDeposits[_depositId].timeOfLastUpdate) * 
+            userDeposits[_depositId].deposited) * rewardsPerHour) / 3600) / 10_000_000); // blocks * staked * rewards/hour / 1h / 10^7
 
         console.log("reward: %s", _reward);
         
@@ -260,17 +301,20 @@ contract Staking is AccessControlled {
             if (_kNFTBalance > 5) {
                 _kNFTBalance = 5;
             }
-            _reward = _reward * (kNFTRewardBoost + (5 * _kNFTBalance)) / kNFTRewardBoostDivisor;
+            
+            //give 1% more for each kNFT owned using kNFTRewardBoost
+            _reward = (_reward * (kNFTRewardBoostDivisor + (_kNFTBalance * kNFTRewardBoost))) / kNFTRewardBoostDivisor;
+
             console.log("reward after kNFT: %s", _reward);
         }
 
         // add 0% if reward category is 0; add 1% if reward category is 1; add 3% if reward category is 2; add 9% if reward category is 3;
-        if (stakers[_staker].timelockCategory == 1) { 
+        if (userDeposits[_depositId].timelockCategory == 1) { 
             _reward = (_reward * 10100) / 10000;
-        } else if (stakers[_staker].timelockCategory == 2) {
+        } else if (userDeposits[_depositId].timelockCategory == 2) {
             _reward = (_reward * 10300) / 10000;
-        } else if (stakers[_staker].timelockCategory == 3) { 
-            _reward = (_reward * 10900) / 10000;
+        } else if (userDeposits[_depositId].timelockCategory == 3) { 
+            _reward = (_reward * 10900) / 10000; 
         }
 
         return _reward;
@@ -351,13 +395,13 @@ contract Staking is AccessControlled {
     // Functions for getting staking mechanism variables:
 
     // Get staker's time of last update
-    function getTimeOfLastUpdate(address _staker) public view returns (uint256 _timeOfLastUpdate) {
-        return stakers[_staker].timeOfLastUpdate;
+    function getTimeOfLastUpdate(uint _depositId) public view returns (uint256 _timeOfLastUpdate) {
+        return userDeposits[_depositId].timeOfLastUpdate;
     }
 
     // Get staker's deposited amount
-    function getStakedAmount(address _staker) public view returns (uint256 _deposited) {
-        return stakers[_staker].deposited;
+    function getStakedAmount(uint _depositId) public view returns (uint256 _deposited) {
+        return userDeposits[_depositId].deposited;
     }
 
     // Get rewards per hour
@@ -390,12 +434,24 @@ contract Staking is AccessControlled {
         return minStake;
     }
 
-    function getTimelockCategory(address _staker) public view returns (uint8 _timelockCategory) {
-        return stakers[_staker].timelockCategory;
+    function getTimelockCategory(uint _depositId) public view returns (uint8 _timelockCategory) {
+        return userDeposits[_depositId].timelockCategory;
     }
 
-    function getTimelock(address _staker) public view returns (uint256 _timelock) {
-        return stakers[_staker].timelock; 
+    function getTimelock(uint _depositId) public view returns (uint256 _timelock) {
+        return userDeposits[_depositId].timelock;
+    }
+
+    function getDepositIds(address _user) public view returns (uint256[] memory) {
+        return userDepositsIds[_user];
+    }
+
+    function getWithdrawalFeeDivisor() public view returns (uint256 _withdrawalFeeDivisor) {
+        return withdrawalFeeDivisor;
+    }
+
+    function getWithdrawalFee() public view returns (uint256 _withdrawalFee) {
+        return withdrawalFee;
     }
 
 
