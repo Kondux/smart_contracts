@@ -144,7 +144,14 @@ const depositIds = await staking.getDepositIds(account.address);
 console.log(depositIds.toString());
 ```
 
+## Viewing a user's stake
 
+To view a user's stake, you need to call the `getDepositInfo` function on the staking contract. It takes your account address as first argument, and the stake ID as second argument. The function returns an array of stake information.
+
+```javascript
+const depositInfo = await staking.getDepositInfo(account.address, _stakeId);
+console.log(depositInfo.toString());
+```
 
 
 
