@@ -12,7 +12,7 @@ Locktime of 30 days doesn't give any boost to rewards. Locktime of 90 days gives
 
 Before calling the `deposit` function, you need to approve the staking contract to spend your tokens. This is done by calling the `approve` function on the token contract, with the staking contract address as first argument, and the amount of tokens to approve as second argument.
 ```javascript
-const stake = await staking.deposit(10_000_000, 1); // 10_000_000 units staked with locktime of 90 days
+const stake = await staking.deposit(10_000_000, 1, token_address); // 10_000_000 units staked with locktime of 90 days
 await stake.wait();
 ```
 
@@ -41,6 +41,8 @@ await withdraw.wait();
 It emits "Withdraw" event, which contains the `sender`, and the `amount` of tokens withdrawn.
 
 ## Withdraw All
+
+** DEPRECATED **
 
 To withdraw all your tokens, you need to call the `withdrawAll` function on the staking contract. The tokens will be sent to your account.
 

@@ -11,21 +11,21 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         from: deployer,
         args: [],
         log: true,
-        skipIfAlreadyDeployed: false,
+        skipIfAlreadyDeployed: true,
     });
 
     await deploy(CONTRACTS.konduxERC721Founders, {
         from: deployer,
         args: [],
         log: true,
-        skipIfAlreadyDeployed: false,
+        skipIfAlreadyDeployed: true,
     });
 
     await deploy(CONTRACTS.konduxERC721kNFT, {
         from: deployer,
         args: [],
         log: true,
-        skipIfAlreadyDeployed: false,
+        skipIfAlreadyDeployed: true,
     });
 };
 

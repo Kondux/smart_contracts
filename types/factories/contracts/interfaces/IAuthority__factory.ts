@@ -276,7 +276,7 @@ const _abi = [
     stateMutability: "view",
     type: "function",
   },
-];
+] as const;
 
 export class IAuthority__factory {
   static readonly abi = _abi;

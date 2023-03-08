@@ -35,8 +35,6 @@ export interface KonduxFoundersInterface extends utils.Interface {
     "balanceOf(address)": FunctionFragment;
     "baseURI()": FunctionFragment;
     "burn(uint256)": FunctionFragment;
-    "changeDenominator(uint96)": FunctionFragment;
-    "denominator()": FunctionFragment;
     "getApproved(uint256)": FunctionFragment;
     "isApprovedForAll(address,address)": FunctionFragment;
     "name()": FunctionFragment;
@@ -70,8 +68,6 @@ export interface KonduxFoundersInterface extends utils.Interface {
       | "balanceOf"
       | "baseURI"
       | "burn"
-      | "changeDenominator"
-      | "denominator"
       | "getApproved"
       | "isApprovedForAll"
       | "name"
@@ -114,14 +110,6 @@ export interface KonduxFoundersInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "burn",
     values: [PromiseOrValue<BigNumberish>]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "changeDenominator",
-    values: [PromiseOrValue<BigNumberish>]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "denominator",
-    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "getApproved",
@@ -228,14 +216,6 @@ export interface KonduxFoundersInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "baseURI", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "burn", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "changeDenominator",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "denominator",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "getApproved",
     data: BytesLike
   ): Result;
@@ -306,7 +286,6 @@ export interface KonduxFoundersInterface extends utils.Interface {
     "ApprovalForAll(address,address,bool)": EventFragment;
     "AuthorityUpdated(address)": EventFragment;
     "BaseURIChanged(string)": EventFragment;
-    "DenominatorChanged(uint96)": EventFragment;
     "Paused(address)": EventFragment;
     "Received(address,uint256)": EventFragment;
     "Transfer(address,address,uint256)": EventFragment;
@@ -317,7 +296,6 @@ export interface KonduxFoundersInterface extends utils.Interface {
   getEvent(nameOrSignatureOrTopic: "ApprovalForAll"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "AuthorityUpdated"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "BaseURIChanged"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "DenominatorChanged"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Paused"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Received"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Transfer"): EventFragment;
@@ -368,17 +346,6 @@ export type BaseURIChangedEvent = TypedEvent<
 >;
 
 export type BaseURIChangedEventFilter = TypedEventFilter<BaseURIChangedEvent>;
-
-export interface DenominatorChangedEventObject {
-  denominator: BigNumber;
-}
-export type DenominatorChangedEvent = TypedEvent<
-  [BigNumber],
-  DenominatorChangedEventObject
->;
-
-export type DenominatorChangedEventFilter =
-  TypedEventFilter<DenominatorChangedEvent>;
 
 export interface PausedEventObject {
   account: string;
@@ -465,13 +432,6 @@ export interface KonduxFounders extends BaseContract {
       tokenId: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
-
-    changeDenominator(
-      _denominator: PromiseOrValue<BigNumberish>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
-    denominator(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     getApproved(
       tokenId: PromiseOrValue<BigNumberish>,
@@ -611,13 +571,6 @@ export interface KonduxFounders extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  changeDenominator(
-    _denominator: PromiseOrValue<BigNumberish>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
-
-  denominator(overrides?: CallOverrides): Promise<BigNumber>;
-
   getApproved(
     tokenId: PromiseOrValue<BigNumberish>,
     overrides?: CallOverrides
@@ -755,13 +708,6 @@ export interface KonduxFounders extends BaseContract {
       tokenId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
-
-    changeDenominator(
-      _denominator: PromiseOrValue<BigNumberish>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    denominator(overrides?: CallOverrides): Promise<BigNumber>;
 
     getApproved(
       tokenId: PromiseOrValue<BigNumberish>,
@@ -904,11 +850,6 @@ export interface KonduxFounders extends BaseContract {
     "BaseURIChanged(string)"(baseURI?: null): BaseURIChangedEventFilter;
     BaseURIChanged(baseURI?: null): BaseURIChangedEventFilter;
 
-    "DenominatorChanged(uint96)"(
-      denominator?: null
-    ): DenominatorChangedEventFilter;
-    DenominatorChanged(denominator?: null): DenominatorChangedEventFilter;
-
     "Paused(address)"(account?: null): PausedEventFilter;
     Paused(account?: null): PausedEventFilter;
 
@@ -955,13 +896,6 @@ export interface KonduxFounders extends BaseContract {
       tokenId: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
-
-    changeDenominator(
-      _denominator: PromiseOrValue<BigNumberish>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
-    denominator(overrides?: CallOverrides): Promise<BigNumber>;
 
     getApproved(
       tokenId: PromiseOrValue<BigNumberish>,
@@ -1101,13 +1035,6 @@ export interface KonduxFounders extends BaseContract {
       tokenId: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
-
-    changeDenominator(
-      _denominator: PromiseOrValue<BigNumberish>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
-    denominator(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     getApproved(
       tokenId: PromiseOrValue<BigNumberish>,

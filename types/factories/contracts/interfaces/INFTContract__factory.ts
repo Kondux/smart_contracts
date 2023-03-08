@@ -206,7 +206,7 @@ const _abi = [
     stateMutability: "nonpayable",
     type: "function",
   },
-];
+] as const;
 
 export class INFTContract__factory {
   static readonly abi = _abi;

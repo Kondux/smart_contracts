@@ -15,26 +15,18 @@ import "./types/AccessControlled.sol";
 contract KonduxFounders is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC721Royalty, AccessControlled {
     event BaseURIChanged(string baseURI);
     event Received(address sender, uint value);
-    event DenominatorChanged(uint96 denominator);
 
     using Counters for Counters.Counter;
 
     bytes32 public MINTER_ROLE = keccak256("MINTER_ROLE");
 
     string public baseURI;
-    uint96 public denominator;
     
     Counters.Counter private _tokenIdCounter;
 
     constructor(string memory _name, string memory _ticker, address _authority) 
         ERC721(_name, _ticker) 
         AccessControlled(IAuthority(_authority)) {
-    }
-
-    function changeDenominator(uint96 _denominator) public onlyGovernor returns (uint96) {
-        denominator = _denominator;
-        emit DenominatorChanged(denominator);
-        return denominator;
     }
 
     function setDefaultRoyalty(address receiver, uint96 feeNumerator) public onlyGovernor {

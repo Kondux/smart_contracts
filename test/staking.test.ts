@@ -28,6 +28,7 @@ describe("Staking minting", async function () {
     let treasury: Treasury;
     let staking: Staking;
     let kondux: KonduxERC20;
+    let kondux2: KonduxERC20;
     let founders: KonduxERC721Founders;
     let knft: KonduxERC721kNFT;
     let helix: Helix;
@@ -55,6 +56,10 @@ describe("Staking minting", async function () {
         kondux = await new KonduxERC20__factory(owner).deploy();
         await kondux.deployed();
         console.log("KNDX address:", kondux.address);
+
+        kondux2 = await new KonduxERC20__factory(owner).deploy();
+        await kondux2.deployed();
+        console.log("KNDX2 address:", kondux2.address);
 
         helix = await new Helix__factory(owner).deploy("Helix", "HLX", authority.address);
         await helix.deployed();
@@ -130,7 +135,7 @@ describe("Staking minting", async function () {
         // const approve2 = await kondux.connect(staker).approve(treasury.address, ethers.BigNumber.from(10).pow(28));
         // await approve2.wait();
 
-        const stake = await staking.connect(staker).deposit(ethers.BigNumber.from(10).pow(18), 4);
+        const stake = await staking.connect(staker).deposit(ethers.BigNumber.from(10).pow(18), 4, kondux.address);
         const stakeReceipt = await stake.wait();
 
         const stakeEvent = stakeReceipt.events?.filter((e) => e.event === "Stake")[0];
@@ -145,7 +150,7 @@ describe("Staking minting", async function () {
         console.log("Account balance 6:", await kondux.connect(staker).balanceOf(stakerAddress) + " KNDX");
 
 
-        expect(await staking.connect(staker).compoundRewardsTimer(stakeId)).to.equal(60 * 60); // 60 * 60 seconds
+        expect(await staking.connect(staker).compoundRewardsTimer(stakeId)).to.equal(60 * 60 * 24); // 60 * 60 seconds
         expect(await staking.connect(staker).calculateRewards(stakerAddress, stakeId)).to.equal(0); // 0 rewards
         
         await time.increase(timeIncrease);
@@ -175,14 +180,14 @@ describe("Staking minting", async function () {
         const ownerAddress = await owner.getAddress();
 
         let rewardTimer = 86400; // 60 * 60 * 24 
-        rewardTimer = 3600; // 60 * 60 
+        // rewardTimer = 3600; // 60 * 60 
 
         console.log("Account balance 5:", await kondux.balanceOf(ownerAddress) + " KNDX");
 
         const approve = await kondux.approve(staking.address, ethers.BigNumber.from(10).pow(28));
         await approve.wait();
 
-        const stake = await staking.deposit(ethers.BigNumber.from(10).pow(18), 4);
+        const stake = await staking.deposit(ethers.BigNumber.from(10).pow(18), 4, kondux.address);
         const stakeReceipt = await stake.wait();
 
         const stakeEvent = stakeReceipt.events?.filter((e) => e.event === "Stake")[0];
@@ -222,22 +227,20 @@ describe("Staking minting", async function () {
 
     });
 
-    it("Should stake 10_000_000 tokens, advance time 1h and withdrawAll", async function () {
+    it("Should stake 10_000_000 tokens, advance time 1h, add another token", async function () {
         const [owner] = await ethers.getSigners();
         const ownerAddress = await owner.getAddress();
 
-        const rewardTimer = 3600; // 60 * 60 * 24 
+        let rewardTimer = 86400; // 60 * 60 * 24 
+        // rewardTimer = 3600; // 60 * 60 
 
         console.log("Account balance 5:", await kondux.balanceOf(ownerAddress) + " KNDX");
 
         const approve = await kondux.approve(staking.address, ethers.BigNumber.from(10).pow(28));
         await approve.wait();
 
-        const stake = await staking.deposit(ethers.BigNumber.from(10).pow(14), 4);
+        const stake = await staking.deposit(ethers.BigNumber.from(10).pow(18), 4, kondux.address);
         const stakeReceipt = await stake.wait();
-
-        const stake2 = await staking.deposit(ethers.BigNumber.from(10).pow(14), 4);
-        const stake2Receipt = await stake2.wait();
 
         const stakeEvent = stakeReceipt.events?.filter((e) => e.event === "Stake")[0];
         const stakeId = stakeEvent?.args?.id;
@@ -245,73 +248,59 @@ describe("Staking minting", async function () {
         console.log("Stake id:", stakeId);
 
         const depositInfo = await staking.getDepositInfo(ownerAddress, stakeId);
-        expect(depositInfo._stake).to.equal(ethers.BigNumber.from(10).pow(14));
+        expect(depositInfo._stake).to.equal(ethers.BigNumber.from(10).pow(18));
 
         console.log("Account balance 6:", await kondux.balanceOf(ownerAddress) + " KNDX");
 
-        expect(await staking.compoundRewardsTimer(stakeId)).to.equal(rewardTimer - 1);
-        expect(await staking.calculateRewards(ownerAddress, stakeId)).to.equal(879540); // 0 rewards
+        expect(await staking.compoundRewardsTimer(stakeId)).to.equal(rewardTimer);
+        expect(await staking.calculateRewards(ownerAddress, stakeId)).to.equal(0); // 0 rewards
         
         await time.increase(timeIncrease);
-
-        console.log("time latest:", await time.latest());
-        console.log("time of last update:", await staking.getTimeOfLastUpdate(stakeId));
-        console.log("staked amount:", await staking.getStakedAmount(stakeId));
-        console.log("rewards per hour:", await staking.getRewardsPerHour());
-
-        let _reward = (((((await time.latest() - Number(await staking.getTimeOfLastUpdate(stakeId))) * 
-        Number(await staking.getStakedAmount(stakeId))) * Number(await staking.getRewardsPerHour())) / 3600) / 10_000_000); // blocks * staked * rewards/hour / 1h / 10^7
-
-        if (Number(await founders.balanceOf(ownerAddress)) > 0) {
-            _reward = (_reward * Number(await staking.getFoundersRewardBoost())) / Number(await staking.getFoundersRewardBoostDenominator());
-        }
-
-        let knftBalance = Number(await knft.balanceOf(ownerAddress));
-        if (knftBalance > 5) {
-            knftBalance = 5;
-        }
-
-        console.log("knftBalance:", knftBalance);
-        console.log("getkNFTRewardBoost:", Number(await staking.getkNFTRewardBoost()));
-        console.log("getKnftRewardBoostDenominator:", Number(await staking.getKnftRewardBoostDenominator()));
-        console.log("reward:", _reward);
-
-        // _reward = (_reward * (Number(await staking.getkNFTRewardBoost()) * knftBalance)) / Number(await staking.getKnftRewardBoostDenominator()); // -7524000000000000000000
-
-        let multiplier = (Number(await staking.getKnftRewardBoostDenominator()) + (knftBalance * Number(await staking.getkNFTRewardBoost()))) / Number(await staking.getKnftRewardBoostDenominator());
-
-        console.log("multiplier:", multiplier); 
-
-        _reward = _reward * multiplier;
 
         expect(await staking.compoundRewardsTimer(stakeId)).to.equal(0); // 0 rewards
-        expect(await staking.calculateRewards(ownerAddress, stakeId)).to.equal(_reward.toFixed(0) - 2); // 1 reward per hour 
+        expect(await staking.calculateRewards(ownerAddress, stakeId)).to.equal(ethers.BigNumber.from("759924000000000")); // 1 reward per hour 
         
-        // expect(staking.withdraw(10_000, stakeId)).to.be.revertedWith("Timelock not passed");
+        expect(staking.withdraw(10_000, stakeId)).to.be.revertedWith("Timelock not passed");
+
+        await time.increase(timeIncrease);
+
+        // Add another token and stake it
+        const newToken = await staking.addNewStakingToken(kondux2.address, 285, 60 * 60 * 24, 100_000, 10_000_000, 11_000_000, 10_000_000, 100_000, 10_000_000, 10_000, 10_000_000);
+        const newTokenReceipt = await newToken.wait();
+        const newTokenEvent = newTokenReceipt.events?.find((e) => e.event === "NewAuthorizedERC20");
+        const newTokenId = newTokenEvent?.args?.token;
+        expect(newTokenId).to.equal(kondux2.address);
+
+        console.log("Account balance 7:", await kondux2.balanceOf(ownerAddress) + " KNDX2");
+
+        const approve2 = await kondux2.approve(staking.address, ethers.BigNumber.from(10).pow(28));
+        await approve2.wait();
+
+        const stake2 = await staking.deposit(ethers.BigNumber.from(10).pow(18), 4, kondux2.address);
+        const stakeReceipt2 = await stake2.wait();
+
+        const stakeEvent2 = stakeReceipt2.events?.filter((e) => e.event === "Stake")[0];
+        const stakeId2 = stakeEvent2?.args?.id;
+
+        console.log("Stake id:", stakeId2);
+
+        const depositInfo2 = await staking.getDepositInfo(ownerAddress, stakeId2);
+        expect(depositInfo2._stake).to.equal(ethers.BigNumber.from(10).pow(18));
+
+        console.log("Account balance 8:", await kondux2.balanceOf(ownerAddress) + " KNDX2");
+
+        expect(await staking.compoundRewardsTimer(stakeId2)).to.equal(rewardTimer);
+        expect(await staking.calculateRewards(ownerAddress, stakeId2)).to.equal(0); // 0 rewards
+        
+        await time.increase(timeIncrease);
+
+        expect(await staking.compoundRewardsTimer(stakeId2)).to.equal(0); // 0 rewards
+        expect(await staking.calculateRewards(ownerAddress, stakeId2)).to.equal(ethers.BigNumber.from("759924000000000")); // 1 reward per hour 
+        
+        expect(staking.withdraw(10_000, stakeId2)).to.be.revertedWith("Timelock not passed");
 
         await time.increase(timeIncrease);
         
-        multiplier = (Number(await staking.getKnftRewardBoostDenominator()) + (knftBalance * Number(await staking.getkNFTRewardBoost()))) / Number(await staking.getKnftRewardBoostDenominator());
-        const amount = _reward * multiplier + Number((await staking.getDepositInfo(ownerAddress, stakeId))._stake);
-        
-        const _liquid = amount * (Number(await staking.getWithdrawalFeeDivisor()) - Number(await staking.getWithdrawalFee())) / Number(await staking.getWithdrawalFeeDivisor()); 
-
-        const withdraw = await staking.withdrawAll();
-        const withdrawReceipt = await withdraw.wait();
-        const withdrawEvent = withdrawReceipt.events?.find((e) => e.event === "WithdrawAll");
-        
-
-        // console.log("withdrawEvent:", withdrawEvent);
-        expect(withdrawEvent?.args?.amount).to.equal(198300932516235); // 1 reward per hour
-
-        console.log("Account balance 7:", await kondux.balanceOf(ownerAddress) + " KNDX");
-
-        expect((await kondux.balanceOf(ownerAddress))).to.equal(ethers.BigNumber.from( "89999999999999998300932516235")); // 1 reward (285) per hour
-
-        expect(staking.withdrawAll()).to.be.revertedWith("You have no deposit");
-
-        console.log("founder balance:", await founders.balanceOf(ownerAddress) + " founders");
-        console.log("knft balance:", await knft.balanceOf(ownerAddress) + " knft");
 
     });
 
