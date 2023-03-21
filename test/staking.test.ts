@@ -37,6 +37,7 @@ describe("Staking minting", async function () {
     beforeEach(async function () {
         const [owner] = await ethers.getSigners();
         const ownerAddress = await owner.getAddress();
+        console.log("Owner address:", ownerAddress);
         authority = await new Authority__factory(owner).deploy(
             ownerAddress,
             ownerAddress,
@@ -83,25 +84,25 @@ describe("Staking minting", async function () {
         );
         await staking.deployed();
         console.log("Staking address:", staking.address);
-
-        const setupApproval = await treasury.erc20ApprovalSetup(kondux.address, ethers.BigNumber.from(10).pow(38));
-        await setupApproval.wait();
-
+        
         const setKNDX = await treasury.setPermission(2, kondux.address, true); 
         await setKNDX.wait();
-
+        
         const setStaking = await treasury.setStakingContract(staking.address);
         await setStaking.wait();
-
+        
         const setSpender = await treasury.setPermission(1, staking.address, true);
         await setSpender.wait();
-
+        
         const setDepositor = await treasury.setPermission(0, staking.address, true);
         await setDepositor.wait();
-
+        
         const setInitialDepositor = await treasury.setPermission(0, ownerAddress, true);
         await setInitialDepositor.wait();
         console.log("Account balance 1:", await kondux.balanceOf(ownerAddress) + " KNDX");
+        
+        const setupApproval = await treasury.erc20ApprovalSetup(kondux.address, ethers.BigNumber.from(10).pow(38));
+        await setupApproval.wait();
 
         const approve = await kondux.approve(treasury.address, ethers.BigNumber.from(10).pow(38));
         await approve.wait();
@@ -264,6 +265,11 @@ describe("Staking minting", async function () {
 
         await time.increase(timeIncrease);
 
+        const withdraw = await staking.withdraw(10_000, stakeId);
+        const withdrawReceipt = await withdraw.wait();
+        const withdrawEvent = withdrawReceipt.events?.find((e) => e.event === "Withdraw");
+        expect(withdrawEvent?.args?.amount).to.equal(9900); // 1 reward per hour
+
         // Add another token and stake it
         const newToken = await staking.addNewStakingToken(kondux2.address, 285, 60 * 60 * 24, 100_000, 10_000_000, 11_000_000, 10_000_000, 100_000, 10_000_000, 10_000, 10_000_000);
         const newTokenReceipt = await newToken.wait();
@@ -271,10 +277,13 @@ describe("Staking minting", async function () {
         const newTokenId = newTokenEvent?.args?.token;
         expect(newTokenId).to.equal(kondux2.address);
 
-        console.log("Account balance 7:", await kondux2.balanceOf(ownerAddress) + " KNDX2");
-
         const approve2 = await kondux2.approve(staking.address, ethers.BigNumber.from(10).pow(28));
         await approve2.wait();
+
+        const setupApproval = await treasury.erc20ApprovalSetup(kondux2.address, ethers.BigNumber.from(10).pow(38));
+        await setupApproval.wait();
+
+        console.log("Account balance 7:", await kondux2.balanceOf(ownerAddress) + " KNDX2");
 
         const stake2 = await staking.deposit(ethers.BigNumber.from(10).pow(18), 4, kondux2.address);
         const stakeReceipt2 = await stake2.wait();
@@ -300,6 +309,12 @@ describe("Staking minting", async function () {
         expect(staking.withdraw(10_000, stakeId2)).to.be.revertedWith("Timelock not passed");
 
         await time.increase(timeIncrease);
+        
+        const withdraw2 = await staking.withdraw(10_000, stakeId2);
+        const withdrawReceipt2 = await withdraw2.wait();
+        const withdrawEvent2 = withdrawReceipt2.events?.find((e) => e.event === "Withdraw");
+        expect(withdrawEvent2?.args?.amount).to.equal(9900); // 1 reward per hour
+        
         
 
     });

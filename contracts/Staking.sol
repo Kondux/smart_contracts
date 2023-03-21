@@ -255,9 +255,16 @@ contract Staking is AccessControlled {
         // console.log("withdrawalFee: %s", withdrawalFee);
         // console.log("withdrawalFeeDivisor: %s", withdrawalFeeDivisor);
         uint256 _liquid = (_amount * (withdrawalFeeDivisorERC20[userDeposits[_depositId].token] - withdrawalFeeERC20[userDeposits[_depositId].token])) / withdrawalFeeDivisorERC20[userDeposits[_depositId].token];
-        // console.log("Liquid: %s", _liquid);
-        helixERC20.burn(msg.sender, _amount);
+        console.log("Liquid: %s", _liquid);
+        
         IERC20 konduxERC20 = IERC20(userDeposits[_depositId].token);
+        console.log("Vault balance: %s", konduxERC20.balanceOf(authority.vault()));
+        console.log("Vault address: %s", authority.vault());
+        console.log("ERC20 address: %s", address(konduxERC20));
+        console.log("ERC20 allowance: %s", konduxERC20.allowance(msg.sender, authority.vault()));
+        require(konduxERC20.allowance(authority.vault(), address(this)) >= _liquid, "Treasury Contract need to approve Staking Contract to withdraw your tokens -- please call an Admin"); 
+
+        helixERC20.burn(msg.sender, _amount);
         konduxERC20.transferFrom(authority.vault(), msg.sender, _liquid);
         emit Withdraw(msg.sender, _liquid);
     }
@@ -470,7 +477,7 @@ contract Staking is AccessControlled {
         setRatio(_ratio, _token);
         setWithdrawalFee(_withdrawalFee, _token);
         setCompoundFreq(_compoundFreq, _token);
-        setMinStake(_minStake, _token); 
+        setMinStake(_minStake, _token);
 
         _setAuthorizedERC20(_token, true);
     }

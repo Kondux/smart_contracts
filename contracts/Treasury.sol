@@ -4,7 +4,7 @@ pragma solidity ^0.8.9;
 import "./interfaces/IKonduxERC20.sol";
 import "./types/AccessControlled.sol";
 
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 contract Treasury is AccessControlled {
 
@@ -32,8 +32,7 @@ contract Treasury is AccessControlled {
 
     mapping(STATUS => mapping(address => bool)) public permissions;
     mapping(address => bool) public isTokenApprooved;
-    mapping(address => IKonduxERC20) public approvedTokens;
-
+    
     address[] public approvedTokensList;
     uint256 public approvedTokensCount;
 
@@ -118,7 +117,6 @@ contract Treasury is AccessControlled {
         if (_status == STATUS.RESERVETOKEN) {
             isTokenApprooved[_address] = _permission;
             if (_permission) {
-                approvedTokens[_address] = IKonduxERC20(_address);
                 approvedTokensList.push(_address);
                 approvedTokensCount++;                
             }
@@ -130,6 +128,54 @@ contract Treasury is AccessControlled {
     }
 
     function erc20ApprovalSetup(address _token, uint256 _amount) public onlyGovernor {
-        IKonduxERC20(_token).approve(address(this), _amount);
+        // console.log("[TREASURY] Allowance (setup): %s", _amount);
+        // console.log("[TREASURY] Token: %s", _token);
+        // console.log("[TREASURY] Address: %s", address(this));
+        IKonduxERC20(_token).approve(stakingContract, _amount);
+        // console.log("[TREASURY] Allowed: %s", getApprovedTokenAllowance(_token));
+
     }
+
+    // Getters
+
+    function getApprovedTokensList() public view returns (address[] memory) {
+        return approvedTokensList;
+    }
+
+    function getApprovedTokensCount() public view returns (uint256) {
+        return approvedTokensCount;
+    }
+
+    function getApprovedToken(uint256 _index) public view returns (address) {
+        return approvedTokensList[_index];
+    }
+
+    function getApprovedTokenAllowance(address _token) public view returns (uint256) {
+        return IKonduxERC20(_token).allowance(stakingContract, _token);
+    }
+
+    function getApprovedTokenBalance(address _token) public view returns (uint256) {
+        return IKonduxERC20(_token).balanceOf(address(this));
+    }
+
+    function getEtherBalance() public view returns (uint256) {
+        return address(this).balance;
+    }
+
+    function getStakingContract() public view returns (address) {
+        return stakingContract;
+    }
+
+    function getStakingContractAllowance(address _token) public view returns (uint256) {
+        return IKonduxERC20(_token).allowance(address(this), stakingContract);
+    }
+
+    function getStakingContractBalance(address _token) public view returns (uint256) {
+        return IKonduxERC20(_token).balanceOf(stakingContract);
+    }
+
+    function getStakingContractEtherBalance() public view returns (uint256) {
+        return stakingContract.balance;
+    }
+
 }

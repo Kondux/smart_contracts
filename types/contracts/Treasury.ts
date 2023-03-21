@@ -30,13 +30,22 @@ import type {
 
 export interface TreasuryInterface extends utils.Interface {
   functions: {
-    "approvedTokens(address)": FunctionFragment;
     "approvedTokensCount()": FunctionFragment;
     "approvedTokensList(uint256)": FunctionFragment;
     "authority()": FunctionFragment;
     "deposit(uint256,address)": FunctionFragment;
     "depositEther()": FunctionFragment;
     "erc20ApprovalSetup(address,uint256)": FunctionFragment;
+    "getApprovedToken(uint256)": FunctionFragment;
+    "getApprovedTokenAllowance(address)": FunctionFragment;
+    "getApprovedTokenBalance(address)": FunctionFragment;
+    "getApprovedTokensCount()": FunctionFragment;
+    "getApprovedTokensList()": FunctionFragment;
+    "getEtherBalance()": FunctionFragment;
+    "getStakingContract()": FunctionFragment;
+    "getStakingContractAllowance(address)": FunctionFragment;
+    "getStakingContractBalance(address)": FunctionFragment;
+    "getStakingContractEtherBalance()": FunctionFragment;
     "isTokenApprooved(address)": FunctionFragment;
     "permissions(uint8,address)": FunctionFragment;
     "setAuthority(address)": FunctionFragment;
@@ -49,13 +58,22 @@ export interface TreasuryInterface extends utils.Interface {
 
   getFunction(
     nameOrSignatureOrTopic:
-      | "approvedTokens"
       | "approvedTokensCount"
       | "approvedTokensList"
       | "authority"
       | "deposit"
       | "depositEther"
       | "erc20ApprovalSetup"
+      | "getApprovedToken"
+      | "getApprovedTokenAllowance"
+      | "getApprovedTokenBalance"
+      | "getApprovedTokensCount"
+      | "getApprovedTokensList"
+      | "getEtherBalance"
+      | "getStakingContract"
+      | "getStakingContractAllowance"
+      | "getStakingContractBalance"
+      | "getStakingContractEtherBalance"
       | "isTokenApprooved"
       | "permissions"
       | "setAuthority"
@@ -66,10 +84,6 @@ export interface TreasuryInterface extends utils.Interface {
       | "withdrawEther"
   ): FunctionFragment;
 
-  encodeFunctionData(
-    functionFragment: "approvedTokens",
-    values: [PromiseOrValue<string>]
-  ): string;
   encodeFunctionData(
     functionFragment: "approvedTokensCount",
     values?: undefined
@@ -90,6 +104,46 @@ export interface TreasuryInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "erc20ApprovalSetup",
     values: [PromiseOrValue<string>, PromiseOrValue<BigNumberish>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getApprovedToken",
+    values: [PromiseOrValue<BigNumberish>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getApprovedTokenAllowance",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getApprovedTokenBalance",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getApprovedTokensCount",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getApprovedTokensList",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getEtherBalance",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getStakingContract",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getStakingContractAllowance",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getStakingContractBalance",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getStakingContractEtherBalance",
+    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "isTokenApprooved",
@@ -129,10 +183,6 @@ export interface TreasuryInterface extends utils.Interface {
   ): string;
 
   decodeFunctionResult(
-    functionFragment: "approvedTokens",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "approvedTokensCount",
     data: BytesLike
   ): Result;
@@ -148,6 +198,46 @@ export interface TreasuryInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "erc20ApprovalSetup",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getApprovedToken",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getApprovedTokenAllowance",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getApprovedTokenBalance",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getApprovedTokensCount",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getApprovedTokensList",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getEtherBalance",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getStakingContract",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getStakingContractAllowance",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getStakingContractBalance",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getStakingContractEtherBalance",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -285,11 +375,6 @@ export interface Treasury extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
-    approvedTokens(
-      arg0: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<[string]>;
-
     approvedTokensCount(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     approvedTokensList(
@@ -314,6 +399,43 @@ export interface Treasury extends BaseContract {
       _amount: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
+
+    getApprovedToken(
+      _index: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<[string]>;
+
+    getApprovedTokenAllowance(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
+    getApprovedTokenBalance(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
+    getApprovedTokensCount(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    getApprovedTokensList(overrides?: CallOverrides): Promise<[string[]]>;
+
+    getEtherBalance(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    getStakingContract(overrides?: CallOverrides): Promise<[string]>;
+
+    getStakingContractAllowance(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
+    getStakingContractBalance(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
+    getStakingContractEtherBalance(
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
 
     isTokenApprooved(
       arg0: PromiseOrValue<string>,
@@ -357,11 +479,6 @@ export interface Treasury extends BaseContract {
     ): Promise<ContractTransaction>;
   };
 
-  approvedTokens(
-    arg0: PromiseOrValue<string>,
-    overrides?: CallOverrides
-  ): Promise<string>;
-
   approvedTokensCount(overrides?: CallOverrides): Promise<BigNumber>;
 
   approvedTokensList(
@@ -386,6 +503,41 @@ export interface Treasury extends BaseContract {
     _amount: PromiseOrValue<BigNumberish>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
+
+  getApprovedToken(
+    _index: PromiseOrValue<BigNumberish>,
+    overrides?: CallOverrides
+  ): Promise<string>;
+
+  getApprovedTokenAllowance(
+    _token: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  getApprovedTokenBalance(
+    _token: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  getApprovedTokensCount(overrides?: CallOverrides): Promise<BigNumber>;
+
+  getApprovedTokensList(overrides?: CallOverrides): Promise<string[]>;
+
+  getEtherBalance(overrides?: CallOverrides): Promise<BigNumber>;
+
+  getStakingContract(overrides?: CallOverrides): Promise<string>;
+
+  getStakingContractAllowance(
+    _token: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  getStakingContractBalance(
+    _token: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  getStakingContractEtherBalance(overrides?: CallOverrides): Promise<BigNumber>;
 
   isTokenApprooved(
     arg0: PromiseOrValue<string>,
@@ -429,11 +581,6 @@ export interface Treasury extends BaseContract {
   ): Promise<ContractTransaction>;
 
   callStatic: {
-    approvedTokens(
-      arg0: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<string>;
-
     approvedTokensCount(overrides?: CallOverrides): Promise<BigNumber>;
 
     approvedTokensList(
@@ -456,6 +603,43 @@ export interface Treasury extends BaseContract {
       _amount: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
+
+    getApprovedToken(
+      _index: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<string>;
+
+    getApprovedTokenAllowance(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getApprovedTokenBalance(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getApprovedTokensCount(overrides?: CallOverrides): Promise<BigNumber>;
+
+    getApprovedTokensList(overrides?: CallOverrides): Promise<string[]>;
+
+    getEtherBalance(overrides?: CallOverrides): Promise<BigNumber>;
+
+    getStakingContract(overrides?: CallOverrides): Promise<string>;
+
+    getStakingContractAllowance(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getStakingContractBalance(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getStakingContractEtherBalance(
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
     isTokenApprooved(
       arg0: PromiseOrValue<string>,
@@ -535,11 +719,6 @@ export interface Treasury extends BaseContract {
   };
 
   estimateGas: {
-    approvedTokens(
-      arg0: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
     approvedTokensCount(overrides?: CallOverrides): Promise<BigNumber>;
 
     approvedTokensList(
@@ -563,6 +742,43 @@ export interface Treasury extends BaseContract {
       _token: PromiseOrValue<string>,
       _amount: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    getApprovedToken(
+      _index: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getApprovedTokenAllowance(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getApprovedTokenBalance(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getApprovedTokensCount(overrides?: CallOverrides): Promise<BigNumber>;
+
+    getApprovedTokensList(overrides?: CallOverrides): Promise<BigNumber>;
+
+    getEtherBalance(overrides?: CallOverrides): Promise<BigNumber>;
+
+    getStakingContract(overrides?: CallOverrides): Promise<BigNumber>;
+
+    getStakingContractAllowance(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getStakingContractBalance(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getStakingContractEtherBalance(
+      overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     isTokenApprooved(
@@ -608,11 +824,6 @@ export interface Treasury extends BaseContract {
   };
 
   populateTransaction: {
-    approvedTokens(
-      arg0: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
     approvedTokensCount(
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
@@ -638,6 +849,49 @@ export interface Treasury extends BaseContract {
       _token: PromiseOrValue<string>,
       _amount: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    getApprovedToken(
+      _index: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getApprovedTokenAllowance(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getApprovedTokenBalance(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getApprovedTokensCount(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getApprovedTokensList(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getEtherBalance(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    getStakingContract(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getStakingContractAllowance(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getStakingContractBalance(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getStakingContractEtherBalance(
+      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     isTokenApprooved(

@@ -122,17 +122,17 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     console.log("Set staking as spender");
     await waitFor(treasury.setPermission(2, konduxERC20Deployment.address, true)); 
     console.log("Set konduxERC as reserve token");
-    await waitFor(treasury.erc20ApprovalSetup(konduxERC20Deployment.address, ethers.BigNumber.from(10).pow(28)));
-    console.log("Set Approval for konduxERC");
     await waitFor(treasury.setStakingContract(stakingDeployment.address));
     console.log("Set staking contract");
+    await waitFor(treasury.erc20ApprovalSetup(konduxERC20Deployment.address, ethers.BigNumber.from(10).pow(38)));
+    console.log("Set Approval for konduxERC");
 
     // // Step 6: Configure helix
     await waitFor(helix.setStaking(stakingDeployment.address));
     console.log("Set staking contract @ Helix");
 
     // TESTING ONLY
-    await waitFor(konduxERC20.approve(treasuryDeployment.address, ethers.BigNumber.from(10).pow(28)));
+    await waitFor(konduxERC20.approve(treasuryDeployment.address, ethers.BigNumber.from(10).pow(38)));
     console.log("Set Approval for konduxERC");
     await waitFor(treasury.deposit(ethers.BigNumber.from(10).pow(28), konduxERC20Deployment.address));
     console.log("Deposit konduxERC");
