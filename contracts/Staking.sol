@@ -68,7 +68,7 @@ contract Staking is AccessControlled {
 
     // Mapping of address to Staker info
     //mapping(address => Staker) internal stakers;
-    mapping(address => uint) name;
+    mapping(address => uint) public name;
     mapping(address => uint[]) public userDepositsIds;
     mapping(uint => Staker) public userDeposits;
 
@@ -138,7 +138,7 @@ contract Staking is AccessControlled {
             setkNFTRewardBoost(100_000, _konduxERC20); // 1% boost on rewards or 100_000/10_000_000 
             setMinStake(10_000_000, _konduxERC20); // 10,000,000 wei
             setRewardsPerHour(285, _konduxERC20); // 0.00285%/h or 25% APR            
-            setCompFreq(60 * 60 * 24, _konduxERC20); // 24 hours
+            setCompoundFreq(60 * 60 * 24, _konduxERC20); // 24 hours 
             setRatio(10_000, _konduxERC20); // 10_000:1 ratio
             _setAuthorizedERC20(_konduxERC20, true);
     }
@@ -270,9 +270,9 @@ contract Staking is AccessControlled {
     }
 
     // Function useful for fron-end that returns user stake and rewards by address
-    function getDepositInfo(address _staker, uint _depositId) public view returns (uint256 _stake, uint256 _rewards) {
+    function getDepositInfo(uint _depositId) public view returns (uint256 _stake, uint256 _rewards) {
         _stake = userDeposits[_depositId].deposited;  
-        _rewards = calculateRewards(_staker, _depositId) + userDeposits[_depositId].unclaimedRewards;
+        _rewards = calculateRewards(msg.sender, _depositId) + userDeposits[_depositId].unclaimedRewards;
         return (_stake, _rewards); 
     }
 
@@ -293,6 +293,11 @@ contract Staking is AccessControlled {
         // console.log("stakers[_staker].deposited: %s", userDeposits[_depositId].deposited);
         // console.log("rewardsPerHour: %s", rewardsPerHour);
         // console.log("((((block.timestamp - userDeposits[_depositId].timeOfLastUpdate) * userDeposits[_depositId].deposited) * rewardsPerHour) / 3600) / 10_000_000: %s", ((((block.timestamp - userDeposits[_depositId].timeOfLastUpdate) * userDeposits[_depositId].deposited) * rewardsPerHour) / 3600) / 10_000_000);
+
+        //check if _staker has _depositId, if not, return 0;
+        if (userDeposits[_depositId].staker != _staker) {
+            return 0;
+        }
 
         uint256 _reward = (((((block.timestamp - userDeposits[_depositId].timeOfLastUpdate) * 
             userDeposits[_depositId].deposited) * rewardsPerHourERC20[userDeposits[_depositId].token]) / 3600) / 10_000_000); // blocks * staked * rewards/hour / 1h / 10^7
@@ -346,12 +351,6 @@ contract Staking is AccessControlled {
     function setRatio(uint256 _ratio, address _tokenId) public onlyGovernor {
         ratioERC20[_tokenId] = _ratio;
         emit NewRatio(_ratio, _tokenId);
-    }
-
-    // Set the minimum time that has to pass for a user to be able to restake rewards
-    function setCompFreq(uint256 _compoundFreq, address _tokenId) public onlyGovernor {
-        compoundFreqERC20[_tokenId] = _compoundFreq;
-        emit NewCompoundFreq(_compoundFreq, _tokenId);
     }
 
     // Set the address of Helix Contract

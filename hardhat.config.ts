@@ -98,7 +98,7 @@ const config: HardhatUserConfig = {
     hardhat: {
         mining: {
           auto: true,
-          // interval: 20000 // milliseconds
+          interval: 2000 // milliseconds
         },
         chainId: chainIds.hardhat,          
         loggingEnabled: process.env.EVM_LOGGING === "true",

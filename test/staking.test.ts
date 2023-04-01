@@ -144,7 +144,7 @@ describe("Staking minting", async function () {
 
         console.log("Stake id:", stakeId);
 
-        const depositInfo = await staking.connect(staker).getDepositInfo(stakerAddress, stakeId);
+        const depositInfo = await staking.connect(staker).getDepositInfo(stakeId);
         console.log("Stake info:", depositInfo);
         expect(depositInfo._stake).to.equal(ethers.BigNumber.from(10).pow(18)); 
 
@@ -196,7 +196,7 @@ describe("Staking minting", async function () {
 
         console.log("Stake id:", stakeId);
 
-        const depositInfo = await staking.getDepositInfo(ownerAddress, stakeId);
+        const depositInfo = await staking.getDepositInfo(stakeId);
         expect(depositInfo._stake).to.equal(ethers.BigNumber.from(10).pow(18));
 
         console.log("Account balance 6:", await kondux.balanceOf(ownerAddress) + " KNDX");
@@ -224,7 +224,12 @@ describe("Staking minting", async function () {
 
         expect(staking.withdraw(10_000_000_000, stakeId)).to.be.revertedWith("Can't withdraw more than you have");
 
-        expect((await staking.getDepositInfo(ownerAddress, stakeId))._stake).to.equal(ethers.BigNumber.from("999999999999980000")); // 1 reward (285) per hour
+        expect((await staking.getDepositInfo(stakeId))._stake).to.equal(ethers.BigNumber.from("999999999999980000")); // 1 reward (285) per hour
+
+        // get user deposits ids
+        const userDeposits = await staking.getDepositIds(ownerAddress);
+        expect(userDeposits.length).to.equal(1);
+        expect(userDeposits[0]).to.equal(stakeId);
 
     });
 
@@ -248,7 +253,7 @@ describe("Staking minting", async function () {
 
         console.log("Stake id:", stakeId);
 
-        const depositInfo = await staking.getDepositInfo(ownerAddress, stakeId);
+        const depositInfo = await staking.getDepositInfo(stakeId);
         expect(depositInfo._stake).to.equal(ethers.BigNumber.from(10).pow(18));
 
         console.log("Account balance 6:", await kondux.balanceOf(ownerAddress) + " KNDX");
@@ -293,7 +298,7 @@ describe("Staking minting", async function () {
 
         console.log("Stake id:", stakeId2);
 
-        const depositInfo2 = await staking.getDepositInfo(ownerAddress, stakeId2);
+        const depositInfo2 = await staking.getDepositInfo(stakeId2);
         expect(depositInfo2._stake).to.equal(ethers.BigNumber.from(10).pow(18));
 
         console.log("Account balance 8:", await kondux2.balanceOf(ownerAddress) + " KNDX2");

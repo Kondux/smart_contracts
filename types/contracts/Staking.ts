@@ -40,7 +40,7 @@ export interface StakingInterface extends utils.Interface {
     "foundersRewardBoostDivisorERC20(address)": FunctionFragment;
     "foundersRewardBoostERC20(address)": FunctionFragment;
     "getDepositIds(address)": FunctionFragment;
-    "getDepositInfo(address,uint256)": FunctionFragment;
+    "getDepositInfo(uint256)": FunctionFragment;
     "getFoundersRewardBoost(address)": FunctionFragment;
     "getFoundersRewardBoostDenominator(address)": FunctionFragment;
     "getKnftRewardBoostDenominator(address)": FunctionFragment;
@@ -63,7 +63,6 @@ export interface StakingInterface extends utils.Interface {
     "rewardsPerHourERC20(address)": FunctionFragment;
     "setAuthority(address)": FunctionFragment;
     "setAuthorizedERC20(address,bool)": FunctionFragment;
-    "setCompFreq(uint256,address)": FunctionFragment;
     "setCompoundFreq(uint256,address)": FunctionFragment;
     "setFoundersRewardBoost(uint256,address)": FunctionFragment;
     "setFoundersRewardBoostDivisor(uint256,address)": FunctionFragment;
@@ -124,7 +123,6 @@ export interface StakingInterface extends utils.Interface {
       | "rewardsPerHourERC20"
       | "setAuthority"
       | "setAuthorizedERC20"
-      | "setCompFreq"
       | "setCompoundFreq"
       | "setFoundersRewardBoost"
       | "setFoundersRewardBoostDivisor"
@@ -208,7 +206,7 @@ export interface StakingInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "getDepositInfo",
-    values: [PromiseOrValue<string>, PromiseOrValue<BigNumberish>]
+    values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "getFoundersRewardBoost",
@@ -297,10 +295,6 @@ export interface StakingInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "setAuthorizedERC20",
     values: [PromiseOrValue<string>, PromiseOrValue<boolean>]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "setCompFreq",
-    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
     functionFragment: "setCompoundFreq",
@@ -510,10 +504,6 @@ export interface StakingInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "setAuthorizedERC20",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "setCompFreq",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -975,7 +965,6 @@ export interface Staking extends BaseContract {
     ): Promise<[BigNumber[]]>;
 
     getDepositInfo(
-      _staker: PromiseOrValue<string>,
       _depositId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<
@@ -1081,12 +1070,6 @@ export interface Staking extends BaseContract {
     setAuthorizedERC20(
       _token: PromiseOrValue<string>,
       _authorized: PromiseOrValue<boolean>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
-    setCompFreq(
-      _compoundFreq: PromiseOrValue<BigNumberish>,
-      _tokenId: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
@@ -1299,7 +1282,6 @@ export interface Staking extends BaseContract {
   ): Promise<BigNumber[]>;
 
   getDepositInfo(
-    _staker: PromiseOrValue<string>,
     _depositId: PromiseOrValue<BigNumberish>,
     overrides?: CallOverrides
   ): Promise<
@@ -1405,12 +1387,6 @@ export interface Staking extends BaseContract {
   setAuthorizedERC20(
     _token: PromiseOrValue<string>,
     _authorized: PromiseOrValue<boolean>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
-
-  setCompFreq(
-    _compoundFreq: PromiseOrValue<BigNumberish>,
-    _tokenId: PromiseOrValue<string>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
@@ -1623,7 +1599,6 @@ export interface Staking extends BaseContract {
     ): Promise<BigNumber[]>;
 
     getDepositInfo(
-      _staker: PromiseOrValue<string>,
       _depositId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<
@@ -1729,12 +1704,6 @@ export interface Staking extends BaseContract {
     setAuthorizedERC20(
       _token: PromiseOrValue<string>,
       _authorized: PromiseOrValue<boolean>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    setCompFreq(
-      _compoundFreq: PromiseOrValue<BigNumberish>,
-      _tokenId: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -2138,7 +2107,6 @@ export interface Staking extends BaseContract {
     ): Promise<BigNumber>;
 
     getDepositInfo(
-      _staker: PromiseOrValue<string>,
       _depositId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -2242,12 +2210,6 @@ export interface Staking extends BaseContract {
     setAuthorizedERC20(
       _token: PromiseOrValue<string>,
       _authorized: PromiseOrValue<boolean>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
-    setCompFreq(
-      _compoundFreq: PromiseOrValue<BigNumberish>,
-      _tokenId: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
@@ -2439,7 +2401,6 @@ export interface Staking extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     getDepositInfo(
-      _staker: PromiseOrValue<string>,
       _depositId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
@@ -2545,12 +2506,6 @@ export interface Staking extends BaseContract {
     setAuthorizedERC20(
       _token: PromiseOrValue<string>,
       _authorized: PromiseOrValue<boolean>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
-    setCompFreq(
-      _compoundFreq: PromiseOrValue<BigNumberish>,
-      _tokenId: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
