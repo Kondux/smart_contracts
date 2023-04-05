@@ -59,6 +59,7 @@ export interface StakingInterface extends utils.Interface {
     "konduxERC721Founders()": FunctionFragment;
     "konduxERC721kNFT()": FunctionFragment;
     "minStakeERC20(address)": FunctionFragment;
+    "name(address)": FunctionFragment;
     "ratioERC20(address)": FunctionFragment;
     "rewardsPerHourERC20(address)": FunctionFragment;
     "setAuthority(address)": FunctionFragment;
@@ -83,6 +84,7 @@ export interface StakingInterface extends utils.Interface {
     "userDeposits(uint256)": FunctionFragment;
     "userDepositsIds(address,uint256)": FunctionFragment;
     "withdraw(uint256,uint256)": FunctionFragment;
+    "withdrawAndClaim(uint256,uint256)": FunctionFragment;
     "withdrawalFeeDivisorERC20(address)": FunctionFragment;
     "withdrawalFeeERC20(address)": FunctionFragment;
   };
@@ -119,6 +121,7 @@ export interface StakingInterface extends utils.Interface {
       | "konduxERC721Founders"
       | "konduxERC721kNFT"
       | "minStakeERC20"
+      | "name"
       | "ratioERC20"
       | "rewardsPerHourERC20"
       | "setAuthority"
@@ -143,6 +146,7 @@ export interface StakingInterface extends utils.Interface {
       | "userDeposits"
       | "userDepositsIds"
       | "withdraw"
+      | "withdrawAndClaim"
       | "withdrawalFeeDivisorERC20"
       | "withdrawalFeeERC20"
   ): FunctionFragment;
@@ -281,6 +285,10 @@ export interface StakingInterface extends utils.Interface {
     values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
+    functionFragment: "name",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
     functionFragment: "ratioERC20",
     values: [PromiseOrValue<string>]
   ): string;
@@ -371,6 +379,10 @@ export interface StakingInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "withdraw",
+    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<BigNumberish>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "withdrawAndClaim",
     values: [PromiseOrValue<BigNumberish>, PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
@@ -493,6 +505,7 @@ export interface StakingInterface extends utils.Interface {
     functionFragment: "minStakeERC20",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "name", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "ratioERC20", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "rewardsPerHourERC20",
@@ -574,6 +587,10 @@ export interface StakingInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "withdraw", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "withdrawAndClaim",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "withdrawalFeeDivisorERC20",
     data: BytesLike
@@ -1052,6 +1069,11 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
+    name(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
     ratioERC20(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -1200,6 +1222,12 @@ export interface Staking extends BaseContract {
     ): Promise<[BigNumber]>;
 
     withdraw(
+      _amount: PromiseOrValue<BigNumberish>,
+      _depositId: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    withdrawAndClaim(
       _amount: PromiseOrValue<BigNumberish>,
       _depositId: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -1369,6 +1397,11 @@ export interface Staking extends BaseContract {
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
+  name(
+    arg0: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
   ratioERC20(
     arg0: PromiseOrValue<string>,
     overrides?: CallOverrides
@@ -1517,6 +1550,12 @@ export interface Staking extends BaseContract {
   ): Promise<BigNumber>;
 
   withdraw(
+    _amount: PromiseOrValue<BigNumberish>,
+    _depositId: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  withdrawAndClaim(
     _amount: PromiseOrValue<BigNumberish>,
     _depositId: PromiseOrValue<BigNumberish>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -1686,6 +1725,11 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    name(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     ratioERC20(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -1834,6 +1878,12 @@ export interface Staking extends BaseContract {
     ): Promise<BigNumber>;
 
     withdraw(
+      _amount: PromiseOrValue<BigNumberish>,
+      _depositId: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    withdrawAndClaim(
       _amount: PromiseOrValue<BigNumberish>,
       _depositId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
@@ -2192,6 +2242,11 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    name(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     ratioERC20(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -2318,6 +2373,12 @@ export interface Staking extends BaseContract {
     ): Promise<BigNumber>;
 
     withdraw(
+      _amount: PromiseOrValue<BigNumberish>,
+      _depositId: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    withdrawAndClaim(
       _amount: PromiseOrValue<BigNumberish>,
       _depositId: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -2488,6 +2549,11 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
+    name(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     ratioERC20(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -2614,6 +2680,12 @@ export interface Staking extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     withdraw(
+      _amount: PromiseOrValue<BigNumberish>,
+      _depositId: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    withdrawAndClaim(
       _amount: PromiseOrValue<BigNumberish>,
       _depositId: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }

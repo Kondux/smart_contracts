@@ -137,7 +137,7 @@ contract Staking is AccessControlled {
             setFoundersRewardBoost(11_000_000, _konduxERC20); // 10% boost (=110%) on rewards or 1_000_000/10_000_000
             setkNFTRewardBoost(100_000, _konduxERC20); // 1% boost on rewards or 100_000/10_000_000 
             setMinStake(10_000_000, _konduxERC20); // 10,000,000 wei
-            setRewardsPerHour(285, _konduxERC20); // 0.00285%/h or 25% APR            
+            setRewardsPerHour(285, _konduxERC20); // 0.00285%/h or 25% APR 285/10_000    = 0.00285           
             setCompoundFreq(60 * 60 * 24, _konduxERC20); // 24 hours 
             setRatio(10_000, _konduxERC20); // 10_000:1 ratio
             _setAuthorizedERC20(_konduxERC20, true);
@@ -267,6 +267,12 @@ contract Staking is AccessControlled {
         helixERC20.burn(msg.sender, _amount);
         konduxERC20.transferFrom(authority.vault(), msg.sender, _liquid);
         emit Withdraw(msg.sender, _liquid);
+    }
+
+    // Withdraw and claim rewards in one transaction
+    function withdrawAndClaim(uint256 _amount, uint _depositId) public {
+        withdraw(_amount, _depositId);
+        claimRewards(_depositId);
     }
 
     // Function useful for fron-end that returns user stake and rewards by address
