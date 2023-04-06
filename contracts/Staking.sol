@@ -264,7 +264,7 @@ contract Staking is AccessControlled {
         console.log("ERC20 allowance: %s", konduxERC20.allowance(msg.sender, authority.vault()));
         require(konduxERC20.allowance(authority.vault(), address(this)) >= _liquid, "Treasury Contract need to approve Staking Contract to withdraw your tokens -- please call an Admin"); 
 
-        helixERC20.burn(msg.sender, _amount);
+        helixERC20.burn(msg.sender, _amount * ratioERC20[userDeposits[_depositId].token]); 
         konduxERC20.transferFrom(authority.vault(), msg.sender, _liquid);
         emit Withdraw(msg.sender, _liquid);
     }
