@@ -123,6 +123,9 @@ contract Staking is AccessControlled {
         AccessControlled(IAuthority(_authority)) {        
             require(_konduxERC20 != address(0), "Kondux ERC20 address is not set");
             require(_treasury != address(0), "Treasury address is not set");
+            require(_konduxERC721Founders != address(0), "Kondux ERC721 Founders address is not set");
+            require(_konduxERC721kNFT != address(0), "Kondux ERC721 kNFT address is not set");
+            require(_helixERC20 != address(0), "Helix ERC20 address is not set");
             
             konduxERC721Founders = IERC721(_konduxERC721Founders);
             konduxERC721kNFT = IERC721(_konduxERC721kNFT);
@@ -135,7 +138,7 @@ contract Staking is AccessControlled {
             setkNFTRewardBoostDivisor(10_000_000, _konduxERC20); // 10_000_000 basis points
             setWithdrawalFee(100_000, _konduxERC20); // 1% fee on withdrawal or 100_000/10_000_000
             setFoundersRewardBoost(11_000_000, _konduxERC20); // 10% boost (=110%) on rewards or 1_000_000/10_000_000
-            setkNFTRewardBoost(100_000, _konduxERC20); // 1% boost on rewards or 100_000/10_000_000 
+            setkNFTRewardBoost(500_000, _konduxERC20); // 5% boost on rewards or 500_000/10_000_000 
             setMinStake(10_000_000, _konduxERC20); // 10,000,000 wei
             setRewardsPerHour(285, _konduxERC20); // 0.00285%/h or 25% APR 285/10_000    = 0.00285           
             setCompoundFreq(60 * 60 * 24, _konduxERC20); // 24 hours 
@@ -193,7 +196,7 @@ contract Staking is AccessControlled {
         
         _depositIds.increment(); 
 
-        emit Stake(_id, msg.sender, _token, _amount * ratioERC20[_token]);
+        emit Stake(_id, msg.sender, _token, _amount);
 
         return _id;
     }
@@ -208,7 +211,7 @@ contract Staking is AccessControlled {
         userDeposits[_depositId].deposited += rewards;
         userDeposits[_depositId].timeOfLastUpdate = block.timestamp; 
 
-        helixERC20.mint(msg.sender, rewards);
+        helixERC20.mint(msg.sender, rewards * ratioERC20[userDeposits[_depositId].token]);
 
         emit Compound(msg.sender, rewards);
     }
@@ -227,7 +230,7 @@ contract Staking is AccessControlled {
         require(rewards > 0, "You have no rewards");
         userDeposits[_depositId].unclaimedRewards = 0;
         userDeposits[_depositId].timeOfLastUpdate = block.timestamp;
-        helixERC20.burn(msg.sender, rewards);
+        helixERC20.burn(msg.sender, rewards * ratioERC20[userDeposits[_depositId].token]);
         IERC20 konduxERC20 = IERC20(userDeposits[_depositId].token);
         konduxERC20.transferFrom(authority.vault(), msg.sender, rewards / ratioERC20[userDeposits[_depositId].token]);
         // console.logString("Rewards claimed");

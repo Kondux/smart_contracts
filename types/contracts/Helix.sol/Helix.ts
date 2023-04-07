@@ -25,34 +25,27 @@ import type {
   TypedListener,
   OnEvent,
   PromiseOrValue,
-} from "../common";
+} from "../../common";
 
 export interface HelixInterface extends utils.Interface {
   functions: {
-    "ADMIN_ROLE()": FunctionFragment;
     "BURNER_ROLE()": FunctionFragment;
-    "DEFAULT_ADMIN_ROLE()": FunctionFragment;
     "MINTER_ROLE()": FunctionFragment;
     "allowance(address,address)": FunctionFragment;
     "allowedContracts(address)": FunctionFragment;
     "approve(address,uint256)": FunctionFragment;
+    "authority()": FunctionFragment;
     "balanceOf(address)": FunctionFragment;
     "burn(address,uint256)": FunctionFragment;
     "decimals()": FunctionFragment;
     "decreaseAllowance(address,uint256)": FunctionFragment;
     "enableUnrestrictedTransfers()": FunctionFragment;
-    "getRoleAdmin(bytes32)": FunctionFragment;
-    "grantRole(bytes32,address)": FunctionFragment;
-    "hasRole(bytes32,address)": FunctionFragment;
     "increaseAllowance(address,uint256)": FunctionFragment;
     "mint(address,uint256)": FunctionFragment;
     "name()": FunctionFragment;
-    "renounceRole(bytes32,address)": FunctionFragment;
-    "revokeRole(bytes32,address)": FunctionFragment;
     "setAllowedContract(address,bool)": FunctionFragment;
+    "setAuthority(address)": FunctionFragment;
     "setEnableUnrestrictedTransfers(bool)": FunctionFragment;
-    "setRole(bytes32,address,bool)": FunctionFragment;
-    "supportsInterface(bytes4)": FunctionFragment;
     "symbol()": FunctionFragment;
     "totalSupply()": FunctionFragment;
     "transfer(address,uint256)": FunctionFragment;
@@ -61,30 +54,23 @@ export interface HelixInterface extends utils.Interface {
 
   getFunction(
     nameOrSignatureOrTopic:
-      | "ADMIN_ROLE"
       | "BURNER_ROLE"
-      | "DEFAULT_ADMIN_ROLE"
       | "MINTER_ROLE"
       | "allowance"
       | "allowedContracts"
       | "approve"
+      | "authority"
       | "balanceOf"
       | "burn"
       | "decimals"
       | "decreaseAllowance"
       | "enableUnrestrictedTransfers"
-      | "getRoleAdmin"
-      | "grantRole"
-      | "hasRole"
       | "increaseAllowance"
       | "mint"
       | "name"
-      | "renounceRole"
-      | "revokeRole"
       | "setAllowedContract"
+      | "setAuthority"
       | "setEnableUnrestrictedTransfers"
-      | "setRole"
-      | "supportsInterface"
       | "symbol"
       | "totalSupply"
       | "transfer"
@@ -92,15 +78,7 @@ export interface HelixInterface extends utils.Interface {
   ): FunctionFragment;
 
   encodeFunctionData(
-    functionFragment: "ADMIN_ROLE",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
     functionFragment: "BURNER_ROLE",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "DEFAULT_ADMIN_ROLE",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -119,6 +97,7 @@ export interface HelixInterface extends utils.Interface {
     functionFragment: "approve",
     values: [PromiseOrValue<string>, PromiseOrValue<BigNumberish>]
   ): string;
+  encodeFunctionData(functionFragment: "authority", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "balanceOf",
     values: [PromiseOrValue<string>]
@@ -137,18 +116,6 @@ export interface HelixInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "getRoleAdmin",
-    values: [PromiseOrValue<BytesLike>]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "grantRole",
-    values: [PromiseOrValue<BytesLike>, PromiseOrValue<string>]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "hasRole",
-    values: [PromiseOrValue<BytesLike>, PromiseOrValue<string>]
-  ): string;
-  encodeFunctionData(
     functionFragment: "increaseAllowance",
     values: [PromiseOrValue<string>, PromiseOrValue<BigNumberish>]
   ): string;
@@ -158,32 +125,16 @@ export interface HelixInterface extends utils.Interface {
   ): string;
   encodeFunctionData(functionFragment: "name", values?: undefined): string;
   encodeFunctionData(
-    functionFragment: "renounceRole",
-    values: [PromiseOrValue<BytesLike>, PromiseOrValue<string>]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "revokeRole",
-    values: [PromiseOrValue<BytesLike>, PromiseOrValue<string>]
-  ): string;
-  encodeFunctionData(
     functionFragment: "setAllowedContract",
     values: [PromiseOrValue<string>, PromiseOrValue<boolean>]
   ): string;
   encodeFunctionData(
+    functionFragment: "setAuthority",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
     functionFragment: "setEnableUnrestrictedTransfers",
     values: [PromiseOrValue<boolean>]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "setRole",
-    values: [
-      PromiseOrValue<BytesLike>,
-      PromiseOrValue<string>,
-      PromiseOrValue<boolean>
-    ]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "supportsInterface",
-    values: [PromiseOrValue<BytesLike>]
   ): string;
   encodeFunctionData(functionFragment: "symbol", values?: undefined): string;
   encodeFunctionData(
@@ -203,13 +154,8 @@ export interface HelixInterface extends utils.Interface {
     ]
   ): string;
 
-  decodeFunctionResult(functionFragment: "ADMIN_ROLE", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "BURNER_ROLE",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "DEFAULT_ADMIN_ROLE",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -222,6 +168,7 @@ export interface HelixInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "approve", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "authority", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "balanceOf", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "burn", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "decimals", data: BytesLike): Result;
@@ -234,33 +181,21 @@ export interface HelixInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "getRoleAdmin",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(functionFragment: "grantRole", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "hasRole", data: BytesLike): Result;
-  decodeFunctionResult(
     functionFragment: "increaseAllowance",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "mint", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "name", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "renounceRole",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(functionFragment: "revokeRole", data: BytesLike): Result;
-  decodeFunctionResult(
     functionFragment: "setAllowedContract",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "setEnableUnrestrictedTransfers",
+    functionFragment: "setAuthority",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "setRole", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "supportsInterface",
+    functionFragment: "setEnableUnrestrictedTransfers",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "symbol", data: BytesLike): Result;
@@ -276,16 +211,12 @@ export interface HelixInterface extends utils.Interface {
 
   events: {
     "Approval(address,address,uint256)": EventFragment;
-    "RoleAdminChanged(bytes32,bytes32,bytes32)": EventFragment;
-    "RoleGranted(bytes32,address,address)": EventFragment;
-    "RoleRevoked(bytes32,address,address)": EventFragment;
+    "AuthorityUpdated(address)": EventFragment;
     "Transfer(address,address,uint256)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "Approval"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "RoleAdminChanged"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "RoleGranted"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "RoleRevoked"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "AuthorityUpdated"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Transfer"): EventFragment;
 }
 
@@ -301,42 +232,16 @@ export type ApprovalEvent = TypedEvent<
 
 export type ApprovalEventFilter = TypedEventFilter<ApprovalEvent>;
 
-export interface RoleAdminChangedEventObject {
-  role: string;
-  previousAdminRole: string;
-  newAdminRole: string;
+export interface AuthorityUpdatedEventObject {
+  authority: string;
 }
-export type RoleAdminChangedEvent = TypedEvent<
-  [string, string, string],
-  RoleAdminChangedEventObject
+export type AuthorityUpdatedEvent = TypedEvent<
+  [string],
+  AuthorityUpdatedEventObject
 >;
 
-export type RoleAdminChangedEventFilter =
-  TypedEventFilter<RoleAdminChangedEvent>;
-
-export interface RoleGrantedEventObject {
-  role: string;
-  account: string;
-  sender: string;
-}
-export type RoleGrantedEvent = TypedEvent<
-  [string, string, string],
-  RoleGrantedEventObject
->;
-
-export type RoleGrantedEventFilter = TypedEventFilter<RoleGrantedEvent>;
-
-export interface RoleRevokedEventObject {
-  role: string;
-  account: string;
-  sender: string;
-}
-export type RoleRevokedEvent = TypedEvent<
-  [string, string, string],
-  RoleRevokedEventObject
->;
-
-export type RoleRevokedEventFilter = TypedEventFilter<RoleRevokedEvent>;
+export type AuthorityUpdatedEventFilter =
+  TypedEventFilter<AuthorityUpdatedEvent>;
 
 export interface TransferEventObject {
   from: string;
@@ -377,11 +282,7 @@ export interface Helix extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
-    ADMIN_ROLE(overrides?: CallOverrides): Promise<[string]>;
-
     BURNER_ROLE(overrides?: CallOverrides): Promise<[string]>;
-
-    DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<[string]>;
 
     MINTER_ROLE(overrides?: CallOverrides): Promise<[string]>;
 
@@ -401,6 +302,8 @@ export interface Helix extends BaseContract {
       amount: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
+
+    authority(overrides?: CallOverrides): Promise<[string]>;
 
     balanceOf(
       account: PromiseOrValue<string>,
@@ -423,23 +326,6 @@ export interface Helix extends BaseContract {
 
     enableUnrestrictedTransfers(overrides?: CallOverrides): Promise<[boolean]>;
 
-    getRoleAdmin(
-      role: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<[string]>;
-
-    grantRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
-    hasRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<[boolean]>;
-
     increaseAllowance(
       spender: PromiseOrValue<string>,
       addedValue: PromiseOrValue<BigNumberish>,
@@ -454,21 +340,14 @@ export interface Helix extends BaseContract {
 
     name(overrides?: CallOverrides): Promise<[string]>;
 
-    renounceRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
-    revokeRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
     setAllowedContract(
       contractAddress: PromiseOrValue<string>,
       allowed: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    setAuthority(
+      _newAuthority: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
@@ -476,18 +355,6 @@ export interface Helix extends BaseContract {
       enabled: PromiseOrValue<boolean>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
-
-    setRole(
-      role: PromiseOrValue<BytesLike>,
-      addr: PromiseOrValue<string>,
-      enabled: PromiseOrValue<boolean>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
-    supportsInterface(
-      interfaceId: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<[boolean]>;
 
     symbol(overrides?: CallOverrides): Promise<[string]>;
 
@@ -507,11 +374,7 @@ export interface Helix extends BaseContract {
     ): Promise<ContractTransaction>;
   };
 
-  ADMIN_ROLE(overrides?: CallOverrides): Promise<string>;
-
   BURNER_ROLE(overrides?: CallOverrides): Promise<string>;
-
-  DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<string>;
 
   MINTER_ROLE(overrides?: CallOverrides): Promise<string>;
 
@@ -531,6 +394,8 @@ export interface Helix extends BaseContract {
     amount: PromiseOrValue<BigNumberish>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
+
+  authority(overrides?: CallOverrides): Promise<string>;
 
   balanceOf(
     account: PromiseOrValue<string>,
@@ -553,23 +418,6 @@ export interface Helix extends BaseContract {
 
   enableUnrestrictedTransfers(overrides?: CallOverrides): Promise<boolean>;
 
-  getRoleAdmin(
-    role: PromiseOrValue<BytesLike>,
-    overrides?: CallOverrides
-  ): Promise<string>;
-
-  grantRole(
-    role: PromiseOrValue<BytesLike>,
-    account: PromiseOrValue<string>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
-
-  hasRole(
-    role: PromiseOrValue<BytesLike>,
-    account: PromiseOrValue<string>,
-    overrides?: CallOverrides
-  ): Promise<boolean>;
-
   increaseAllowance(
     spender: PromiseOrValue<string>,
     addedValue: PromiseOrValue<BigNumberish>,
@@ -584,21 +432,14 @@ export interface Helix extends BaseContract {
 
   name(overrides?: CallOverrides): Promise<string>;
 
-  renounceRole(
-    role: PromiseOrValue<BytesLike>,
-    account: PromiseOrValue<string>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
-
-  revokeRole(
-    role: PromiseOrValue<BytesLike>,
-    account: PromiseOrValue<string>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
-
   setAllowedContract(
     contractAddress: PromiseOrValue<string>,
     allowed: PromiseOrValue<boolean>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  setAuthority(
+    _newAuthority: PromiseOrValue<string>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
@@ -606,18 +447,6 @@ export interface Helix extends BaseContract {
     enabled: PromiseOrValue<boolean>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
-
-  setRole(
-    role: PromiseOrValue<BytesLike>,
-    addr: PromiseOrValue<string>,
-    enabled: PromiseOrValue<boolean>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
-
-  supportsInterface(
-    interfaceId: PromiseOrValue<BytesLike>,
-    overrides?: CallOverrides
-  ): Promise<boolean>;
 
   symbol(overrides?: CallOverrides): Promise<string>;
 
@@ -637,11 +466,7 @@ export interface Helix extends BaseContract {
   ): Promise<ContractTransaction>;
 
   callStatic: {
-    ADMIN_ROLE(overrides?: CallOverrides): Promise<string>;
-
     BURNER_ROLE(overrides?: CallOverrides): Promise<string>;
-
-    DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<string>;
 
     MINTER_ROLE(overrides?: CallOverrides): Promise<string>;
 
@@ -661,6 +486,8 @@ export interface Helix extends BaseContract {
       amount: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<boolean>;
+
+    authority(overrides?: CallOverrides): Promise<string>;
 
     balanceOf(
       account: PromiseOrValue<string>,
@@ -683,23 +510,6 @@ export interface Helix extends BaseContract {
 
     enableUnrestrictedTransfers(overrides?: CallOverrides): Promise<boolean>;
 
-    getRoleAdmin(
-      role: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<string>;
-
-    grantRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    hasRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<boolean>;
-
     increaseAllowance(
       spender: PromiseOrValue<string>,
       addedValue: PromiseOrValue<BigNumberish>,
@@ -714,21 +524,14 @@ export interface Helix extends BaseContract {
 
     name(overrides?: CallOverrides): Promise<string>;
 
-    renounceRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    revokeRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
     setAllowedContract(
       contractAddress: PromiseOrValue<string>,
       allowed: PromiseOrValue<boolean>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setAuthority(
+      _newAuthority: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -736,18 +539,6 @@ export interface Helix extends BaseContract {
       enabled: PromiseOrValue<boolean>,
       overrides?: CallOverrides
     ): Promise<void>;
-
-    setRole(
-      role: PromiseOrValue<BytesLike>,
-      addr: PromiseOrValue<string>,
-      enabled: PromiseOrValue<boolean>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    supportsInterface(
-      interfaceId: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<boolean>;
 
     symbol(overrides?: CallOverrides): Promise<string>;
 
@@ -779,38 +570,8 @@ export interface Helix extends BaseContract {
       value?: null
     ): ApprovalEventFilter;
 
-    "RoleAdminChanged(bytes32,bytes32,bytes32)"(
-      role?: PromiseOrValue<BytesLike> | null,
-      previousAdminRole?: PromiseOrValue<BytesLike> | null,
-      newAdminRole?: PromiseOrValue<BytesLike> | null
-    ): RoleAdminChangedEventFilter;
-    RoleAdminChanged(
-      role?: PromiseOrValue<BytesLike> | null,
-      previousAdminRole?: PromiseOrValue<BytesLike> | null,
-      newAdminRole?: PromiseOrValue<BytesLike> | null
-    ): RoleAdminChangedEventFilter;
-
-    "RoleGranted(bytes32,address,address)"(
-      role?: PromiseOrValue<BytesLike> | null,
-      account?: PromiseOrValue<string> | null,
-      sender?: PromiseOrValue<string> | null
-    ): RoleGrantedEventFilter;
-    RoleGranted(
-      role?: PromiseOrValue<BytesLike> | null,
-      account?: PromiseOrValue<string> | null,
-      sender?: PromiseOrValue<string> | null
-    ): RoleGrantedEventFilter;
-
-    "RoleRevoked(bytes32,address,address)"(
-      role?: PromiseOrValue<BytesLike> | null,
-      account?: PromiseOrValue<string> | null,
-      sender?: PromiseOrValue<string> | null
-    ): RoleRevokedEventFilter;
-    RoleRevoked(
-      role?: PromiseOrValue<BytesLike> | null,
-      account?: PromiseOrValue<string> | null,
-      sender?: PromiseOrValue<string> | null
-    ): RoleRevokedEventFilter;
+    "AuthorityUpdated(address)"(authority?: null): AuthorityUpdatedEventFilter;
+    AuthorityUpdated(authority?: null): AuthorityUpdatedEventFilter;
 
     "Transfer(address,address,uint256)"(
       from?: PromiseOrValue<string> | null,
@@ -825,11 +586,7 @@ export interface Helix extends BaseContract {
   };
 
   estimateGas: {
-    ADMIN_ROLE(overrides?: CallOverrides): Promise<BigNumber>;
-
     BURNER_ROLE(overrides?: CallOverrides): Promise<BigNumber>;
-
-    DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<BigNumber>;
 
     MINTER_ROLE(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -849,6 +606,8 @@ export interface Helix extends BaseContract {
       amount: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
+
+    authority(overrides?: CallOverrides): Promise<BigNumber>;
 
     balanceOf(
       account: PromiseOrValue<string>,
@@ -871,23 +630,6 @@ export interface Helix extends BaseContract {
 
     enableUnrestrictedTransfers(overrides?: CallOverrides): Promise<BigNumber>;
 
-    getRoleAdmin(
-      role: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    grantRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
-    hasRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
     increaseAllowance(
       spender: PromiseOrValue<string>,
       addedValue: PromiseOrValue<BigNumberish>,
@@ -902,39 +644,20 @@ export interface Helix extends BaseContract {
 
     name(overrides?: CallOverrides): Promise<BigNumber>;
 
-    renounceRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
-    revokeRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
     setAllowedContract(
       contractAddress: PromiseOrValue<string>,
       allowed: PromiseOrValue<boolean>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
+    setAuthority(
+      _newAuthority: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
     setEnableUnrestrictedTransfers(
       enabled: PromiseOrValue<boolean>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
-    setRole(
-      role: PromiseOrValue<BytesLike>,
-      addr: PromiseOrValue<string>,
-      enabled: PromiseOrValue<boolean>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
-    supportsInterface(
-      interfaceId: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     symbol(overrides?: CallOverrides): Promise<BigNumber>;
@@ -956,13 +679,7 @@ export interface Helix extends BaseContract {
   };
 
   populateTransaction: {
-    ADMIN_ROLE(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
     BURNER_ROLE(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    DEFAULT_ADMIN_ROLE(
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
 
     MINTER_ROLE(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
@@ -982,6 +699,8 @@ export interface Helix extends BaseContract {
       amount: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
+
+    authority(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     balanceOf(
       account: PromiseOrValue<string>,
@@ -1006,23 +725,6 @@ export interface Helix extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    getRoleAdmin(
-      role: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    grantRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
-    hasRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
     increaseAllowance(
       spender: PromiseOrValue<string>,
       addedValue: PromiseOrValue<BigNumberish>,
@@ -1037,39 +739,20 @@ export interface Helix extends BaseContract {
 
     name(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    renounceRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
-    revokeRole(
-      role: PromiseOrValue<BytesLike>,
-      account: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
     setAllowedContract(
       contractAddress: PromiseOrValue<string>,
       allowed: PromiseOrValue<boolean>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
+    setAuthority(
+      _newAuthority: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
     setEnableUnrestrictedTransfers(
       enabled: PromiseOrValue<boolean>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
-    setRole(
-      role: PromiseOrValue<BytesLike>,
-      addr: PromiseOrValue<string>,
-      enabled: PromiseOrValue<boolean>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
-    supportsInterface(
-      interfaceId: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     symbol(overrides?: CallOverrides): Promise<PopulatedTransaction>;

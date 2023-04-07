@@ -14,9 +14,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
          from: deployer,
          args: [
              CONFIGURATION.helixName,
-             CONFIGURATION.helixTicker,
-             authorityDeployment.address
-         ],
+             CONFIGURATION.helixTicker         ],
          log: true,
          skipIfAlreadyDeployed: true,
      });

@@ -277,8 +277,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
                 address: helixDeployment.address,
                 constructorArguments: [
                     CONFIGURATION.helixName,
-                    CONFIGURATION.helixTicker,
-                    authorityDeployment.address,
+                    CONFIGURATION.helixTicker
                 ],
             });
             console.log("Verified -- helix");

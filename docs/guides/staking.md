@@ -10,7 +10,7 @@ Welcome to the next generation of DeFi staking with the Kondux Staking Smart Con
 - **Compound Frequency:** Compounding occurs every 24 hours.
 - **Rewards per Hour:** Earn 0.00285% per hour, equivalent to a 25% Annual Percentage Rate (APR).
 - **Founder's NFT Bonus:** Founder's NFT holders enjoy a 10% boost on rewards.
-- **kNFT Bonus:** Each kNFT holder receives a 1% cumulative boost, up to a 5% maximum.
+- **kNFT Bonus:** Each kNFT holder receives a 5% cumulative boost, up to a 25% maximum.
 - **Withdrawal Fee:** A 1% withdrawal fee applies.
 - **Locking Periods & Reward Boosts:**
   - 30 days: Standard rewards

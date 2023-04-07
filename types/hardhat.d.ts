@@ -13,6 +13,14 @@ import * as Contracts from ".";
 declare module "hardhat/types/runtime" {
   interface HardhatEthersHelpers extends HardhatEthersHelpersBase {
     getContractFactory(
+      name: "AccessControl",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.AccessControl__factory>;
+    getContractFactory(
+      name: "IAccessControl",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IAccessControl__factory>;
+    getContractFactory(
       name: "Ownable",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Ownable__factory>;
@@ -189,6 +197,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.KonduxERC721kNFT__factory>;
     getContractFactory(
+      name: "MinterContract",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.MinterContract__factory>;
+    getContractFactory(
       name: "Treasury",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Treasury__factory>;
@@ -197,6 +209,16 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.AccessControlled__factory>;
 
+    getContractAt(
+      name: "AccessControl",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.AccessControl>;
+    getContractAt(
+      name: "IAccessControl",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IAccessControl>;
     getContractAt(
       name: "Ownable",
       address: string,
@@ -417,6 +439,11 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.KonduxERC721kNFT>;
+    getContractAt(
+      name: "MinterContract",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.MinterContract>;
     getContractAt(
       name: "Treasury",
       address: string,

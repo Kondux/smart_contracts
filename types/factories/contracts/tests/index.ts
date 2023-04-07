@@ -5,3 +5,4 @@ export { KonduxERC1155__factory } from "./KonduxERC1155__factory";
 export { KonduxERC20__factory } from "./KonduxERC20__factory";
 export { KonduxERC721Founders__factory } from "./KonduxERC721Founders__factory";
 export { KonduxERC721kNFT__factory } from "./KonduxERC721kNFT__factory";
+export { MinterContract__factory } from "./MinterContract__factory";

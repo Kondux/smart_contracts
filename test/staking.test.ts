@@ -1,4 +1,4 @@
-import { utils, BigNumber } from 'ethers';
+import { utils } from 'ethers';
 import { keccak256 } from 'ethers/lib/utils';
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
@@ -62,7 +62,7 @@ describe("Staking minting", async function () {
         await kondux2.deployed();
         console.log("KNDX2 address:", kondux2.address);
 
-        helix = await new Helix__factory(owner).deploy("Helix", "HLX", authority.address);
+        helix = await new Helix__factory(owner).deploy("Helix", "HLX");
         await helix.deployed();
         console.log("Helix address:", helix.address);
 
@@ -112,9 +112,17 @@ describe("Staking minting", async function () {
         await deposit.wait();
         console.log("Account balance 4:", await kondux.balanceOf(ownerAddress) + " KNDX");
 
-        const setMinter = await authority.pushRole(staking.address, utils.keccak256(utils.toUtf8Bytes("MINTER_ROLE")));
-        await setMinter.wait();
+        const whitelistStaking = await helix.setAllowedContract(staking.address, true); 
+        await whitelistStaking.wait();
+        console.log("Staking contract is whitelisted:", staking.address);
+
+        const setHelixMinter = await helix.setRole(ethers.utils.keccak256(ethers.utils.toUtf8Bytes("MINTER_ROLE")), staking.address, true);
+        await setHelixMinter.wait();
         console.log("Staking contract is minter:", staking.address);
+
+        const setHelixBurner = await helix.setRole(ethers.utils.keccak256(ethers.utils.toUtf8Bytes("BURNER_ROLE")), staking.address, true);
+        await setHelixBurner.wait();
+        console.log("Staking contract is burner:", staking.address);
     });
 
     it("Should stake 10_000_000 tokens, advance time 1h and get first reward", async function () {
@@ -135,7 +143,7 @@ describe("Staking minting", async function () {
 
         // const approve2 = await kondux.connect(staker).approve(treasury.address, ethers.BigNumber.from(10).pow(28));
         // await approve2.wait();
-
+        
         const stake = await staking.connect(staker).deposit(ethers.BigNumber.from(10).pow(18), 4, kondux.address);
         const stakeReceipt = await stake.wait();
 
@@ -207,7 +215,7 @@ describe("Staking minting", async function () {
         await time.increase(timeIncrease);
 
         expect(await staking.compoundRewardsTimer(stakeId)).to.equal(0); // 0 rewards
-        expect(await staking.calculateRewards(ownerAddress, stakeId)).to.equal(ethers.BigNumber.from("759924000000000")); // 1 reward per hour 
+        expect(await staking.calculateRewards(ownerAddress, stakeId)).to.equal(ethers.BigNumber.from("790020000000000")); // 1 reward per hour 
         
         expect(staking.withdraw(10_000, stakeId)).to.be.revertedWith("Timelock not passed");
 
@@ -264,7 +272,7 @@ describe("Staking minting", async function () {
         await time.increase(timeIncrease);
 
         expect(await staking.compoundRewardsTimer(stakeId)).to.equal(0); // 0 rewards
-        expect(await staking.calculateRewards(ownerAddress, stakeId)).to.equal(ethers.BigNumber.from("759924000000000")); // 1 reward per hour 
+        expect(await staking.calculateRewards(ownerAddress, stakeId)).to.equal(ethers.BigNumber.from("790020000000000")); // 1 reward per hour 
         
         expect(staking.withdraw(10_000, stakeId)).to.be.revertedWith("Timelock not passed");
 

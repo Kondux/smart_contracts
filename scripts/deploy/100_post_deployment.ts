@@ -128,8 +128,12 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     console.log("Set Approval for konduxERC");
 
     // // Step 6: Configure helix
-    await waitFor(helix.setStaking(stakingDeployment.address));
-    console.log("Set staking contract @ Helix");
+    await waitFor(helix.setAllowedContract(stakingDeployment.address, true));
+    console.log("Set staking as allowed contract");
+    await waitFor(helix.setRole(ethers.utils.keccak256(ethers.utils.toUtf8Bytes("MINTER_ROLE")), stakingDeployment.address, true));
+    console.log("Set staking as minter");
+    await waitFor(helix.setRole(ethers.utils.keccak256(ethers.utils.toUtf8Bytes("BURNER_ROLE")), stakingDeployment.address, true));
+    console.log("Set staking as burner");
 
     // TESTING ONLY
     await waitFor(konduxERC20.approve(treasuryDeployment.address, ethers.BigNumber.from(10).pow(38)));
