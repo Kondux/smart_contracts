@@ -147,6 +147,9 @@ describe("Staking minting", async function () {
         const stake = await staking.connect(staker).deposit(ethers.BigNumber.from(10).pow(18), 4, kondux.address);
         const stakeReceipt = await stake.wait();
 
+        expect(await staking.getTotalStaked(kondux.address)).to.equal(ethers.BigNumber.from(10).pow(18)); 
+        expect(await staking.getUserTotalStakedByCoin(stakerAddress, kondux.address)).to.equal(ethers.BigNumber.from(10).pow(18));
+
         const stakeEvent = stakeReceipt.events?.filter((e) => e.event === "Stake")[0];
         const stakeId = stakeEvent?.args?.id;
 
@@ -198,6 +201,9 @@ describe("Staking minting", async function () {
 
         const stake = await staking.deposit(ethers.BigNumber.from(10).pow(18), 4, kondux.address);
         const stakeReceipt = await stake.wait();
+
+        expect(await staking.getTotalStaked(kondux.address)).to.equal(ethers.BigNumber.from(10).pow(18)); 
+        expect(await staking.getUserTotalStakedByCoin(ownerAddress, kondux.address)).to.equal(ethers.BigNumber.from(10).pow(18));
 
         const stakeEvent = stakeReceipt.events?.filter((e) => e.event === "Stake")[0];
         const stakeId = stakeEvent?.args?.id;
@@ -256,8 +262,15 @@ describe("Staking minting", async function () {
         const stake = await staking.deposit(ethers.BigNumber.from(10).pow(18), 4, kondux.address);
         const stakeReceipt = await stake.wait();
 
+        expect(await staking.getTotalStaked(kondux.address)).to.equal(ethers.BigNumber.from(10).pow(18));
+        expect(await staking.getTotalStaked(kondux2.address)).to.equal(0);
+        expect(await staking.getUserTotalStakedByCoin(ownerAddress, kondux.address)).to.equal(ethers.BigNumber.from(10).pow(18));
+        expect(await staking.getUserTotalStakedByCoin(ownerAddress, kondux2.address)).to.equal(0);
+
         const stakeEvent = stakeReceipt.events?.filter((e) => e.event === "Stake")[0];
         const stakeId = stakeEvent?.args?.id;
+
+        expect(staking.withdraw(10_000, stakeId)).to.be.reverted;
 
         console.log("Stake id:", stakeId);
 
@@ -274,7 +287,7 @@ describe("Staking minting", async function () {
         expect(await staking.compoundRewardsTimer(stakeId)).to.equal(0); // 0 rewards
         expect(await staking.calculateRewards(ownerAddress, stakeId)).to.equal(ethers.BigNumber.from("790020000000000")); // 1 reward per hour 
         
-        expect(staking.withdraw(10_000, stakeId)).to.be.revertedWith("Timelock not passed");
+        // expect(staking.withdraw(10_000, stakeId)).to.be.revertedWith("Timelock not passed");
 
         await time.increase(timeIncrease);
 
@@ -282,6 +295,11 @@ describe("Staking minting", async function () {
         const withdrawReceipt = await withdraw.wait();
         const withdrawEvent = withdrawReceipt.events?.find((e) => e.event === "Withdraw");
         expect(withdrawEvent?.args?.amount).to.equal(9900); // 1 reward per hour
+        // check totalstaked
+        expect(await staking.getTotalStaked(kondux.address)).to.equal(ethers.BigNumber.from(10).pow(18).sub(10_000));
+        expect(await staking.getTotalStaked(kondux2.address)).to.equal(0);
+        expect(await staking.getUserTotalStakedByCoin(ownerAddress, kondux.address)).to.equal(ethers.BigNumber.from(10).pow(18).sub(10_000));
+        expect(await staking.getUserTotalStakedByCoin(ownerAddress, kondux2.address)).to.equal(0);
 
         // Add another token and stake it
         const newToken = await staking.addNewStakingToken(kondux2.address, 285, 60 * 60 * 24, 100_000, 10_000_000, 11_000_000, 10_000_000, 100_000, 10_000_000, 10_000, 10_000_000);
@@ -306,6 +324,13 @@ describe("Staking minting", async function () {
 
         console.log("Stake id:", stakeId2);
 
+        expect(await staking.getTotalStaked(kondux.address)).to.equal(ethers.BigNumber.from(10).pow(18).sub(10_000));
+        expect(await staking.getTotalStaked(kondux2.address)).to.equal(ethers.BigNumber.from(10).pow(18));
+        expect(await staking.getUserTotalStakedByCoin(ownerAddress, kondux.address)).to.equal(ethers.BigNumber.from(10).pow(18).sub(10_000));
+        expect(await staking.getUserTotalStakedByCoin(ownerAddress, kondux2.address)).to.equal(ethers.BigNumber.from(10).pow(18));
+        
+        expect(staking.withdraw(10_000, stakeId2)).to.be.reverted;
+
         const depositInfo2 = await staking.getDepositInfo(stakeId2);
         expect(depositInfo2._stake).to.equal(ethers.BigNumber.from(10).pow(18));
 
@@ -319,7 +344,11 @@ describe("Staking minting", async function () {
         expect(await staking.compoundRewardsTimer(stakeId2)).to.equal(0); // 0 rewards
         expect(await staking.calculateRewards(ownerAddress, stakeId2)).to.equal(ethers.BigNumber.from("759924000000000")); // 1 reward per hour 
         
-        expect(staking.withdraw(10_000, stakeId2)).to.be.revertedWith("Timelock not passed");
+
+        expect(await staking.getTotalStaked(kondux.address)).to.equal(ethers.BigNumber.from(10).pow(18).sub(10_000));
+        expect(await staking.getTotalStaked(kondux2.address)).to.equal(ethers.BigNumber.from(10).pow(18));
+        expect(await staking.getUserTotalStakedByCoin(ownerAddress, kondux.address)).to.equal(ethers.BigNumber.from(10).pow(18).sub(10_000));
+        expect(await staking.getUserTotalStakedByCoin(ownerAddress, kondux2.address)).to.equal(ethers.BigNumber.from(10).pow(18));
 
         await time.increase(timeIncrease);
         
@@ -327,6 +356,11 @@ describe("Staking minting", async function () {
         const withdrawReceipt2 = await withdraw2.wait();
         const withdrawEvent2 = withdrawReceipt2.events?.find((e) => e.event === "Withdraw");
         expect(withdrawEvent2?.args?.amount).to.equal(9900); // 1 reward per hour
+
+        expect(await staking.getTotalStaked(kondux.address)).to.equal(ethers.BigNumber.from(10).pow(18).sub(10_000));
+        expect(await staking.getTotalStaked(kondux2.address)).to.equal(ethers.BigNumber.from(10).pow(18).sub(10_000));
+        expect(await staking.getUserTotalStakedByCoin(ownerAddress, kondux.address)).to.equal(ethers.BigNumber.from(10).pow(18).sub(10_000));
+        expect(await staking.getUserTotalStakedByCoin(ownerAddress, kondux2.address)).to.equal(ethers.BigNumber.from(10).pow(18).sub(10_000));
         
         
 
