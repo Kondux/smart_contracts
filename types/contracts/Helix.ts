@@ -33,6 +33,7 @@ export interface HelixInterface extends utils.Interface {
     "BURNER_ROLE()": FunctionFragment;
     "DEFAULT_ADMIN_ROLE()": FunctionFragment;
     "MINTER_ROLE()": FunctionFragment;
+    "WHITELIST_MANAGER_ROLE()": FunctionFragment;
     "allowance(address,address)": FunctionFragment;
     "allowedContracts(address)": FunctionFragment;
     "approve(address,uint256)": FunctionFragment;
@@ -42,11 +43,14 @@ export interface HelixInterface extends utils.Interface {
     "decreaseAllowance(address,uint256)": FunctionFragment;
     "enableUnrestrictedTransfers()": FunctionFragment;
     "getRoleAdmin(bytes32)": FunctionFragment;
+    "getWhitelistedContracts()": FunctionFragment;
     "grantRole(bytes32,address)": FunctionFragment;
     "hasRole(bytes32,address)": FunctionFragment;
     "increaseAllowance(address,uint256)": FunctionFragment;
     "mint(address,uint256)": FunctionFragment;
     "name()": FunctionFragment;
+    "pause()": FunctionFragment;
+    "paused()": FunctionFragment;
     "renounceRole(bytes32,address)": FunctionFragment;
     "revokeRole(bytes32,address)": FunctionFragment;
     "setAllowedContract(address,bool)": FunctionFragment;
@@ -57,6 +61,8 @@ export interface HelixInterface extends utils.Interface {
     "totalSupply()": FunctionFragment;
     "transfer(address,uint256)": FunctionFragment;
     "transferFrom(address,address,uint256)": FunctionFragment;
+    "unpause()": FunctionFragment;
+    "whitelistedContracts(uint256)": FunctionFragment;
   };
 
   getFunction(
@@ -65,6 +71,7 @@ export interface HelixInterface extends utils.Interface {
       | "BURNER_ROLE"
       | "DEFAULT_ADMIN_ROLE"
       | "MINTER_ROLE"
+      | "WHITELIST_MANAGER_ROLE"
       | "allowance"
       | "allowedContracts"
       | "approve"
@@ -74,11 +81,14 @@ export interface HelixInterface extends utils.Interface {
       | "decreaseAllowance"
       | "enableUnrestrictedTransfers"
       | "getRoleAdmin"
+      | "getWhitelistedContracts"
       | "grantRole"
       | "hasRole"
       | "increaseAllowance"
       | "mint"
       | "name"
+      | "pause"
+      | "paused"
       | "renounceRole"
       | "revokeRole"
       | "setAllowedContract"
@@ -89,6 +99,8 @@ export interface HelixInterface extends utils.Interface {
       | "totalSupply"
       | "transfer"
       | "transferFrom"
+      | "unpause"
+      | "whitelistedContracts"
   ): FunctionFragment;
 
   encodeFunctionData(
@@ -105,6 +117,10 @@ export interface HelixInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "MINTER_ROLE",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "WHITELIST_MANAGER_ROLE",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -141,6 +157,10 @@ export interface HelixInterface extends utils.Interface {
     values: [PromiseOrValue<BytesLike>]
   ): string;
   encodeFunctionData(
+    functionFragment: "getWhitelistedContracts",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "grantRole",
     values: [PromiseOrValue<BytesLike>, PromiseOrValue<string>]
   ): string;
@@ -157,6 +177,8 @@ export interface HelixInterface extends utils.Interface {
     values: [PromiseOrValue<string>, PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(functionFragment: "name", values?: undefined): string;
+  encodeFunctionData(functionFragment: "pause", values?: undefined): string;
+  encodeFunctionData(functionFragment: "paused", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "renounceRole",
     values: [PromiseOrValue<BytesLike>, PromiseOrValue<string>]
@@ -202,6 +224,11 @@ export interface HelixInterface extends utils.Interface {
       PromiseOrValue<BigNumberish>
     ]
   ): string;
+  encodeFunctionData(functionFragment: "unpause", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "whitelistedContracts",
+    values: [PromiseOrValue<BigNumberish>]
+  ): string;
 
   decodeFunctionResult(functionFragment: "ADMIN_ROLE", data: BytesLike): Result;
   decodeFunctionResult(
@@ -214,6 +241,10 @@ export interface HelixInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "MINTER_ROLE",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "WHITELIST_MANAGER_ROLE",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "allowance", data: BytesLike): Result;
@@ -237,6 +268,10 @@ export interface HelixInterface extends utils.Interface {
     functionFragment: "getRoleAdmin",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "getWhitelistedContracts",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "grantRole", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "hasRole", data: BytesLike): Result;
   decodeFunctionResult(
@@ -245,6 +280,8 @@ export interface HelixInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "mint", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "name", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "pause", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "paused", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "renounceRole",
     data: BytesLike
@@ -273,20 +310,33 @@ export interface HelixInterface extends utils.Interface {
     functionFragment: "transferFrom",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "unpause", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "whitelistedContracts",
+    data: BytesLike
+  ): Result;
 
   events: {
     "Approval(address,address,uint256)": EventFragment;
+    "Paused(address)": EventFragment;
     "RoleAdminChanged(bytes32,bytes32,bytes32)": EventFragment;
+    "RoleChanged(address,bytes32,bool)": EventFragment;
     "RoleGranted(bytes32,address,address)": EventFragment;
     "RoleRevoked(bytes32,address,address)": EventFragment;
     "Transfer(address,address,uint256)": EventFragment;
+    "Unpaused(address)": EventFragment;
+    "WhitelistChanged(address,bool)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "Approval"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "Paused"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "RoleAdminChanged"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "RoleChanged"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "RoleGranted"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "RoleRevoked"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Transfer"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "Unpaused"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "WhitelistChanged"): EventFragment;
 }
 
 export interface ApprovalEventObject {
@@ -301,6 +351,13 @@ export type ApprovalEvent = TypedEvent<
 
 export type ApprovalEventFilter = TypedEventFilter<ApprovalEvent>;
 
+export interface PausedEventObject {
+  account: string;
+}
+export type PausedEvent = TypedEvent<[string], PausedEventObject>;
+
+export type PausedEventFilter = TypedEventFilter<PausedEvent>;
+
 export interface RoleAdminChangedEventObject {
   role: string;
   previousAdminRole: string;
@@ -313,6 +370,18 @@ export type RoleAdminChangedEvent = TypedEvent<
 
 export type RoleAdminChangedEventFilter =
   TypedEventFilter<RoleAdminChangedEvent>;
+
+export interface RoleChangedEventObject {
+  addr: string;
+  role: string;
+  enabled: boolean;
+}
+export type RoleChangedEvent = TypedEvent<
+  [string, string, boolean],
+  RoleChangedEventObject
+>;
+
+export type RoleChangedEventFilter = TypedEventFilter<RoleChangedEvent>;
 
 export interface RoleGrantedEventObject {
   role: string;
@@ -350,6 +419,25 @@ export type TransferEvent = TypedEvent<
 
 export type TransferEventFilter = TypedEventFilter<TransferEvent>;
 
+export interface UnpausedEventObject {
+  account: string;
+}
+export type UnpausedEvent = TypedEvent<[string], UnpausedEventObject>;
+
+export type UnpausedEventFilter = TypedEventFilter<UnpausedEvent>;
+
+export interface WhitelistChangedEventObject {
+  contractAddress: string;
+  allowed: boolean;
+}
+export type WhitelistChangedEvent = TypedEvent<
+  [string, boolean],
+  WhitelistChangedEventObject
+>;
+
+export type WhitelistChangedEventFilter =
+  TypedEventFilter<WhitelistChangedEvent>;
+
 export interface Helix extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
@@ -384,6 +472,8 @@ export interface Helix extends BaseContract {
     DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<[string]>;
 
     MINTER_ROLE(overrides?: CallOverrides): Promise<[string]>;
+
+    WHITELIST_MANAGER_ROLE(overrides?: CallOverrides): Promise<[string]>;
 
     allowance(
       owner: PromiseOrValue<string>,
@@ -428,6 +518,8 @@ export interface Helix extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[string]>;
 
+    getWhitelistedContracts(overrides?: CallOverrides): Promise<[string[]]>;
+
     grantRole(
       role: PromiseOrValue<BytesLike>,
       account: PromiseOrValue<string>,
@@ -453,6 +545,12 @@ export interface Helix extends BaseContract {
     ): Promise<ContractTransaction>;
 
     name(overrides?: CallOverrides): Promise<[string]>;
+
+    pause(
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    paused(overrides?: CallOverrides): Promise<[boolean]>;
 
     renounceRole(
       role: PromiseOrValue<BytesLike>,
@@ -505,6 +603,15 @@ export interface Helix extends BaseContract {
       amount: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
+
+    unpause(
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    whitelistedContracts(
+      arg0: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<[string]>;
   };
 
   ADMIN_ROLE(overrides?: CallOverrides): Promise<string>;
@@ -514,6 +621,8 @@ export interface Helix extends BaseContract {
   DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<string>;
 
   MINTER_ROLE(overrides?: CallOverrides): Promise<string>;
+
+  WHITELIST_MANAGER_ROLE(overrides?: CallOverrides): Promise<string>;
 
   allowance(
     owner: PromiseOrValue<string>,
@@ -558,6 +667,8 @@ export interface Helix extends BaseContract {
     overrides?: CallOverrides
   ): Promise<string>;
 
+  getWhitelistedContracts(overrides?: CallOverrides): Promise<string[]>;
+
   grantRole(
     role: PromiseOrValue<BytesLike>,
     account: PromiseOrValue<string>,
@@ -583,6 +694,12 @@ export interface Helix extends BaseContract {
   ): Promise<ContractTransaction>;
 
   name(overrides?: CallOverrides): Promise<string>;
+
+  pause(
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  paused(overrides?: CallOverrides): Promise<boolean>;
 
   renounceRole(
     role: PromiseOrValue<BytesLike>,
@@ -636,6 +753,15 @@ export interface Helix extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
+  unpause(
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  whitelistedContracts(
+    arg0: PromiseOrValue<BigNumberish>,
+    overrides?: CallOverrides
+  ): Promise<string>;
+
   callStatic: {
     ADMIN_ROLE(overrides?: CallOverrides): Promise<string>;
 
@@ -644,6 +770,8 @@ export interface Helix extends BaseContract {
     DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<string>;
 
     MINTER_ROLE(overrides?: CallOverrides): Promise<string>;
+
+    WHITELIST_MANAGER_ROLE(overrides?: CallOverrides): Promise<string>;
 
     allowance(
       owner: PromiseOrValue<string>,
@@ -688,6 +816,8 @@ export interface Helix extends BaseContract {
       overrides?: CallOverrides
     ): Promise<string>;
 
+    getWhitelistedContracts(overrides?: CallOverrides): Promise<string[]>;
+
     grantRole(
       role: PromiseOrValue<BytesLike>,
       account: PromiseOrValue<string>,
@@ -713,6 +843,10 @@ export interface Helix extends BaseContract {
     ): Promise<void>;
 
     name(overrides?: CallOverrides): Promise<string>;
+
+    pause(overrides?: CallOverrides): Promise<void>;
+
+    paused(overrides?: CallOverrides): Promise<boolean>;
 
     renounceRole(
       role: PromiseOrValue<BytesLike>,
@@ -765,6 +899,13 @@ export interface Helix extends BaseContract {
       amount: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<boolean>;
+
+    unpause(overrides?: CallOverrides): Promise<void>;
+
+    whitelistedContracts(
+      arg0: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<string>;
   };
 
   filters: {
@@ -779,6 +920,9 @@ export interface Helix extends BaseContract {
       value?: null
     ): ApprovalEventFilter;
 
+    "Paused(address)"(account?: null): PausedEventFilter;
+    Paused(account?: null): PausedEventFilter;
+
     "RoleAdminChanged(bytes32,bytes32,bytes32)"(
       role?: PromiseOrValue<BytesLike> | null,
       previousAdminRole?: PromiseOrValue<BytesLike> | null,
@@ -789,6 +933,17 @@ export interface Helix extends BaseContract {
       previousAdminRole?: PromiseOrValue<BytesLike> | null,
       newAdminRole?: PromiseOrValue<BytesLike> | null
     ): RoleAdminChangedEventFilter;
+
+    "RoleChanged(address,bytes32,bool)"(
+      addr?: PromiseOrValue<string> | null,
+      role?: null,
+      enabled?: null
+    ): RoleChangedEventFilter;
+    RoleChanged(
+      addr?: PromiseOrValue<string> | null,
+      role?: null,
+      enabled?: null
+    ): RoleChangedEventFilter;
 
     "RoleGranted(bytes32,address,address)"(
       role?: PromiseOrValue<BytesLike> | null,
@@ -822,6 +977,18 @@ export interface Helix extends BaseContract {
       to?: PromiseOrValue<string> | null,
       value?: null
     ): TransferEventFilter;
+
+    "Unpaused(address)"(account?: null): UnpausedEventFilter;
+    Unpaused(account?: null): UnpausedEventFilter;
+
+    "WhitelistChanged(address,bool)"(
+      contractAddress?: PromiseOrValue<string> | null,
+      allowed?: null
+    ): WhitelistChangedEventFilter;
+    WhitelistChanged(
+      contractAddress?: PromiseOrValue<string> | null,
+      allowed?: null
+    ): WhitelistChangedEventFilter;
   };
 
   estimateGas: {
@@ -832,6 +999,8 @@ export interface Helix extends BaseContract {
     DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<BigNumber>;
 
     MINTER_ROLE(overrides?: CallOverrides): Promise<BigNumber>;
+
+    WHITELIST_MANAGER_ROLE(overrides?: CallOverrides): Promise<BigNumber>;
 
     allowance(
       owner: PromiseOrValue<string>,
@@ -876,6 +1045,8 @@ export interface Helix extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    getWhitelistedContracts(overrides?: CallOverrides): Promise<BigNumber>;
+
     grantRole(
       role: PromiseOrValue<BytesLike>,
       account: PromiseOrValue<string>,
@@ -901,6 +1072,12 @@ export interface Helix extends BaseContract {
     ): Promise<BigNumber>;
 
     name(overrides?: CallOverrides): Promise<BigNumber>;
+
+    pause(
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    paused(overrides?: CallOverrides): Promise<BigNumber>;
 
     renounceRole(
       role: PromiseOrValue<BytesLike>,
@@ -953,6 +1130,15 @@ export interface Helix extends BaseContract {
       amount: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
+
+    unpause(
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    whitelistedContracts(
+      arg0: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
   };
 
   populateTransaction: {
@@ -965,6 +1151,10 @@ export interface Helix extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     MINTER_ROLE(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    WHITELIST_MANAGER_ROLE(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
 
     allowance(
       owner: PromiseOrValue<string>,
@@ -1011,6 +1201,10 @@ export interface Helix extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
+    getWhitelistedContracts(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     grantRole(
       role: PromiseOrValue<BytesLike>,
       account: PromiseOrValue<string>,
@@ -1036,6 +1230,12 @@ export interface Helix extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     name(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    pause(
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    paused(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     renounceRole(
       role: PromiseOrValue<BytesLike>,
@@ -1087,6 +1287,15 @@ export interface Helix extends BaseContract {
       to: PromiseOrValue<string>,
       amount: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    unpause(
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    whitelistedContracts(
+      arg0: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
   };
 }

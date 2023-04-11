@@ -30,6 +30,7 @@ import type {
 export interface StakingInterface extends utils.Interface {
   functions: {
     "addNewStakingToken(address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)": FunctionFragment;
+    "aprERC20(address)": FunctionFragment;
     "authority()": FunctionFragment;
     "authorizedERC20(address)": FunctionFragment;
     "calculateRewards(address,uint256)": FunctionFragment;
@@ -39,6 +40,7 @@ export interface StakingInterface extends utils.Interface {
     "deposit(uint256,uint8,address)": FunctionFragment;
     "foundersRewardBoostDivisorERC20(address)": FunctionFragment;
     "foundersRewardBoostERC20(address)": FunctionFragment;
+    "getAPR(address)": FunctionFragment;
     "getDepositIds(address)": FunctionFragment;
     "getDepositInfo(uint256)": FunctionFragment;
     "getFoundersRewardBoost(address)": FunctionFragment;
@@ -50,7 +52,9 @@ export interface StakingInterface extends utils.Interface {
     "getTimeOfLastUpdate(uint256)": FunctionFragment;
     "getTimelock(uint256)": FunctionFragment;
     "getTimelockCategory(uint256)": FunctionFragment;
+    "getTotalRewards(address)": FunctionFragment;
     "getTotalStaked(address)": FunctionFragment;
+    "getUserTotalRewardsByCoin(address,address)": FunctionFragment;
     "getUserTotalStakedByCoin(address,address)": FunctionFragment;
     "getWithdrawalFee(address)": FunctionFragment;
     "getWithdrawalFeeDivisor(address)": FunctionFragment;
@@ -61,9 +65,8 @@ export interface StakingInterface extends utils.Interface {
     "konduxERC721Founders()": FunctionFragment;
     "konduxERC721kNFT()": FunctionFragment;
     "minStakeERC20(address)": FunctionFragment;
-    "name(address)": FunctionFragment;
     "ratioERC20(address)": FunctionFragment;
-    "rewardsPerHourERC20(address)": FunctionFragment;
+    "setAPR(uint256,address)": FunctionFragment;
     "setAuthority(address)": FunctionFragment;
     "setAuthorizedERC20(address,bool)": FunctionFragment;
     "setCompoundFreq(uint256,address)": FunctionFragment;
@@ -74,18 +77,19 @@ export interface StakingInterface extends utils.Interface {
     "setKonduxERC721kNFT(address)": FunctionFragment;
     "setMinStake(uint256,address)": FunctionFragment;
     "setRatio(uint256,address)": FunctionFragment;
-    "setRewards(uint256,address)": FunctionFragment;
-    "setRewardsPerHour(uint256,address)": FunctionFragment;
     "setTreasury(address)": FunctionFragment;
     "setWithdrawalFee(uint256,address)": FunctionFragment;
     "setWithdrawalFeeDivisor(uint256,address)": FunctionFragment;
     "setkNFTRewardBoost(uint256,address)": FunctionFragment;
     "setkNFTRewardBoostDivisor(uint256,address)": FunctionFragment;
     "stakeRewards(uint256)": FunctionFragment;
+    "totalRewarded(address)": FunctionFragment;
     "totalStaked(address)": FunctionFragment;
     "treasury()": FunctionFragment;
     "userDeposits(uint256)": FunctionFragment;
     "userDepositsIds(address,uint256)": FunctionFragment;
+    "userTotalRewardedByCoin(address,address)": FunctionFragment;
+    "userTotalStakedByCoin(address,address)": FunctionFragment;
     "withdraw(uint256,uint256)": FunctionFragment;
     "withdrawAndClaim(uint256,uint256)": FunctionFragment;
     "withdrawalFeeDivisorERC20(address)": FunctionFragment;
@@ -95,6 +99,7 @@ export interface StakingInterface extends utils.Interface {
   getFunction(
     nameOrSignatureOrTopic:
       | "addNewStakingToken"
+      | "aprERC20"
       | "authority"
       | "authorizedERC20"
       | "calculateRewards"
@@ -104,6 +109,7 @@ export interface StakingInterface extends utils.Interface {
       | "deposit"
       | "foundersRewardBoostDivisorERC20"
       | "foundersRewardBoostERC20"
+      | "getAPR"
       | "getDepositIds"
       | "getDepositInfo"
       | "getFoundersRewardBoost"
@@ -115,7 +121,9 @@ export interface StakingInterface extends utils.Interface {
       | "getTimeOfLastUpdate"
       | "getTimelock"
       | "getTimelockCategory"
+      | "getTotalRewards"
       | "getTotalStaked"
+      | "getUserTotalRewardsByCoin"
       | "getUserTotalStakedByCoin"
       | "getWithdrawalFee"
       | "getWithdrawalFeeDivisor"
@@ -126,9 +134,8 @@ export interface StakingInterface extends utils.Interface {
       | "konduxERC721Founders"
       | "konduxERC721kNFT"
       | "minStakeERC20"
-      | "name"
       | "ratioERC20"
-      | "rewardsPerHourERC20"
+      | "setAPR"
       | "setAuthority"
       | "setAuthorizedERC20"
       | "setCompoundFreq"
@@ -139,18 +146,19 @@ export interface StakingInterface extends utils.Interface {
       | "setKonduxERC721kNFT"
       | "setMinStake"
       | "setRatio"
-      | "setRewards"
-      | "setRewardsPerHour"
       | "setTreasury"
       | "setWithdrawalFee"
       | "setWithdrawalFeeDivisor"
       | "setkNFTRewardBoost"
       | "setkNFTRewardBoostDivisor"
       | "stakeRewards"
+      | "totalRewarded"
       | "totalStaked"
       | "treasury"
       | "userDeposits"
       | "userDepositsIds"
+      | "userTotalRewardedByCoin"
+      | "userTotalStakedByCoin"
       | "withdraw"
       | "withdrawAndClaim"
       | "withdrawalFeeDivisorERC20"
@@ -172,6 +180,10 @@ export interface StakingInterface extends utils.Interface {
       PromiseOrValue<BigNumberish>,
       PromiseOrValue<BigNumberish>
     ]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "aprERC20",
+    values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(functionFragment: "authority", values?: undefined): string;
   encodeFunctionData(
@@ -208,6 +220,10 @@ export interface StakingInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "foundersRewardBoostERC20",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getAPR",
     values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
@@ -255,8 +271,16 @@ export interface StakingInterface extends utils.Interface {
     values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
+    functionFragment: "getTotalRewards",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
     functionFragment: "getTotalStaked",
     values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getUserTotalRewardsByCoin",
+    values: [PromiseOrValue<string>, PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
     functionFragment: "getUserTotalStakedByCoin",
@@ -299,16 +323,12 @@ export interface StakingInterface extends utils.Interface {
     values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
-    functionFragment: "name",
-    values: [PromiseOrValue<string>]
-  ): string;
-  encodeFunctionData(
     functionFragment: "ratioERC20",
     values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
-    functionFragment: "rewardsPerHourERC20",
-    values: [PromiseOrValue<string>]
+    functionFragment: "setAPR",
+    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
     functionFragment: "setAuthority",
@@ -351,14 +371,6 @@ export interface StakingInterface extends utils.Interface {
     values: [PromiseOrValue<BigNumberish>, PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
-    functionFragment: "setRewards",
-    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<string>]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "setRewardsPerHour",
-    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<string>]
-  ): string;
-  encodeFunctionData(
     functionFragment: "setTreasury",
     values: [PromiseOrValue<string>]
   ): string;
@@ -383,6 +395,10 @@ export interface StakingInterface extends utils.Interface {
     values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
+    functionFragment: "totalRewarded",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
     functionFragment: "totalStaked",
     values: [PromiseOrValue<string>]
   ): string;
@@ -394,6 +410,14 @@ export interface StakingInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "userDepositsIds",
     values: [PromiseOrValue<string>, PromiseOrValue<BigNumberish>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "userTotalRewardedByCoin",
+    values: [PromiseOrValue<string>, PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "userTotalStakedByCoin",
+    values: [PromiseOrValue<string>, PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
     functionFragment: "withdraw",
@@ -416,6 +440,7 @@ export interface StakingInterface extends utils.Interface {
     functionFragment: "addNewStakingToken",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "aprERC20", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "authority", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "authorizedERC20",
@@ -446,6 +471,7 @@ export interface StakingInterface extends utils.Interface {
     functionFragment: "foundersRewardBoostERC20",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "getAPR", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "getDepositIds",
     data: BytesLike
@@ -491,7 +517,15 @@ export interface StakingInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "getTotalRewards",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "getTotalStaked",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getUserTotalRewardsByCoin",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -531,12 +565,8 @@ export interface StakingInterface extends utils.Interface {
     functionFragment: "minStakeERC20",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "name", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "ratioERC20", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "rewardsPerHourERC20",
-    data: BytesLike
-  ): Result;
+  decodeFunctionResult(functionFragment: "setAPR", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "setAuthority",
     data: BytesLike
@@ -574,11 +604,6 @@ export interface StakingInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "setRatio", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "setRewards", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "setRewardsPerHour",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(
     functionFragment: "setTreasury",
     data: BytesLike
@@ -604,6 +629,10 @@ export interface StakingInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "totalRewarded",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "totalStaked",
     data: BytesLike
   ): Result;
@@ -614,6 +643,14 @@ export interface StakingInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "userDepositsIds",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "userTotalRewardedByCoin",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "userTotalStakedByCoin",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "withdraw", data: BytesLike): Result;
@@ -633,6 +670,7 @@ export interface StakingInterface extends utils.Interface {
   events: {
     "AuthorityUpdated(address)": EventFragment;
     "Compound(address,uint256)": EventFragment;
+    "NewAPR(uint256,address)": EventFragment;
     "NewAuthorizedERC20(address,bool)": EventFragment;
     "NewCompoundFreq(uint256,address)": EventFragment;
     "NewFoundersRewardBoost(uint256,address)": EventFragment;
@@ -644,7 +682,6 @@ export interface StakingInterface extends utils.Interface {
     "NewKonduxERC721kNFT(address)": EventFragment;
     "NewMinStake(uint256,address)": EventFragment;
     "NewRatio(uint256,address)": EventFragment;
-    "NewRewardsPerHour(uint256,address)": EventFragment;
     "NewTreasury(address)": EventFragment;
     "NewWithdrawalFee(uint256,address)": EventFragment;
     "NewWithdrawalFeeDivisor(uint256,address)": EventFragment;
@@ -657,6 +694,7 @@ export interface StakingInterface extends utils.Interface {
 
   getEvent(nameOrSignatureOrTopic: "AuthorityUpdated"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Compound"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "NewAPR"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NewAuthorizedERC20"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NewCompoundFreq"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NewFoundersRewardBoost"): EventFragment;
@@ -670,7 +708,6 @@ export interface StakingInterface extends utils.Interface {
   getEvent(nameOrSignatureOrTopic: "NewKonduxERC721kNFT"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NewMinStake"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NewRatio"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "NewRewardsPerHour"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NewTreasury"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NewWithdrawalFee"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NewWithdrawalFeeDivisor"): EventFragment;
@@ -702,6 +739,14 @@ export type CompoundEvent = TypedEvent<
 >;
 
 export type CompoundEventFilter = TypedEventFilter<CompoundEvent>;
+
+export interface NewAPREventObject {
+  amount: BigNumber;
+  token: string;
+}
+export type NewAPREvent = TypedEvent<[BigNumber, string], NewAPREventObject>;
+
+export type NewAPREventFilter = TypedEventFilter<NewAPREvent>;
 
 export interface NewAuthorizedERC20EventObject {
   token: string;
@@ -825,18 +870,6 @@ export type NewRatioEvent = TypedEvent<
 
 export type NewRatioEventFilter = TypedEventFilter<NewRatioEvent>;
 
-export interface NewRewardsPerHourEventObject {
-  amount: BigNumber;
-  token: string;
-}
-export type NewRewardsPerHourEvent = TypedEvent<
-  [BigNumber, string],
-  NewRewardsPerHourEventObject
->;
-
-export type NewRewardsPerHourEventFilter =
-  TypedEventFilter<NewRewardsPerHourEvent>;
-
 export interface NewTreasuryEventObject {
   treasury: string;
 }
@@ -948,7 +981,7 @@ export interface Staking extends BaseContract {
   functions: {
     addNewStakingToken(
       _token: PromiseOrValue<string>,
-      _rewardsPerHour: PromiseOrValue<BigNumberish>,
+      _apr: PromiseOrValue<BigNumberish>,
       _compoundFreq: PromiseOrValue<BigNumberish>,
       _withdrawalFee: PromiseOrValue<BigNumberish>,
       _withdrawalFeeDivisor: PromiseOrValue<BigNumberish>,
@@ -960,6 +993,11 @@ export interface Staking extends BaseContract {
       _minStake: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
+
+    aprERC20(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
 
     authority(overrides?: CallOverrides): Promise<[string]>;
 
@@ -987,7 +1025,7 @@ export interface Staking extends BaseContract {
     compoundRewardsTimer(
       _depositId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
-    ): Promise<[BigNumber] & { _timer: BigNumber }>;
+    ): Promise<[BigNumber] & { remainingTime: BigNumber }>;
 
     deposit(
       _amount: PromiseOrValue<BigNumberish>,
@@ -1006,6 +1044,11 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
+    getAPR(
+      _tokenId: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber] & { _rewardsPerHour: BigNumber }>;
+
     getDepositIds(
       _user: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -1015,7 +1058,10 @@ export interface Staking extends BaseContract {
       _depositId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<
-      [BigNumber, BigNumber] & { _stake: BigNumber; _rewards: BigNumber }
+      [BigNumber, BigNumber] & {
+        _stake: BigNumber;
+        _unclaimedRewards: BigNumber;
+      }
     >;
 
     getFoundersRewardBoost(
@@ -1063,10 +1109,21 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[number] & { _timelockCategory: number }>;
 
+    getTotalRewards(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber] & { _totalRewards: BigNumber }>;
+
     getTotalStaked(
       _token: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<[BigNumber] & { _totalStaked: BigNumber }>;
+
+    getUserTotalRewardsByCoin(
+      _user: PromiseOrValue<string>,
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber] & { _totalRewards: BigNumber }>;
 
     getUserTotalStakedByCoin(
       _user: PromiseOrValue<string>,
@@ -1110,20 +1167,16 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
-    name(
-      arg0: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber]>;
-
     ratioERC20(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
-    rewardsPerHourERC20(
-      arg0: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber]>;
+    setAPR(
+      _apr: PromiseOrValue<BigNumberish>,
+      _tokenId: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
 
     setAuthority(
       _newAuthority: PromiseOrValue<string>,
@@ -1181,18 +1234,6 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    setRewards(
-      _rewardsPerHour: PromiseOrValue<BigNumberish>,
-      _tokenId: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
-    setRewardsPerHour(
-      _rewardsPerHour: PromiseOrValue<BigNumberish>,
-      _tokenId: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
     setTreasury(
       _treasury: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -1226,6 +1267,11 @@ export interface Staking extends BaseContract {
       _depositId: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
+
+    totalRewarded(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
 
     totalStaked(
       arg0: PromiseOrValue<string>,
@@ -1267,6 +1313,18 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
+    userTotalRewardedByCoin(
+      arg0: PromiseOrValue<string>,
+      arg1: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
+    userTotalStakedByCoin(
+      arg0: PromiseOrValue<string>,
+      arg1: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
     withdraw(
       _amount: PromiseOrValue<BigNumberish>,
       _depositId: PromiseOrValue<BigNumberish>,
@@ -1292,7 +1350,7 @@ export interface Staking extends BaseContract {
 
   addNewStakingToken(
     _token: PromiseOrValue<string>,
-    _rewardsPerHour: PromiseOrValue<BigNumberish>,
+    _apr: PromiseOrValue<BigNumberish>,
     _compoundFreq: PromiseOrValue<BigNumberish>,
     _withdrawalFee: PromiseOrValue<BigNumberish>,
     _withdrawalFeeDivisor: PromiseOrValue<BigNumberish>,
@@ -1304,6 +1362,11 @@ export interface Staking extends BaseContract {
     _minStake: PromiseOrValue<BigNumberish>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
+
+  aprERC20(
+    arg0: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
 
   authority(overrides?: CallOverrides): Promise<string>;
 
@@ -1350,6 +1413,11 @@ export interface Staking extends BaseContract {
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
+  getAPR(
+    _tokenId: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
   getDepositIds(
     _user: PromiseOrValue<string>,
     overrides?: CallOverrides
@@ -1359,7 +1427,7 @@ export interface Staking extends BaseContract {
     _depositId: PromiseOrValue<BigNumberish>,
     overrides?: CallOverrides
   ): Promise<
-    [BigNumber, BigNumber] & { _stake: BigNumber; _rewards: BigNumber }
+    [BigNumber, BigNumber] & { _stake: BigNumber; _unclaimedRewards: BigNumber }
   >;
 
   getFoundersRewardBoost(
@@ -1407,7 +1475,18 @@ export interface Staking extends BaseContract {
     overrides?: CallOverrides
   ): Promise<number>;
 
+  getTotalRewards(
+    _token: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
   getTotalStaked(
+    _token: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  getUserTotalRewardsByCoin(
+    _user: PromiseOrValue<string>,
     _token: PromiseOrValue<string>,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
@@ -1454,20 +1533,16 @@ export interface Staking extends BaseContract {
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
-  name(
-    arg0: PromiseOrValue<string>,
-    overrides?: CallOverrides
-  ): Promise<BigNumber>;
-
   ratioERC20(
     arg0: PromiseOrValue<string>,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
-  rewardsPerHourERC20(
-    arg0: PromiseOrValue<string>,
-    overrides?: CallOverrides
-  ): Promise<BigNumber>;
+  setAPR(
+    _apr: PromiseOrValue<BigNumberish>,
+    _tokenId: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
 
   setAuthority(
     _newAuthority: PromiseOrValue<string>,
@@ -1525,18 +1600,6 @@ export interface Staking extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  setRewards(
-    _rewardsPerHour: PromiseOrValue<BigNumberish>,
-    _tokenId: PromiseOrValue<string>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
-
-  setRewardsPerHour(
-    _rewardsPerHour: PromiseOrValue<BigNumberish>,
-    _tokenId: PromiseOrValue<string>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
-
   setTreasury(
     _treasury: PromiseOrValue<string>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -1570,6 +1633,11 @@ export interface Staking extends BaseContract {
     _depositId: PromiseOrValue<BigNumberish>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
+
+  totalRewarded(
+    arg0: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
 
   totalStaked(
     arg0: PromiseOrValue<string>,
@@ -1611,6 +1679,18 @@ export interface Staking extends BaseContract {
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
+  userTotalRewardedByCoin(
+    arg0: PromiseOrValue<string>,
+    arg1: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  userTotalStakedByCoin(
+    arg0: PromiseOrValue<string>,
+    arg1: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
   withdraw(
     _amount: PromiseOrValue<BigNumberish>,
     _depositId: PromiseOrValue<BigNumberish>,
@@ -1636,7 +1716,7 @@ export interface Staking extends BaseContract {
   callStatic: {
     addNewStakingToken(
       _token: PromiseOrValue<string>,
-      _rewardsPerHour: PromiseOrValue<BigNumberish>,
+      _apr: PromiseOrValue<BigNumberish>,
       _compoundFreq: PromiseOrValue<BigNumberish>,
       _withdrawalFee: PromiseOrValue<BigNumberish>,
       _withdrawalFeeDivisor: PromiseOrValue<BigNumberish>,
@@ -1648,6 +1728,11 @@ export interface Staking extends BaseContract {
       _minStake: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
+
+    aprERC20(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
     authority(overrides?: CallOverrides): Promise<string>;
 
@@ -1694,6 +1779,11 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    getAPR(
+      _tokenId: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     getDepositIds(
       _user: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -1703,7 +1793,10 @@ export interface Staking extends BaseContract {
       _depositId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<
-      [BigNumber, BigNumber] & { _stake: BigNumber; _rewards: BigNumber }
+      [BigNumber, BigNumber] & {
+        _stake: BigNumber;
+        _unclaimedRewards: BigNumber;
+      }
     >;
 
     getFoundersRewardBoost(
@@ -1751,7 +1844,18 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<number>;
 
+    getTotalRewards(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     getTotalStaked(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getUserTotalRewardsByCoin(
+      _user: PromiseOrValue<string>,
       _token: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -1798,20 +1902,16 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    name(
-      arg0: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
     ratioERC20(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    rewardsPerHourERC20(
-      arg0: PromiseOrValue<string>,
+    setAPR(
+      _apr: PromiseOrValue<BigNumberish>,
+      _tokenId: PromiseOrValue<string>,
       overrides?: CallOverrides
-    ): Promise<BigNumber>;
+    ): Promise<void>;
 
     setAuthority(
       _newAuthority: PromiseOrValue<string>,
@@ -1869,18 +1969,6 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setRewards(
-      _rewardsPerHour: PromiseOrValue<BigNumberish>,
-      _tokenId: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    setRewardsPerHour(
-      _rewardsPerHour: PromiseOrValue<BigNumberish>,
-      _tokenId: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
     setTreasury(
       _treasury: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -1914,6 +2002,11 @@ export interface Staking extends BaseContract {
       _depositId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
+
+    totalRewarded(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
     totalStaked(
       arg0: PromiseOrValue<string>,
@@ -1955,6 +2048,18 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    userTotalRewardedByCoin(
+      arg0: PromiseOrValue<string>,
+      arg1: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    userTotalStakedByCoin(
+      arg0: PromiseOrValue<string>,
+      arg1: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     withdraw(
       _amount: PromiseOrValue<BigNumberish>,
       _depositId: PromiseOrValue<BigNumberish>,
@@ -1990,6 +2095,15 @@ export interface Staking extends BaseContract {
       staker?: PromiseOrValue<string> | null,
       amount?: null
     ): CompoundEventFilter;
+
+    "NewAPR(uint256,address)"(
+      amount?: PromiseOrValue<BigNumberish> | null,
+      token?: PromiseOrValue<string> | null
+    ): NewAPREventFilter;
+    NewAPR(
+      amount?: PromiseOrValue<BigNumberish> | null,
+      token?: PromiseOrValue<string> | null
+    ): NewAPREventFilter;
 
     "NewAuthorizedERC20(address,bool)"(
       token?: PromiseOrValue<string> | null,
@@ -2084,15 +2198,6 @@ export interface Staking extends BaseContract {
       token?: PromiseOrValue<string> | null
     ): NewRatioEventFilter;
 
-    "NewRewardsPerHour(uint256,address)"(
-      amount?: PromiseOrValue<BigNumberish> | null,
-      token?: PromiseOrValue<string> | null
-    ): NewRewardsPerHourEventFilter;
-    NewRewardsPerHour(
-      amount?: PromiseOrValue<BigNumberish> | null,
-      token?: PromiseOrValue<string> | null
-    ): NewRewardsPerHourEventFilter;
-
     "NewTreasury(address)"(
       treasury?: PromiseOrValue<string> | null
     ): NewTreasuryEventFilter;
@@ -2171,7 +2276,7 @@ export interface Staking extends BaseContract {
   estimateGas: {
     addNewStakingToken(
       _token: PromiseOrValue<string>,
-      _rewardsPerHour: PromiseOrValue<BigNumberish>,
+      _apr: PromiseOrValue<BigNumberish>,
       _compoundFreq: PromiseOrValue<BigNumberish>,
       _withdrawalFee: PromiseOrValue<BigNumberish>,
       _withdrawalFeeDivisor: PromiseOrValue<BigNumberish>,
@@ -2182,6 +2287,11 @@ export interface Staking extends BaseContract {
       _ratio: PromiseOrValue<BigNumberish>,
       _minStake: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    aprERC20(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     authority(overrides?: CallOverrides): Promise<BigNumber>;
@@ -2226,6 +2336,11 @@ export interface Staking extends BaseContract {
 
     foundersRewardBoostERC20(
       arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getAPR(
+      _tokenId: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -2284,7 +2399,18 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    getTotalRewards(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     getTotalStaked(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getUserTotalRewardsByCoin(
+      _user: PromiseOrValue<string>,
       _token: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -2331,19 +2457,15 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    name(
-      arg0: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
     ratioERC20(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    rewardsPerHourERC20(
-      arg0: PromiseOrValue<string>,
-      overrides?: CallOverrides
+    setAPR(
+      _apr: PromiseOrValue<BigNumberish>,
+      _tokenId: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     setAuthority(
@@ -2402,18 +2524,6 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    setRewards(
-      _rewardsPerHour: PromiseOrValue<BigNumberish>,
-      _tokenId: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
-    setRewardsPerHour(
-      _rewardsPerHour: PromiseOrValue<BigNumberish>,
-      _tokenId: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
     setTreasury(
       _treasury: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -2448,6 +2558,11 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
+    totalRewarded(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     totalStaked(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -2463,6 +2578,18 @@ export interface Staking extends BaseContract {
     userDepositsIds(
       arg0: PromiseOrValue<string>,
       arg1: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    userTotalRewardedByCoin(
+      arg0: PromiseOrValue<string>,
+      arg1: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    userTotalStakedByCoin(
+      arg0: PromiseOrValue<string>,
+      arg1: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -2492,7 +2619,7 @@ export interface Staking extends BaseContract {
   populateTransaction: {
     addNewStakingToken(
       _token: PromiseOrValue<string>,
-      _rewardsPerHour: PromiseOrValue<BigNumberish>,
+      _apr: PromiseOrValue<BigNumberish>,
       _compoundFreq: PromiseOrValue<BigNumberish>,
       _withdrawalFee: PromiseOrValue<BigNumberish>,
       _withdrawalFeeDivisor: PromiseOrValue<BigNumberish>,
@@ -2503,6 +2630,11 @@ export interface Staking extends BaseContract {
       _ratio: PromiseOrValue<BigNumberish>,
       _minStake: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    aprERC20(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     authority(overrides?: CallOverrides): Promise<PopulatedTransaction>;
@@ -2547,6 +2679,11 @@ export interface Staking extends BaseContract {
 
     foundersRewardBoostERC20(
       arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getAPR(
+      _tokenId: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
@@ -2605,7 +2742,18 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
+    getTotalRewards(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     getTotalStaked(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getUserTotalRewardsByCoin(
+      _user: PromiseOrValue<string>,
       _token: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
@@ -2654,19 +2802,15 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    name(
-      arg0: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
     ratioERC20(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    rewardsPerHourERC20(
-      arg0: PromiseOrValue<string>,
-      overrides?: CallOverrides
+    setAPR(
+      _apr: PromiseOrValue<BigNumberish>,
+      _tokenId: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     setAuthority(
@@ -2725,18 +2869,6 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
-    setRewards(
-      _rewardsPerHour: PromiseOrValue<BigNumberish>,
-      _tokenId: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
-    setRewardsPerHour(
-      _rewardsPerHour: PromiseOrValue<BigNumberish>,
-      _tokenId: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
     setTreasury(
       _treasury: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -2771,6 +2903,11 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
+    totalRewarded(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     totalStaked(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -2786,6 +2923,18 @@ export interface Staking extends BaseContract {
     userDepositsIds(
       arg0: PromiseOrValue<string>,
       arg1: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    userTotalRewardedByCoin(
+      arg0: PromiseOrValue<string>,
+      arg1: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    userTotalStakedByCoin(
+      arg0: PromiseOrValue<string>,
+      arg1: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 

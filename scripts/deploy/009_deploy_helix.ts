@@ -16,7 +16,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
              CONFIGURATION.helixName,
              CONFIGURATION.helixTicker         ],
          log: true,
-         skipIfAlreadyDeployed: true,
+         skipIfAlreadyDeployed: false,
      });
 };
 

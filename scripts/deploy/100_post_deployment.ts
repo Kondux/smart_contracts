@@ -140,12 +140,12 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     console.log("Set Approval for konduxERC");
     await waitFor(treasury.deposit(ethers.BigNumber.from(10).pow(28), konduxERC20Deployment.address));
     console.log("Deposit konduxERC");
-    await waitFor(staking.setCompoundFreq(60, konduxERC20Deployment.address));
-    console.log("Set compound frequency to 60 seconds");
-    await waitFor(staking.setRewardsPerHour(285 * 1000, konduxERC20Deployment.address));
-    console.log("Set rewards per hour to 285k");
-    await waitFor(staking.setCompoundFreq(60, konduxERC20Deployment.address));
-    console.log("Set compound frequency to 60 seconds");
+    // await waitFor(staking.setCompoundFreq(60, konduxERC20Deployment.address));
+    // console.log("Set compound frequency to 60 seconds");
+    // await waitFor(staking.setAPR(25, konduxERC20Deployment.address));
+    // console.log("Set APR to 25%");
+    // await waitFor(staking.setCompoundFreq(60 * , konduxERC20Deployment.address));
+    // console.log("Set compound frequency to 60 seconds");
 
 };
 
