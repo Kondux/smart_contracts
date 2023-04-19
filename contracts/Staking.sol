@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "./interfaces/ITreasury.sol";
 import "./interfaces/IHelix.sol";
 import "./types/AccessControlled.sol";
+import "hardhat/console.sol";
 
 contract Staking is AccessControlled {
     using Counters for Counters.Counter;
@@ -67,20 +68,11 @@ contract Staking is AccessControlled {
     // The withdrawal fee for a specific ERC20 token
     mapping (address => uint256) public withdrawalFeeERC20;
 
-    // The withdrawal fee divisor for a specific ERC20 token
-    mapping (address => uint256) public withdrawalFeeDivisorERC20;
-
     // The founders reward boost for a specific ERC20 token
     mapping (address => uint256) public foundersRewardBoostERC20;
 
-    // The founders reward boost divisor for a specific ERC20 token
-    mapping (address => uint256) public foundersRewardBoostDivisorERC20;
-
     // The kNFT reward boost for a specific ERC20 token
     mapping (address => uint256) public kNFTRewardBoostERC20;
-
-    // The kNFT reward boost divisor for a specific ERC20 token
-    mapping (address => uint256) public kNFTRewardBoostDivisorERC20;
 
     // The ratio for a specific ERC20 token
     mapping (address => uint256) public ratioERC20;
@@ -96,6 +88,19 @@ contract Staking is AccessControlled {
 
     // The total amount rewarded by a user for a specific ERC20 token
     mapping (address => mapping (address => uint256)) public userTotalRewardedByCoin;
+
+    // The total amount paid as a withdrawal fee for a specific ERC20 token
+    mapping (address => uint256) public totalWithdrawalFees;
+
+    // The penalty for withdrawing early for a specific ERC20 token
+    mapping (address => uint256) public earlyWithdrawalPenalty;
+
+    // The boost for a specific timelock category
+    mapping(uint => uint256) public timelockCategoryBoost;
+
+    // The divisor for a specific token
+    mapping (address => uint256) public divisorERC20;
+
 
     IHelix public helixERC20; // Helix ERC20 Token
     IERC721 public konduxERC721Founders; // Kondux ERC721 Founders Token
@@ -145,26 +150,20 @@ contract Staking is AccessControlled {
     // Emitted when the withdrawal fee is updated for a token
     event NewWithdrawalFee(uint256 indexed amount, address indexed token);
 
-    // Emitted when the withdrawal fee divisor is updated for a token
-    event NewWithdrawalFeeDivisor(uint256 indexed amount, address indexed token);
-
     // Emitted when the founders reward boost is updated for a token
     event NewFoundersRewardBoost(uint256 indexed amount, address indexed token);
 
-    // Emitted when the founders reward boost divisor is updated for a token
-    event NewFoundersRewardBoostDivisor(uint256 indexed amount, address indexed token);
-
     // Emitted when the kNFT reward boost is updated for a token
     event NewKNFTRewardBoost(uint256 indexed amount, address indexed token);
-
-    // Emitted when the kNFT reward boost divisor is updated for a token
-    event NewKNFTRewardBoostDivisor(uint256 indexed amount, address indexed token);
 
     // Emitted when a token is authorized or deauthorized for staking
     event NewAuthorizedERC20(address indexed token, bool indexed authorized);
 
     // Emitted when the ratio is updated for a token
     event NewRatio(uint256 indexed amount, address indexed token);
+
+    // Emitted when a new divisor is set for a token
+    event NewDivisorERC20(uint256 indexed amount, address indexed token);
  
 
     /**
@@ -202,16 +201,19 @@ contract Staking is AccessControlled {
         treasury = ITreasury(_treasury);
 
         // Set up default staking token parameters
-        setWithdrawalFeeDivisor(10_000_000, _konduxERC20); // 10,000,000 basis points
-        setFoundersRewardBoostDivisor(10_000_000, _konduxERC20); // 10,000,000 basis points
-        setkNFTRewardBoostDivisor(10_000_000, _konduxERC20); // 10,000,000 basis points
-        setWithdrawalFee(100_000, _konduxERC20); // 1% fee on withdrawal or 100,000/10,000,000
-        setFoundersRewardBoost(11_000_000, _konduxERC20); // 10% boost (=110%) on rewards or 1,000,000/10,000,000
-        setkNFTRewardBoost(500_000, _konduxERC20); // 5% boost on rewards or 500,000/10,000,000
+        setDivisorERC20(10_000, _konduxERC20); // 10,000 basis points
+        setWithdrawalFee(100, _konduxERC20); // 1% fee on withdrawal or 100 / 10_000
+        setFoundersRewardBoost(1_000, _konduxERC20); // 10% boost (=110%) on rewards or 1,000,000/10,000,000
+        setkNFTRewardBoost(500, _konduxERC20); // 5% boost on rewards or 500 / 
         setMinStake(10_000_000, _konduxERC20); // 10,000,000 wei
         setAPR(25, _konduxERC20); // 0.00285%/h or 25% APR
         setCompoundFreq(60 * 60 * 24, _konduxERC20); // 24 hours
         setRatio(10_000, _konduxERC20); // 10,000:1 ratio
+        setEarlyWithdrawalPenalty(_konduxERC20, 10); // 10% penalty
+        setTimelockCategoryBoost(1, 100); // 1% boost for 90 days timelock
+        setTimelockCategoryBoost(2, 300); // 3% boost for 180 days timelock 
+        setTimelockCategoryBoost(3, 900); // 9% boost for 365 days timelock
+
         _setAuthorizedERC20(_konduxERC20, true);
     }
 
@@ -340,14 +342,14 @@ contract Staking is AccessControlled {
         userDeposits[_depositId].unclaimedRewards = 0;
         userDeposits[_depositId].timeOfLastUpdate = block.timestamp;
 
-        helixERC20.burn(msg.sender, rewards * ratioERC20[userDeposits[_depositId].token]);
         IERC20 konduxERC20 = IERC20(userDeposits[_depositId].token);
 
-        uint256 netRewards = (rewards * (withdrawalFeeDivisorERC20[userDeposits[_depositId].token] - withdrawalFeeERC20[userDeposits[_depositId].token])) / withdrawalFeeDivisorERC20[userDeposits[_depositId].token];
+        uint256 netRewards = (rewards * (10_000 - withdrawalFeeERC20[userDeposits[_depositId].token])) / 10_000;
 
         konduxERC20.transferFrom(authority.vault(), msg.sender, netRewards); 
 
         _addTotalRewardedAmount(netRewards, userDeposits[_depositId].token, userDeposits[_depositId].staker);
+        _addTotalWithdrawalFees(rewards - netRewards, userDeposits[_depositId].token);
 
         emit Reward(msg.sender, netRewards);
     }
@@ -370,7 +372,7 @@ contract Staking is AccessControlled {
         // Verify that the withdrawal amount is within the available limits
         require(userDeposits[_depositId].deposited >= _amount, "Can't withdraw more than you have");
         // Verify that the withdrawal amount is less than or equal to the collateral tokens the user has
-        require(_amount <= helixERC20.balanceOf(msg.sender), "Can't withdraw more tokens than the collateral you have");
+        require(_amount * ratioERC20[userDeposits[_depositId].token] <= helixERC20.balanceOf(msg.sender), "Can't withdraw more tokens than the collateral you have");
 
         // Calculate the rewards
         uint256 _rewards = calculateRewards(msg.sender, _depositId);
@@ -380,8 +382,7 @@ contract Staking is AccessControlled {
         userDeposits[_depositId].unclaimedRewards += _rewards;
 
         // Calculate the liquid amount to transfer after applying the withdrawal fee
-        // _liquid = (_amount * (withdrawalFeeDivisor - withdrawalFee)) / withdrawalFeeDivisor
-        uint256 _liquid = (_amount * (withdrawalFeeDivisorERC20[userDeposits[_depositId].token] - withdrawalFeeERC20[userDeposits[_depositId].token])) / withdrawalFeeDivisorERC20[userDeposits[_depositId].token];
+        uint256 _liquid = (_amount * (10_000 - withdrawalFeeERC20[userDeposits[_depositId].token])) / 10_000;
 
         // Get the token contract
         IERC20 konduxERC20 = IERC20(userDeposits[_depositId].token);
@@ -400,11 +401,84 @@ contract Staking is AccessControlled {
 
         // Update the user's total rewarded amount + total rewarded amount for the token
         _addTotalRewardedAmount(_liquid, userDeposits[_depositId].token, userDeposits[_depositId].staker); 
+        _addTotalWithdrawalFees(_amount - _liquid, userDeposits[_depositId].token); 
 
         // Emit a Withdraw event
         emit Withdraw(msg.sender, _liquid);
     }
 
+    /**
+     * @dev This function allows the owner of a deposit to withdraw a specified amount of their deposited tokens
+     *      before the timelock has passed. The user is punished by not receiving any reward boosts and paying an extra
+     *      fee proportional to the time left until the lock (the closer to the end of the locking time, the smaller the fee,
+     *      starting at 10%).
+     *      It verifies that the caller is the deposit owner, and the withdrawal amount is within the available limits.
+     *      The function calculates the rewards, updates the deposit record, and transfers the liquid amount to the user
+     *      after applying the extra fee and withdrawal fee. The collateral tokens are burned.
+     *      The function emits a Withdraw event upon successful execution.
+     * @param _amount The amount of tokens to withdraw.
+     * @param _depositId The ID of the deposit from which to withdraw the tokens.
+     */
+    function withdrawBeforeTimelock(uint256 _amount, uint _depositId) public {
+        // Verify that the caller is the owner of the deposit
+        require(msg.sender == userDeposits[_depositId].staker, "You are not the owner of this deposit");
+        // Verify that the withdrawal amount is within the available limits
+        require(userDeposits[_depositId].deposited >= _amount, "Can't withdraw more than you have");
+        // Verify that the withdrawal amount is less than or equal to the collateral tokens the user has
+        require(_amount * ratioERC20[userDeposits[_depositId].token] <= helixERC20.balanceOf(msg.sender), "Can't withdraw more tokens than the collateral you have");
+        // Verify if the timelock has passed
+        require(block.timestamp < userDeposits[_depositId].timelock, "Timelock has passed");
+
+        // Calculate the extra fee proportional to the time left until the lock (the closer to the end of the locking time, the smaller the fee)
+        uint256 timeLeft = userDeposits[_depositId].timelock - block.timestamp;
+        uint256 lockDuration = userDeposits[_depositId].timelock - userDeposits[_depositId].lastDepositTime;
+        uint256 extraFee = (_amount * earlyWithdrawalPenalty[userDeposits[_depositId].token] * timeLeft) / (lockDuration * 100);
+
+        // If extra fee is more than the amount, set it to the amount
+        if (extraFee > _amount) {
+            extraFee = _amount;
+        }
+
+        // If extra fee is zero, apply 1% fee
+        if (extraFee == 0) {
+            extraFee = (_amount * 1) / 100;
+        }
+
+        // Calculate the total fee percentage
+        uint256 totalFeePercentage = extraFee + withdrawalFeeERC20[userDeposits[_depositId].token];
+
+        console.log("extraFee: %s", extraFee);
+        console.log("totalFeePercentage: %s", totalFeePercentage);
+
+        // Calculate the liquid amount to transfer after applying the total fee
+        uint256 _liquid = (_amount * (10000 - totalFeePercentage)) / 10000;
+
+        // Update the deposit record
+        userDeposits[_depositId].deposited -= _amount;
+        userDeposits[_depositId].timeOfLastUpdate = block.timestamp;
+
+        // Get the token contract
+        IERC20 konduxERC20 = IERC20(userDeposits[_depositId].token);
+
+        // Check if the treasury contract has approved the staking contract to withdraw the tokens
+        require(konduxERC20.allowance(authority.vault(), address(this)) >= _liquid, "Treasury Contract need to approve Staking Contract to withdraw your tokens -- please call an Admin");
+
+        // Subtract the staked amount
+        _subtractStakedAmount(_amount, userDeposits[_depositId].token, userDeposits[_depositId].staker);
+
+        // Burn the equivalent amount of collateral tokens
+        helixERC20.burn(msg.sender, _amount * ratioERC20[userDeposits[_depositId].token]);
+        
+        // Transfer the liquid amount to the user
+        konduxERC20.transferFrom(authority.vault(), msg.sender, _liquid);
+
+        // Update the user's total rewarded amount + total rewarded amount for the token
+        _addTotalRewardedAmount(_liquid, userDeposits[_depositId].token, userDeposits[_depositId].staker); 
+        _addTotalWithdrawalFees(_amount - _liquid, userDeposits[_depositId].token); 
+
+        // Emit a Withdraw event
+        emit Withdraw(msg.sender, _liquid);
+    }
 
     /**
      * @dev This function allows the owner of a deposit to withdraw a specified amount of their deposited tokens
@@ -466,43 +540,53 @@ contract Staking is AccessControlled {
         uint256 elapsedTime = block.timestamp - userDeposits[_depositId].timeOfLastUpdate;
         uint256 depositedAmount = userDeposits[_depositId].deposited;
 
-        // Avoid division by 0 by returning 0 if elapsed time is lower then 1 hour
-        if (elapsedTime < 1 hours) {
-            return 0;
-        }
-
         // Calculate 25% APR, avoiding truncating to zero
         uint256 rewardPerSecond = (depositedAmount * aprERC20[userDeposits[_depositId].token] * 1e18) / (365 * 24 * 3600 * 100);
         uint256 _reward = elapsedTime * rewardPerSecond / 1e18;
 
+        uint256 boostPercentage = 10_000;
+
         if (IERC721(konduxERC721Founders).balanceOf(_staker) > 0) {
-            _reward = (_reward * foundersRewardBoostERC20[userDeposits[_depositId].token]) / foundersRewardBoostDivisorERC20[userDeposits[_depositId].token];
+            boostPercentage += foundersRewardBoostERC20[userDeposits[_depositId].token];
+            console.log("_foundersNFTBalance: %s", IERC721(konduxERC721Founders).balanceOf(_staker));
         }
 
         if (IERC721(konduxERC721kNFT).balanceOf(_staker) > 0) {
             uint256 _kNFTBalance = IERC721(konduxERC721kNFT).balanceOf(_staker);
+            console.log("_kNFTBalance: %s", _kNFTBalance);
             if (_kNFTBalance > 5) {
                 _kNFTBalance = 5;
             }
-            
-            //give 5% more for each kNFT owned using kNFTRewardBoost
-            _reward = (_reward * (kNFTRewardBoostDivisorERC20[userDeposits[_depositId].token] + (_kNFTBalance * kNFTRewardBoostERC20[userDeposits[_depositId].token]))) / kNFTRewardBoostDivisorERC20[userDeposits[_depositId].token];
-
+            boostPercentage += (_kNFTBalance * kNFTRewardBoostERC20[userDeposits[_depositId].token]);
         }
 
-        // add 0% if reward category is 0; add 1% if reward category is 1; add 3% if reward category is 2; add 9% if reward category is 3;
-        if (userDeposits[_depositId].timelockCategory == 1) { 
-            _reward = (_reward * 10100) / 10000;
-        } else if (userDeposits[_depositId].timelockCategory == 2) {
-            _reward = (_reward * 10300) / 10000;
-        } else if (userDeposits[_depositId].timelockCategory == 3) { 
-            _reward = (_reward * 10900) / 10000; 
+        if (userDeposits[_depositId].timelockCategory > 0) {
+            boostPercentage += timelockCategoryBoost[userDeposits[_depositId].timelockCategory];
+            console.log("timelockCategoryBoost: %s", timelockCategoryBoost[userDeposits[_depositId].timelockCategory]);
         }
+
+        console.log("boostPercentage: %s", boostPercentage);
+
+        _reward = (_reward * boostPercentage) / 10_000;
 
         return _reward;
     }
 
+    // Internal functions:
 
+    /**
+     * @dev This internal function calculates the compounded rewards for a given deposited amount and number of elapsed periods.
+     *      The function assumes a fixed 25% APR and 8760 periods per year (hourly compounding). It uses exponentiation to calculate
+     *      the compounded rewards using the formula A = P * (1 + r/n)^(nt), where:
+     *          A: final amount after compounding
+     *          P: initial deposited amount
+     *          r: annual interest rate (25%)
+     *          n: number of periods in a year (8760)
+     *          t: number of elapsed periods
+     * @param _depositedAmount The initial deposited amount.
+     * @param _periodsElapsed The number of elapsed periods (hours) since the deposit.
+     * @return compound The calculated compounded rewards for the given deposited amount and elapsed periods.
+     */
     function _calculateCompound(uint256 _depositedAmount, uint256 _periodsElapsed) internal pure returns (uint256 compound) {
         uint256 periodsInYear = 8760; // 24 hours * 365 days
         uint256 compoundFactor = 1 + (25 * 1e1 / periodsInYear);
@@ -510,12 +594,10 @@ contract Staking is AccessControlled {
         //Calculate compounded rewards using exponentiation (A = P * (1 + r/n)^(nt))
         compound = _depositedAmount * (compoundFactor ** _periodsElapsed) / (1e1 ** _periodsElapsed);
 
-        return compound;
-        
+        return compound;        
     }
         
         
-
     // Functions for modifying  staking mechanism variables:
     /**
      * @dev This internal function is used to update the total rewarded amount and the total rewarded amount
@@ -555,6 +637,15 @@ contract Staking is AccessControlled {
         require(userTotalStakedByCoin[_token][_user] >= _amount, "Staking: Not enough staked (User)");
         totalStaked[_token] -= _amount;
         userTotalStakedByCoin[_token][_user] -= _amount;
+    }
+
+    /**
+     * @dev This internal function adds the given amount to the total withdrawal fees for a specified token.
+     * @param _amount The amount to add to the total withdrawal fees.
+     * @param _token The address of the token for which to update the withdrawal fees.
+     */
+    function _addTotalWithdrawalFees(uint256 _amount, address _token) internal {
+        totalWithdrawalFees[_token] += _amount;
     }
     
     /**
@@ -633,19 +724,9 @@ contract Staking is AccessControlled {
      * @param _tokenId The address of the token for which to set the withdrawal fee.
      */
     function setWithdrawalFee(uint256 _withdrawalFee, address _tokenId) public onlyGovernor {
-        require(_withdrawalFee <= withdrawalFeeDivisorERC20[_tokenId], "Withdrawal fee cannot be more than 100%");
+        require(_withdrawalFee <= divisorERC20[_tokenId], "Withdrawal fee cannot be more than 100%");
         withdrawalFeeERC20[_tokenId] = _withdrawalFee;
-        emit NewWithdrawalFee(_withdrawalFee, _tokenId);
-    }
-
-    /**
-     * @dev This function sets the withdrawal fee divisor for a specified token.
-     * @param _withdrawalFeeDivisor The withdrawal fee divisor value to be set.
-     * @param _tokenId The address of the token for which to set the withdrawal fee divisor.
-     */
-    function setWithdrawalFeeDivisor(uint256 _withdrawalFeeDivisor, address _tokenId) public onlyGovernor {
-        withdrawalFeeDivisorERC20[_tokenId] = _withdrawalFeeDivisor;
-        emit NewWithdrawalFeeDivisor(_withdrawalFeeDivisor, _tokenId);
+        emit NewWithdrawalFee(_withdrawalFee, _tokenId); 
     }
 
     /**
@@ -659,16 +740,6 @@ contract Staking is AccessControlled {
     }
 
     /**
-     * @dev This function sets the founders reward boost divisor for a specified token.
-     * @param _foundersRewardBoostDivisor The founders reward boost divisor value to be set.
-     * @param _tokenId The address of the token for which to set the founders reward boost divisor.
-     */
-    function setFoundersRewardBoostDivisor(uint256 _foundersRewardBoostDivisor, address _tokenId) public onlyGovernor {
-        foundersRewardBoostDivisorERC20[_tokenId] = _foundersRewardBoostDivisor; 
-        emit NewFoundersRewardBoostDivisor(_foundersRewardBoostDivisor, _tokenId);
-    }
-
-    /**
      * @dev This function sets the kNFT reward boost for a specified token.
      * @param _kNFTRewardBoost The kNFT reward boost value to be set.
      * @param _tokenId The address of the token for which to set the kNFT reward boost.
@@ -679,16 +750,6 @@ contract Staking is AccessControlled {
     }
 
     /**
-     * @dev This function sets the kNFT reward boost divisor for a specified token.
-     * @param _kNFTRewardBoostDivisor The kNFT reward boost divisor value to be set.
-     * @param _tokenId The address of the token for which to set the kNFT reward boost divisor.
-     */
-    function setkNFTRewardBoostDivisor(uint256 _kNFTRewardBoostDivisor, address _tokenId) public onlyGovernor {
-        kNFTRewardBoostDivisorERC20[_tokenId] = _kNFTRewardBoostDivisor;
-        emit NewKNFTRewardBoostDivisor(_kNFTRewardBoostDivisor, _tokenId);  
-    }
-
-    /**
     * @dev This function sets the compound frequency for a specified token.
     * @param _compoundFreq The compound frequency value to be set.
     * @param _tokenId The address of the token for which to set the compound frequency.
@@ -696,6 +757,35 @@ contract Staking is AccessControlled {
     function setCompoundFreq(uint256 _compoundFreq, address _tokenId) public onlyGovernor {
         compoundFreqERC20[_tokenId] = _compoundFreq;
         emit NewCompoundFreq(_compoundFreq, _tokenId);
+    }
+
+    /**
+     * @dev This function sets the penalty percentage for early withdrawal of a specified token.
+     * @param token The address of the token for which to set the penalty percentage.
+     * @param penaltyPercentage The penalty percentage value to be set. Must be between 0 and 100. 
+     */
+    function setEarlyWithdrawalPenalty(address token, uint256 penaltyPercentage) public onlyGovernor {
+        require(penaltyPercentage <= 100, "Penalty percentage must be between 0 and 100");
+        earlyWithdrawalPenalty[token] = penaltyPercentage;
+    } 
+
+    /**
+     * @dev This function sets the timelock category boost for a specified category.
+     * @param _category The category for which to set the boost.
+     * @param _boost The boost value to be set.
+     */
+    function setTimelockCategoryBoost(uint _category, uint256 _boost) public onlyGovernor {
+        timelockCategoryBoost[_category] = _boost;
+    }
+
+    /**
+     * @dev This function sets the divisor for a specified token.
+     * @param _divisor The divisor value to be set.
+     * @param _tokenId The address of the token for which to set the divisor.
+     */
+    function setDivisorERC20(uint256 _divisor, address _tokenId) public onlyGovernor {
+        divisorERC20[_tokenId] = _divisor;
+        emit NewDivisorERC20(_divisor, _tokenId);
     }
 
     /**
@@ -710,13 +800,11 @@ contract Staking is AccessControlled {
             require(aprERC20[_token] > 0, "Rewards per hour must be greater than 0");
             require(compoundFreqERC20[_token] > 0, "Compound frequency must be greater than 0");
             require(withdrawalFeeERC20[_token] > 0, "Withdrawal fee must be greater than 0");
-            require(withdrawalFeeDivisorERC20[_token] > 0, "Withdrawal fee divisor must be greater than 0");
             require(foundersRewardBoostERC20[_token] > 0, "Founders reward boost must be greater than 0");
-            require(foundersRewardBoostDivisorERC20[_token] > 0, "Founders reward boost divisor must be greater than 0");
             require(kNFTRewardBoostERC20[_token] > 0, "kNFT reward boost must be greater than 0");
-            require(kNFTRewardBoostDivisorERC20[_token] > 0, "kNFT reward boost divisor must be greater than 0");
             require(ratioERC20[_token] > 0, "Ratio must be greater than 0");
-            require(minStakeERC20[_token] > 0, "Minimum stake must be greater than 0");  
+            require(minStakeERC20[_token] > 0, "Minimum stake must be greater than 0");
+            require(divisorERC20[_token] > 0, "Divisor must be greater than 0");
             require(IERC20(_token).totalSupply() > 0, "Token total supply must be greater than 0");
         }
         authorizedERC20[_token] = _authorized;
@@ -741,30 +829,23 @@ contract Staking is AccessControlled {
      * @param _apr The rewards per hour for the new staking token.
      * @param _compoundFreq The compound frequency for the new staking token.
      * @param _withdrawalFee The withdrawal fee for the new staking token.
-     * @param _withdrawalFeeDivisor The withdrawal fee divisor for the new staking token.
      * @param _foundersRewardBoost The founders reward boost for the new staking token.
-     * @param _foundersRewardBoostDivisor The founders reward boost divisor for the new staking token.
      * @param _kNFTRewardBoost The kNFT reward boost for the new staking token.
-     * @param _kNFTRewardBoostDivisor The kNFT reward boost divisor for the new staking token.
      * @param _ratio The ratio for the new staking token.
      * @param _minStake The minimum stake for the new staking token.
-     */
-    function addNewStakingToken(address _token, uint256 _apr, uint256 _compoundFreq, uint256 _withdrawalFee, uint256 _withdrawalFeeDivisor, uint256 _foundersRewardBoost, uint256 _foundersRewardBoostDivisor, uint256 _kNFTRewardBoost, uint256 _kNFTRewardBoostDivisor, uint256 _ratio, uint256 _minStake) public onlyGovernor {
+     */ 
+    function addNewStakingToken(address _token, uint256 _apr, uint256 _compoundFreq, uint256 _withdrawalFee, uint256 _foundersRewardBoost, uint256 _kNFTRewardBoost, uint256 _ratio, uint256 _minStake) public onlyGovernor {
         require(_token != address(0), "Token address cannot be 0x0");
         require(_apr > 0, "Rewards per hour must be greater than 0"); 
         require(_compoundFreq > 0, "Compound frequency must be greater than 0");
         require(_withdrawalFee > 0, "Withdrawal fee must be greater than 0");
-        require(_withdrawalFeeDivisor > 0, "Withdrawal fee divisor must be greater than 0");
         require(_foundersRewardBoost > 0, "Founders reward boost must be greater than 0");
-        require(_foundersRewardBoostDivisor > 0, "Founders reward boost divisor must be greater than 0");
         require(_kNFTRewardBoost > 0, "kNFT reward boost must be greater than 0");
-        require(_kNFTRewardBoostDivisor > 0, "kNFT reward boost divisor must be greater than 0");
         require(_ratio > 0, "Ratio must be greater than 0");
         require(_minStake > 0, "Minimum stake must be greater than 0");
         require(IERC20(_token).totalSupply() > 0, "Token total supply must be greater than 0");
-        setWithdrawalFeeDivisor(_withdrawalFeeDivisor, _token);
-        setFoundersRewardBoostDivisor(_foundersRewardBoostDivisor, _token); 
-        setkNFTRewardBoostDivisor(_kNFTRewardBoostDivisor, _token);
+
+        setDivisorERC20(10_000, _token);
         setFoundersRewardBoost(_foundersRewardBoost, _token);
         setkNFTRewardBoost(_kNFTRewardBoost, _token);
         setAPR(_apr, _token); 
@@ -773,7 +854,7 @@ contract Staking is AccessControlled {
         setCompoundFreq(_compoundFreq, _token);
         setMinStake(_minStake, _token);
 
-        _setAuthorizedERC20(_token, true);
+        _setAuthorizedERC20(_token, true); 
     }
 
 
@@ -798,15 +879,6 @@ contract Staking is AccessControlled {
     }
 
     /**
-     * @dev This function returns the rewards per hour for the specified token with 18 decimals.
-     * @param _tokenId The address of the token for which the rewards per hour are requested.
-     * @return _rewardsPerHour The rewards per hour for the specified token.
-     */
-    function getRewardsPerHour(address _tokenId) public view returns (uint256 _rewardsPerHour) {
-        return aprERC20[_tokenId] * 1e18 / 3600;
-    }
-
-    /**
      * @dev This function returns the APR for the specified token.
      * @param _tokenId The address of the token for which the rewards per hour are requested.
      * @return _rewardsPerHour The rewards per hour for the specified token.
@@ -825,30 +897,12 @@ contract Staking is AccessControlled {
     }
 
     /**
-     * @dev This function returns the Founder's reward boost divisor for the specified token.
-     * @param _tokenId The address of the token for which the Founder's reward boost divisor is requested.
-     * @return _foundersRewardBoostDivisor The Founder's reward boost divisor for the specified token.
-     */
-    function getFoundersRewardBoostDenominator(address _tokenId) public view returns (uint256 _foundersRewardBoostDivisor) {
-        return foundersRewardBoostDivisorERC20[_tokenId];
-    }
-
-    /**
      * @dev This function returns the kNFT reward boost for the specified token.
      * @param _tokenId The address of the token for which the kNFT reward boost is requested.
      * @return _kNFTRewardBoost The kNFT reward boost for the specified token.
      */
     function getkNFTRewardBoost(address _tokenId) public view returns (uint256 _kNFTRewardBoost) {
         return kNFTRewardBoostERC20[_tokenId];
-    }
-
-    /**
-     * @dev This function returns the kNFT reward boost divisor for the specified token.
-     * @param _tokenId The address of the token for which the kNFT reward boost divisor is requested.
-     * @return _kNFTRewardBoostDivisor The kNFT reward boost divisor for the specified token.
-     */
-    function getKnftRewardBoostDenominator(address _tokenId) public view returns (uint256 _kNFTRewardBoostDivisor) {
-        return kNFTRewardBoostDivisorERC20[_tokenId];
     }
 
     /**
@@ -885,15 +939,6 @@ contract Staking is AccessControlled {
      */
     function getDepositIds(address _user) public view returns (uint256[] memory) {
         return userDepositsIds[_user];
-    }
-
-    /**
-     * @dev This function returns the withdrawal fee divisor for the specified token.
-     * @param _tokenId The address of the token for which the withdrawal fee divisor is requested.
-     * @return _withdrawalFeeDivisor The withdrawal fee divisor for the specified token.
-     */
-    function getWithdrawalFeeDivisor(address _tokenId) public view returns (uint256 _withdrawalFeeDivisor) {
-        return withdrawalFeeDivisorERC20[_tokenId];
     }
 
     /**
@@ -941,5 +986,50 @@ contract Staking is AccessControlled {
      */
     function getUserTotalRewardsByCoin(address _user, address _token) public view returns (uint256 _totalRewards) {
         return userTotalRewardedByCoin[_token][_user]; 
+    }
+
+    /**
+     * @dev This function returns the total withdrawal fees for a specific token.
+     * @param _token The address of the token contract.
+     * @return _totalWithdrawalFees The total withdrawal fees for the given token.
+     */
+    function getTotalWithdrawalFees(address _token) public view returns (uint256 _totalWithdrawalFees) {
+        return totalWithdrawalFees[_token];
+    }
+
+    /**
+     * @dev This function returns the timestamp of the deposit with the specified ID.
+     * @param _depositId The id of the deposit for which the timestamp is requested.
+     * @return _depositTimestamp The timestamp of the deposit
+     */
+    function getDepositTimestamp(uint _depositId) public view returns (uint256 _depositTimestamp) {
+        return userDeposits[_depositId].lastDepositTime; 
+    }
+
+    /**
+     * @dev This function returns the penalty for early withdrawal for the specified token in basis points. (X% = X * 100)
+     * @param token The address of the token for which the penalty is requested.
+     * @return The penalty for early withdrawal for the specified token in basis points.
+     */
+    function getEarlyWithdrawalPenalty(address token) public view returns (uint256) {
+        return earlyWithdrawalPenalty[token];
+    }
+
+    /**
+     * @dev This function returns the timelock category boost for the specified category.
+     * @param _category The category for which the timelock category boost is requested.
+     * @return The timelock category boost for the specified category.
+     */
+    function getTimelockCategoryBoost(uint _category) public view returns (uint256) {
+        return timelockCategoryBoost[_category];
+    }
+
+    /**
+     * @dev This function returns the divisor for the specified token.
+     * @param _token The address of the token for which the divisor is requested.
+     * @return The divisor for the specified token.
+     */
+    function getDivisorERC20(address _token) public view returns (uint256) {
+        return divisorERC20[_token];
     }
 }

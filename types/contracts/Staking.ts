@@ -29,7 +29,7 @@ import type {
 
 export interface StakingInterface extends utils.Interface {
   functions: {
-    "addNewStakingToken(address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)": FunctionFragment;
+    "addNewStakingToken(address,uint256,uint256,uint256,uint256,uint256,uint256,uint256)": FunctionFragment;
     "aprERC20(address)": FunctionFragment;
     "authority()": FunctionFragment;
     "authorizedERC20(address)": FunctionFragment;
@@ -38,29 +38,30 @@ export interface StakingInterface extends utils.Interface {
     "compoundFreqERC20(address)": FunctionFragment;
     "compoundRewardsTimer(uint256)": FunctionFragment;
     "deposit(uint256,uint8,address)": FunctionFragment;
-    "foundersRewardBoostDivisorERC20(address)": FunctionFragment;
+    "divisorERC20(address)": FunctionFragment;
+    "earlyWithdrawalPenalty(address)": FunctionFragment;
     "foundersRewardBoostERC20(address)": FunctionFragment;
     "getAPR(address)": FunctionFragment;
     "getDepositIds(address)": FunctionFragment;
     "getDepositInfo(uint256)": FunctionFragment;
+    "getDepositTimestamp(uint256)": FunctionFragment;
+    "getDivisorERC20(address)": FunctionFragment;
+    "getEarlyWithdrawalPenalty(address)": FunctionFragment;
     "getFoundersRewardBoost(address)": FunctionFragment;
-    "getFoundersRewardBoostDenominator(address)": FunctionFragment;
-    "getKnftRewardBoostDenominator(address)": FunctionFragment;
     "getMinStake(address)": FunctionFragment;
-    "getRewardsPerHour(address)": FunctionFragment;
     "getStakedAmount(uint256)": FunctionFragment;
     "getTimeOfLastUpdate(uint256)": FunctionFragment;
     "getTimelock(uint256)": FunctionFragment;
     "getTimelockCategory(uint256)": FunctionFragment;
+    "getTimelockCategoryBoost(uint256)": FunctionFragment;
     "getTotalRewards(address)": FunctionFragment;
     "getTotalStaked(address)": FunctionFragment;
+    "getTotalWithdrawalFees(address)": FunctionFragment;
     "getUserTotalRewardsByCoin(address,address)": FunctionFragment;
     "getUserTotalStakedByCoin(address,address)": FunctionFragment;
     "getWithdrawalFee(address)": FunctionFragment;
-    "getWithdrawalFeeDivisor(address)": FunctionFragment;
     "getkNFTRewardBoost(address)": FunctionFragment;
     "helixERC20()": FunctionFragment;
-    "kNFTRewardBoostDivisorERC20(address)": FunctionFragment;
     "kNFTRewardBoostERC20(address)": FunctionFragment;
     "konduxERC721Founders()": FunctionFragment;
     "konduxERC721kNFT()": FunctionFragment;
@@ -70,21 +71,23 @@ export interface StakingInterface extends utils.Interface {
     "setAuthority(address)": FunctionFragment;
     "setAuthorizedERC20(address,bool)": FunctionFragment;
     "setCompoundFreq(uint256,address)": FunctionFragment;
+    "setDivisorERC20(uint256,address)": FunctionFragment;
+    "setEarlyWithdrawalPenalty(address,uint256)": FunctionFragment;
     "setFoundersRewardBoost(uint256,address)": FunctionFragment;
-    "setFoundersRewardBoostDivisor(uint256,address)": FunctionFragment;
     "setHelixERC20(address)": FunctionFragment;
     "setKonduxERC721Founders(address)": FunctionFragment;
     "setKonduxERC721kNFT(address)": FunctionFragment;
     "setMinStake(uint256,address)": FunctionFragment;
     "setRatio(uint256,address)": FunctionFragment;
+    "setTimelockCategoryBoost(uint256,uint256)": FunctionFragment;
     "setTreasury(address)": FunctionFragment;
     "setWithdrawalFee(uint256,address)": FunctionFragment;
-    "setWithdrawalFeeDivisor(uint256,address)": FunctionFragment;
     "setkNFTRewardBoost(uint256,address)": FunctionFragment;
-    "setkNFTRewardBoostDivisor(uint256,address)": FunctionFragment;
     "stakeRewards(uint256)": FunctionFragment;
+    "timelockCategoryBoost(uint256)": FunctionFragment;
     "totalRewarded(address)": FunctionFragment;
     "totalStaked(address)": FunctionFragment;
+    "totalWithdrawalFees(address)": FunctionFragment;
     "treasury()": FunctionFragment;
     "userDeposits(uint256)": FunctionFragment;
     "userDepositsIds(address,uint256)": FunctionFragment;
@@ -92,7 +95,7 @@ export interface StakingInterface extends utils.Interface {
     "userTotalStakedByCoin(address,address)": FunctionFragment;
     "withdraw(uint256,uint256)": FunctionFragment;
     "withdrawAndClaim(uint256,uint256)": FunctionFragment;
-    "withdrawalFeeDivisorERC20(address)": FunctionFragment;
+    "withdrawBeforeTimelock(uint256,uint256)": FunctionFragment;
     "withdrawalFeeERC20(address)": FunctionFragment;
   };
 
@@ -107,29 +110,30 @@ export interface StakingInterface extends utils.Interface {
       | "compoundFreqERC20"
       | "compoundRewardsTimer"
       | "deposit"
-      | "foundersRewardBoostDivisorERC20"
+      | "divisorERC20"
+      | "earlyWithdrawalPenalty"
       | "foundersRewardBoostERC20"
       | "getAPR"
       | "getDepositIds"
       | "getDepositInfo"
+      | "getDepositTimestamp"
+      | "getDivisorERC20"
+      | "getEarlyWithdrawalPenalty"
       | "getFoundersRewardBoost"
-      | "getFoundersRewardBoostDenominator"
-      | "getKnftRewardBoostDenominator"
       | "getMinStake"
-      | "getRewardsPerHour"
       | "getStakedAmount"
       | "getTimeOfLastUpdate"
       | "getTimelock"
       | "getTimelockCategory"
+      | "getTimelockCategoryBoost"
       | "getTotalRewards"
       | "getTotalStaked"
+      | "getTotalWithdrawalFees"
       | "getUserTotalRewardsByCoin"
       | "getUserTotalStakedByCoin"
       | "getWithdrawalFee"
-      | "getWithdrawalFeeDivisor"
       | "getkNFTRewardBoost"
       | "helixERC20"
-      | "kNFTRewardBoostDivisorERC20"
       | "kNFTRewardBoostERC20"
       | "konduxERC721Founders"
       | "konduxERC721kNFT"
@@ -139,21 +143,23 @@ export interface StakingInterface extends utils.Interface {
       | "setAuthority"
       | "setAuthorizedERC20"
       | "setCompoundFreq"
+      | "setDivisorERC20"
+      | "setEarlyWithdrawalPenalty"
       | "setFoundersRewardBoost"
-      | "setFoundersRewardBoostDivisor"
       | "setHelixERC20"
       | "setKonduxERC721Founders"
       | "setKonduxERC721kNFT"
       | "setMinStake"
       | "setRatio"
+      | "setTimelockCategoryBoost"
       | "setTreasury"
       | "setWithdrawalFee"
-      | "setWithdrawalFeeDivisor"
       | "setkNFTRewardBoost"
-      | "setkNFTRewardBoostDivisor"
       | "stakeRewards"
+      | "timelockCategoryBoost"
       | "totalRewarded"
       | "totalStaked"
+      | "totalWithdrawalFees"
       | "treasury"
       | "userDeposits"
       | "userDepositsIds"
@@ -161,7 +167,7 @@ export interface StakingInterface extends utils.Interface {
       | "userTotalStakedByCoin"
       | "withdraw"
       | "withdrawAndClaim"
-      | "withdrawalFeeDivisorERC20"
+      | "withdrawBeforeTimelock"
       | "withdrawalFeeERC20"
   ): FunctionFragment;
 
@@ -169,9 +175,6 @@ export interface StakingInterface extends utils.Interface {
     functionFragment: "addNewStakingToken",
     values: [
       PromiseOrValue<string>,
-      PromiseOrValue<BigNumberish>,
-      PromiseOrValue<BigNumberish>,
-      PromiseOrValue<BigNumberish>,
       PromiseOrValue<BigNumberish>,
       PromiseOrValue<BigNumberish>,
       PromiseOrValue<BigNumberish>,
@@ -215,7 +218,11 @@ export interface StakingInterface extends utils.Interface {
     ]
   ): string;
   encodeFunctionData(
-    functionFragment: "foundersRewardBoostDivisorERC20",
+    functionFragment: "divisorERC20",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "earlyWithdrawalPenalty",
     values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
@@ -235,23 +242,23 @@ export interface StakingInterface extends utils.Interface {
     values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
+    functionFragment: "getDepositTimestamp",
+    values: [PromiseOrValue<BigNumberish>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getDivisorERC20",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getEarlyWithdrawalPenalty",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
     functionFragment: "getFoundersRewardBoost",
     values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
-    functionFragment: "getFoundersRewardBoostDenominator",
-    values: [PromiseOrValue<string>]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getKnftRewardBoostDenominator",
-    values: [PromiseOrValue<string>]
-  ): string;
-  encodeFunctionData(
     functionFragment: "getMinStake",
-    values: [PromiseOrValue<string>]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getRewardsPerHour",
     values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
@@ -271,11 +278,19 @@ export interface StakingInterface extends utils.Interface {
     values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
+    functionFragment: "getTimelockCategoryBoost",
+    values: [PromiseOrValue<BigNumberish>]
+  ): string;
+  encodeFunctionData(
     functionFragment: "getTotalRewards",
     values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
     functionFragment: "getTotalStaked",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getTotalWithdrawalFees",
     values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
@@ -291,20 +306,12 @@ export interface StakingInterface extends utils.Interface {
     values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
-    functionFragment: "getWithdrawalFeeDivisor",
-    values: [PromiseOrValue<string>]
-  ): string;
-  encodeFunctionData(
     functionFragment: "getkNFTRewardBoost",
     values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
     functionFragment: "helixERC20",
     values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "kNFTRewardBoostDivisorERC20",
-    values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
     functionFragment: "kNFTRewardBoostERC20",
@@ -343,11 +350,15 @@ export interface StakingInterface extends utils.Interface {
     values: [PromiseOrValue<BigNumberish>, PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
-    functionFragment: "setFoundersRewardBoost",
+    functionFragment: "setDivisorERC20",
     values: [PromiseOrValue<BigNumberish>, PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
-    functionFragment: "setFoundersRewardBoostDivisor",
+    functionFragment: "setEarlyWithdrawalPenalty",
+    values: [PromiseOrValue<string>, PromiseOrValue<BigNumberish>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setFoundersRewardBoost",
     values: [PromiseOrValue<BigNumberish>, PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
@@ -371,6 +382,10 @@ export interface StakingInterface extends utils.Interface {
     values: [PromiseOrValue<BigNumberish>, PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
+    functionFragment: "setTimelockCategoryBoost",
+    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<BigNumberish>]
+  ): string;
+  encodeFunctionData(
     functionFragment: "setTreasury",
     values: [PromiseOrValue<string>]
   ): string;
@@ -379,19 +394,15 @@ export interface StakingInterface extends utils.Interface {
     values: [PromiseOrValue<BigNumberish>, PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
-    functionFragment: "setWithdrawalFeeDivisor",
-    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<string>]
-  ): string;
-  encodeFunctionData(
     functionFragment: "setkNFTRewardBoost",
     values: [PromiseOrValue<BigNumberish>, PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
-    functionFragment: "setkNFTRewardBoostDivisor",
-    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<string>]
+    functionFragment: "stakeRewards",
+    values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
-    functionFragment: "stakeRewards",
+    functionFragment: "timelockCategoryBoost",
     values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
@@ -400,6 +411,10 @@ export interface StakingInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "totalStaked",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "totalWithdrawalFees",
     values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(functionFragment: "treasury", values?: undefined): string;
@@ -428,8 +443,8 @@ export interface StakingInterface extends utils.Interface {
     values: [PromiseOrValue<BigNumberish>, PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
-    functionFragment: "withdrawalFeeDivisorERC20",
-    values: [PromiseOrValue<string>]
+    functionFragment: "withdrawBeforeTimelock",
+    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "withdrawalFeeERC20",
@@ -464,7 +479,11 @@ export interface StakingInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "deposit", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "foundersRewardBoostDivisorERC20",
+    functionFragment: "divisorERC20",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "earlyWithdrawalPenalty",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -481,23 +500,23 @@ export interface StakingInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "getDepositTimestamp",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getDivisorERC20",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getEarlyWithdrawalPenalty",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "getFoundersRewardBoost",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "getFoundersRewardBoostDenominator",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getKnftRewardBoostDenominator",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "getMinStake",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getRewardsPerHour",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -517,11 +536,19 @@ export interface StakingInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "getTimelockCategoryBoost",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "getTotalRewards",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
     functionFragment: "getTotalStaked",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getTotalWithdrawalFees",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -537,18 +564,10 @@ export interface StakingInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "getWithdrawalFeeDivisor",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "getkNFTRewardBoost",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "helixERC20", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "kNFTRewardBoostDivisorERC20",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(
     functionFragment: "kNFTRewardBoostERC20",
     data: BytesLike
@@ -580,11 +599,15 @@ export interface StakingInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "setFoundersRewardBoost",
+    functionFragment: "setDivisorERC20",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "setFoundersRewardBoostDivisor",
+    functionFragment: "setEarlyWithdrawalPenalty",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setFoundersRewardBoost",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -605,6 +628,10 @@ export interface StakingInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "setRatio", data: BytesLike): Result;
   decodeFunctionResult(
+    functionFragment: "setTimelockCategoryBoost",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "setTreasury",
     data: BytesLike
   ): Result;
@@ -613,19 +640,15 @@ export interface StakingInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "setWithdrawalFeeDivisor",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "setkNFTRewardBoost",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "setkNFTRewardBoostDivisor",
+    functionFragment: "stakeRewards",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "stakeRewards",
+    functionFragment: "timelockCategoryBoost",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -634,6 +657,10 @@ export interface StakingInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "totalStaked",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "totalWithdrawalFees",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "treasury", data: BytesLike): Result;
@@ -659,7 +686,7 @@ export interface StakingInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "withdrawalFeeDivisorERC20",
+    functionFragment: "withdrawBeforeTimelock",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -673,6 +700,7 @@ export interface StakingInterface extends utils.Interface {
     "NewAPR(uint256,address)": EventFragment;
     "NewAuthorizedERC20(address,bool)": EventFragment;
     "NewCompoundFreq(uint256,address)": EventFragment;
+    "NewDivisorERC20(uint256,address)": EventFragment;
     "NewFoundersRewardBoost(uint256,address)": EventFragment;
     "NewFoundersRewardBoostDivisor(uint256,address)": EventFragment;
     "NewHelixERC20(address)": EventFragment;
@@ -697,6 +725,7 @@ export interface StakingInterface extends utils.Interface {
   getEvent(nameOrSignatureOrTopic: "NewAPR"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NewAuthorizedERC20"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NewCompoundFreq"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "NewDivisorERC20"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NewFoundersRewardBoost"): EventFragment;
   getEvent(
     nameOrSignatureOrTopic: "NewFoundersRewardBoostDivisor"
@@ -770,6 +799,17 @@ export type NewCompoundFreqEvent = TypedEvent<
 >;
 
 export type NewCompoundFreqEventFilter = TypedEventFilter<NewCompoundFreqEvent>;
+
+export interface NewDivisorERC20EventObject {
+  amount: BigNumber;
+  token: string;
+}
+export type NewDivisorERC20Event = TypedEvent<
+  [BigNumber, string],
+  NewDivisorERC20EventObject
+>;
+
+export type NewDivisorERC20EventFilter = TypedEventFilter<NewDivisorERC20Event>;
 
 export interface NewFoundersRewardBoostEventObject {
   amount: BigNumber;
@@ -984,11 +1024,8 @@ export interface Staking extends BaseContract {
       _apr: PromiseOrValue<BigNumberish>,
       _compoundFreq: PromiseOrValue<BigNumberish>,
       _withdrawalFee: PromiseOrValue<BigNumberish>,
-      _withdrawalFeeDivisor: PromiseOrValue<BigNumberish>,
       _foundersRewardBoost: PromiseOrValue<BigNumberish>,
-      _foundersRewardBoostDivisor: PromiseOrValue<BigNumberish>,
       _kNFTRewardBoost: PromiseOrValue<BigNumberish>,
-      _kNFTRewardBoostDivisor: PromiseOrValue<BigNumberish>,
       _ratio: PromiseOrValue<BigNumberish>,
       _minStake: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -1034,7 +1071,12 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    foundersRewardBoostDivisorERC20(
+    divisorERC20(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
+    earlyWithdrawalPenalty(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
@@ -1064,30 +1106,30 @@ export interface Staking extends BaseContract {
       }
     >;
 
+    getDepositTimestamp(
+      _depositId: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber] & { _depositTimestamp: BigNumber }>;
+
+    getDivisorERC20(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
+    getEarlyWithdrawalPenalty(
+      token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
     getFoundersRewardBoost(
       _tokenId: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<[BigNumber] & { _foundersRewardBoost: BigNumber }>;
 
-    getFoundersRewardBoostDenominator(
-      _tokenId: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber] & { _foundersRewardBoostDivisor: BigNumber }>;
-
-    getKnftRewardBoostDenominator(
-      _tokenId: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber] & { _kNFTRewardBoostDivisor: BigNumber }>;
-
     getMinStake(
       _tokenId: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<[BigNumber] & { _minStake: BigNumber }>;
-
-    getRewardsPerHour(
-      _tokenId: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber] & { _rewardsPerHour: BigNumber }>;
 
     getStakedAmount(
       _depositId: PromiseOrValue<BigNumberish>,
@@ -1109,6 +1151,11 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[number] & { _timelockCategory: number }>;
 
+    getTimelockCategoryBoost(
+      _category: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
     getTotalRewards(
       _token: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -1118,6 +1165,11 @@ export interface Staking extends BaseContract {
       _token: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<[BigNumber] & { _totalStaked: BigNumber }>;
+
+    getTotalWithdrawalFees(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber] & { _totalWithdrawalFees: BigNumber }>;
 
     getUserTotalRewardsByCoin(
       _user: PromiseOrValue<string>,
@@ -1136,22 +1188,12 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[BigNumber] & { _withdrawalFee: BigNumber }>;
 
-    getWithdrawalFeeDivisor(
-      _tokenId: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber] & { _withdrawalFeeDivisor: BigNumber }>;
-
     getkNFTRewardBoost(
       _tokenId: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<[BigNumber] & { _kNFTRewardBoost: BigNumber }>;
 
     helixERC20(overrides?: CallOverrides): Promise<[string]>;
-
-    kNFTRewardBoostDivisorERC20(
-      arg0: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber]>;
 
     kNFTRewardBoostERC20(
       arg0: PromiseOrValue<string>,
@@ -1195,14 +1237,20 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    setFoundersRewardBoost(
-      _foundersRewardBoost: PromiseOrValue<BigNumberish>,
+    setDivisorERC20(
+      _divisor: PromiseOrValue<BigNumberish>,
       _tokenId: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    setFoundersRewardBoostDivisor(
-      _foundersRewardBoostDivisor: PromiseOrValue<BigNumberish>,
+    setEarlyWithdrawalPenalty(
+      token: PromiseOrValue<string>,
+      penaltyPercentage: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    setFoundersRewardBoost(
+      _foundersRewardBoost: PromiseOrValue<BigNumberish>,
       _tokenId: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
@@ -1234,6 +1282,12 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
+    setTimelockCategoryBoost(
+      _category: PromiseOrValue<BigNumberish>,
+      _boost: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
     setTreasury(
       _treasury: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -1245,20 +1299,8 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    setWithdrawalFeeDivisor(
-      _withdrawalFeeDivisor: PromiseOrValue<BigNumberish>,
-      _tokenId: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
     setkNFTRewardBoost(
       _kNFTRewardBoost: PromiseOrValue<BigNumberish>,
-      _tokenId: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
-    setkNFTRewardBoostDivisor(
-      _kNFTRewardBoostDivisor: PromiseOrValue<BigNumberish>,
       _tokenId: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
@@ -1268,12 +1310,22 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
+    timelockCategoryBoost(
+      arg0: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
     totalRewarded(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
     totalStaked(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
+    totalWithdrawalFees(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
@@ -1337,10 +1389,11 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    withdrawalFeeDivisorERC20(
-      arg0: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber]>;
+    withdrawBeforeTimelock(
+      _amount: PromiseOrValue<BigNumberish>,
+      _depositId: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
 
     withdrawalFeeERC20(
       arg0: PromiseOrValue<string>,
@@ -1353,11 +1406,8 @@ export interface Staking extends BaseContract {
     _apr: PromiseOrValue<BigNumberish>,
     _compoundFreq: PromiseOrValue<BigNumberish>,
     _withdrawalFee: PromiseOrValue<BigNumberish>,
-    _withdrawalFeeDivisor: PromiseOrValue<BigNumberish>,
     _foundersRewardBoost: PromiseOrValue<BigNumberish>,
-    _foundersRewardBoostDivisor: PromiseOrValue<BigNumberish>,
     _kNFTRewardBoost: PromiseOrValue<BigNumberish>,
-    _kNFTRewardBoostDivisor: PromiseOrValue<BigNumberish>,
     _ratio: PromiseOrValue<BigNumberish>,
     _minStake: PromiseOrValue<BigNumberish>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -1403,7 +1453,12 @@ export interface Staking extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  foundersRewardBoostDivisorERC20(
+  divisorERC20(
+    arg0: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  earlyWithdrawalPenalty(
     arg0: PromiseOrValue<string>,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
@@ -1430,27 +1485,27 @@ export interface Staking extends BaseContract {
     [BigNumber, BigNumber] & { _stake: BigNumber; _unclaimedRewards: BigNumber }
   >;
 
+  getDepositTimestamp(
+    _depositId: PromiseOrValue<BigNumberish>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  getDivisorERC20(
+    _token: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  getEarlyWithdrawalPenalty(
+    token: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
   getFoundersRewardBoost(
     _tokenId: PromiseOrValue<string>,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
-  getFoundersRewardBoostDenominator(
-    _tokenId: PromiseOrValue<string>,
-    overrides?: CallOverrides
-  ): Promise<BigNumber>;
-
-  getKnftRewardBoostDenominator(
-    _tokenId: PromiseOrValue<string>,
-    overrides?: CallOverrides
-  ): Promise<BigNumber>;
-
   getMinStake(
-    _tokenId: PromiseOrValue<string>,
-    overrides?: CallOverrides
-  ): Promise<BigNumber>;
-
-  getRewardsPerHour(
     _tokenId: PromiseOrValue<string>,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
@@ -1475,12 +1530,22 @@ export interface Staking extends BaseContract {
     overrides?: CallOverrides
   ): Promise<number>;
 
+  getTimelockCategoryBoost(
+    _category: PromiseOrValue<BigNumberish>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
   getTotalRewards(
     _token: PromiseOrValue<string>,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
   getTotalStaked(
+    _token: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  getTotalWithdrawalFees(
     _token: PromiseOrValue<string>,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
@@ -1502,22 +1567,12 @@ export interface Staking extends BaseContract {
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
-  getWithdrawalFeeDivisor(
-    _tokenId: PromiseOrValue<string>,
-    overrides?: CallOverrides
-  ): Promise<BigNumber>;
-
   getkNFTRewardBoost(
     _tokenId: PromiseOrValue<string>,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
   helixERC20(overrides?: CallOverrides): Promise<string>;
-
-  kNFTRewardBoostDivisorERC20(
-    arg0: PromiseOrValue<string>,
-    overrides?: CallOverrides
-  ): Promise<BigNumber>;
 
   kNFTRewardBoostERC20(
     arg0: PromiseOrValue<string>,
@@ -1561,14 +1616,20 @@ export interface Staking extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  setFoundersRewardBoost(
-    _foundersRewardBoost: PromiseOrValue<BigNumberish>,
+  setDivisorERC20(
+    _divisor: PromiseOrValue<BigNumberish>,
     _tokenId: PromiseOrValue<string>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  setFoundersRewardBoostDivisor(
-    _foundersRewardBoostDivisor: PromiseOrValue<BigNumberish>,
+  setEarlyWithdrawalPenalty(
+    token: PromiseOrValue<string>,
+    penaltyPercentage: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  setFoundersRewardBoost(
+    _foundersRewardBoost: PromiseOrValue<BigNumberish>,
     _tokenId: PromiseOrValue<string>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
@@ -1600,6 +1661,12 @@ export interface Staking extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
+  setTimelockCategoryBoost(
+    _category: PromiseOrValue<BigNumberish>,
+    _boost: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
   setTreasury(
     _treasury: PromiseOrValue<string>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -1611,20 +1678,8 @@ export interface Staking extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  setWithdrawalFeeDivisor(
-    _withdrawalFeeDivisor: PromiseOrValue<BigNumberish>,
-    _tokenId: PromiseOrValue<string>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
-
   setkNFTRewardBoost(
     _kNFTRewardBoost: PromiseOrValue<BigNumberish>,
-    _tokenId: PromiseOrValue<string>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
-
-  setkNFTRewardBoostDivisor(
-    _kNFTRewardBoostDivisor: PromiseOrValue<BigNumberish>,
     _tokenId: PromiseOrValue<string>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
@@ -1634,12 +1689,22 @@ export interface Staking extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
+  timelockCategoryBoost(
+    arg0: PromiseOrValue<BigNumberish>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
   totalRewarded(
     arg0: PromiseOrValue<string>,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
   totalStaked(
+    arg0: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  totalWithdrawalFees(
     arg0: PromiseOrValue<string>,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
@@ -1703,10 +1768,11 @@ export interface Staking extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  withdrawalFeeDivisorERC20(
-    arg0: PromiseOrValue<string>,
-    overrides?: CallOverrides
-  ): Promise<BigNumber>;
+  withdrawBeforeTimelock(
+    _amount: PromiseOrValue<BigNumberish>,
+    _depositId: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
 
   withdrawalFeeERC20(
     arg0: PromiseOrValue<string>,
@@ -1719,11 +1785,8 @@ export interface Staking extends BaseContract {
       _apr: PromiseOrValue<BigNumberish>,
       _compoundFreq: PromiseOrValue<BigNumberish>,
       _withdrawalFee: PromiseOrValue<BigNumberish>,
-      _withdrawalFeeDivisor: PromiseOrValue<BigNumberish>,
       _foundersRewardBoost: PromiseOrValue<BigNumberish>,
-      _foundersRewardBoostDivisor: PromiseOrValue<BigNumberish>,
       _kNFTRewardBoost: PromiseOrValue<BigNumberish>,
-      _kNFTRewardBoostDivisor: PromiseOrValue<BigNumberish>,
       _ratio: PromiseOrValue<BigNumberish>,
       _minStake: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
@@ -1769,7 +1832,12 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    foundersRewardBoostDivisorERC20(
+    divisorERC20(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    earlyWithdrawalPenalty(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -1799,27 +1867,27 @@ export interface Staking extends BaseContract {
       }
     >;
 
+    getDepositTimestamp(
+      _depositId: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getDivisorERC20(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getEarlyWithdrawalPenalty(
+      token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     getFoundersRewardBoost(
       _tokenId: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    getFoundersRewardBoostDenominator(
-      _tokenId: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    getKnftRewardBoostDenominator(
-      _tokenId: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
     getMinStake(
-      _tokenId: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    getRewardsPerHour(
       _tokenId: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -1844,12 +1912,22 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<number>;
 
+    getTimelockCategoryBoost(
+      _category: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     getTotalRewards(
       _token: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     getTotalStaked(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getTotalWithdrawalFees(
       _token: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -1871,22 +1949,12 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    getWithdrawalFeeDivisor(
-      _tokenId: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
     getkNFTRewardBoost(
       _tokenId: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     helixERC20(overrides?: CallOverrides): Promise<string>;
-
-    kNFTRewardBoostDivisorERC20(
-      arg0: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
 
     kNFTRewardBoostERC20(
       arg0: PromiseOrValue<string>,
@@ -1930,14 +1998,20 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setFoundersRewardBoost(
-      _foundersRewardBoost: PromiseOrValue<BigNumberish>,
+    setDivisorERC20(
+      _divisor: PromiseOrValue<BigNumberish>,
       _tokenId: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setFoundersRewardBoostDivisor(
-      _foundersRewardBoostDivisor: PromiseOrValue<BigNumberish>,
+    setEarlyWithdrawalPenalty(
+      token: PromiseOrValue<string>,
+      penaltyPercentage: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setFoundersRewardBoost(
+      _foundersRewardBoost: PromiseOrValue<BigNumberish>,
       _tokenId: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<void>;
@@ -1969,6 +2043,12 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    setTimelockCategoryBoost(
+      _category: PromiseOrValue<BigNumberish>,
+      _boost: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     setTreasury(
       _treasury: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -1980,20 +2060,8 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setWithdrawalFeeDivisor(
-      _withdrawalFeeDivisor: PromiseOrValue<BigNumberish>,
-      _tokenId: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
     setkNFTRewardBoost(
       _kNFTRewardBoost: PromiseOrValue<BigNumberish>,
-      _tokenId: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    setkNFTRewardBoostDivisor(
-      _kNFTRewardBoostDivisor: PromiseOrValue<BigNumberish>,
       _tokenId: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<void>;
@@ -2003,12 +2071,22 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    timelockCategoryBoost(
+      arg0: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     totalRewarded(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     totalStaked(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    totalWithdrawalFees(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -2072,10 +2150,11 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
-    withdrawalFeeDivisorERC20(
-      arg0: PromiseOrValue<string>,
+    withdrawBeforeTimelock(
+      _amount: PromiseOrValue<BigNumberish>,
+      _depositId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
-    ): Promise<BigNumber>;
+    ): Promise<void>;
 
     withdrawalFeeERC20(
       arg0: PromiseOrValue<string>,
@@ -2122,6 +2201,15 @@ export interface Staking extends BaseContract {
       amount?: PromiseOrValue<BigNumberish> | null,
       token?: PromiseOrValue<string> | null
     ): NewCompoundFreqEventFilter;
+
+    "NewDivisorERC20(uint256,address)"(
+      amount?: PromiseOrValue<BigNumberish> | null,
+      token?: PromiseOrValue<string> | null
+    ): NewDivisorERC20EventFilter;
+    NewDivisorERC20(
+      amount?: PromiseOrValue<BigNumberish> | null,
+      token?: PromiseOrValue<string> | null
+    ): NewDivisorERC20EventFilter;
 
     "NewFoundersRewardBoost(uint256,address)"(
       amount?: PromiseOrValue<BigNumberish> | null,
@@ -2279,11 +2367,8 @@ export interface Staking extends BaseContract {
       _apr: PromiseOrValue<BigNumberish>,
       _compoundFreq: PromiseOrValue<BigNumberish>,
       _withdrawalFee: PromiseOrValue<BigNumberish>,
-      _withdrawalFeeDivisor: PromiseOrValue<BigNumberish>,
       _foundersRewardBoost: PromiseOrValue<BigNumberish>,
-      _foundersRewardBoostDivisor: PromiseOrValue<BigNumberish>,
       _kNFTRewardBoost: PromiseOrValue<BigNumberish>,
-      _kNFTRewardBoostDivisor: PromiseOrValue<BigNumberish>,
       _ratio: PromiseOrValue<BigNumberish>,
       _minStake: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -2329,7 +2414,12 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    foundersRewardBoostDivisorERC20(
+    divisorERC20(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    earlyWithdrawalPenalty(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -2354,27 +2444,27 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    getDepositTimestamp(
+      _depositId: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getDivisorERC20(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getEarlyWithdrawalPenalty(
+      token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     getFoundersRewardBoost(
       _tokenId: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    getFoundersRewardBoostDenominator(
-      _tokenId: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    getKnftRewardBoostDenominator(
-      _tokenId: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
     getMinStake(
-      _tokenId: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    getRewardsPerHour(
       _tokenId: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -2399,12 +2489,22 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    getTimelockCategoryBoost(
+      _category: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     getTotalRewards(
       _token: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     getTotalStaked(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getTotalWithdrawalFees(
       _token: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -2426,22 +2526,12 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    getWithdrawalFeeDivisor(
-      _tokenId: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
     getkNFTRewardBoost(
       _tokenId: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     helixERC20(overrides?: CallOverrides): Promise<BigNumber>;
-
-    kNFTRewardBoostDivisorERC20(
-      arg0: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
 
     kNFTRewardBoostERC20(
       arg0: PromiseOrValue<string>,
@@ -2485,14 +2575,20 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    setFoundersRewardBoost(
-      _foundersRewardBoost: PromiseOrValue<BigNumberish>,
+    setDivisorERC20(
+      _divisor: PromiseOrValue<BigNumberish>,
       _tokenId: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    setFoundersRewardBoostDivisor(
-      _foundersRewardBoostDivisor: PromiseOrValue<BigNumberish>,
+    setEarlyWithdrawalPenalty(
+      token: PromiseOrValue<string>,
+      penaltyPercentage: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    setFoundersRewardBoost(
+      _foundersRewardBoost: PromiseOrValue<BigNumberish>,
       _tokenId: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
@@ -2524,6 +2620,12 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
+    setTimelockCategoryBoost(
+      _category: PromiseOrValue<BigNumberish>,
+      _boost: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
     setTreasury(
       _treasury: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -2535,20 +2637,8 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    setWithdrawalFeeDivisor(
-      _withdrawalFeeDivisor: PromiseOrValue<BigNumberish>,
-      _tokenId: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
     setkNFTRewardBoost(
       _kNFTRewardBoost: PromiseOrValue<BigNumberish>,
-      _tokenId: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
-    setkNFTRewardBoostDivisor(
-      _kNFTRewardBoostDivisor: PromiseOrValue<BigNumberish>,
       _tokenId: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
@@ -2558,12 +2648,22 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
+    timelockCategoryBoost(
+      arg0: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     totalRewarded(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     totalStaked(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    totalWithdrawalFees(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -2605,9 +2705,10 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    withdrawalFeeDivisorERC20(
-      arg0: PromiseOrValue<string>,
-      overrides?: CallOverrides
+    withdrawBeforeTimelock(
+      _amount: PromiseOrValue<BigNumberish>,
+      _depositId: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     withdrawalFeeERC20(
@@ -2622,11 +2723,8 @@ export interface Staking extends BaseContract {
       _apr: PromiseOrValue<BigNumberish>,
       _compoundFreq: PromiseOrValue<BigNumberish>,
       _withdrawalFee: PromiseOrValue<BigNumberish>,
-      _withdrawalFeeDivisor: PromiseOrValue<BigNumberish>,
       _foundersRewardBoost: PromiseOrValue<BigNumberish>,
-      _foundersRewardBoostDivisor: PromiseOrValue<BigNumberish>,
       _kNFTRewardBoost: PromiseOrValue<BigNumberish>,
-      _kNFTRewardBoostDivisor: PromiseOrValue<BigNumberish>,
       _ratio: PromiseOrValue<BigNumberish>,
       _minStake: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -2672,7 +2770,12 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
-    foundersRewardBoostDivisorERC20(
+    divisorERC20(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    earlyWithdrawalPenalty(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
@@ -2697,27 +2800,27 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
+    getDepositTimestamp(
+      _depositId: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getDivisorERC20(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getEarlyWithdrawalPenalty(
+      token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     getFoundersRewardBoost(
       _tokenId: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    getFoundersRewardBoostDenominator(
-      _tokenId: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    getKnftRewardBoostDenominator(
-      _tokenId: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
     getMinStake(
-      _tokenId: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    getRewardsPerHour(
       _tokenId: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
@@ -2742,12 +2845,22 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
+    getTimelockCategoryBoost(
+      _category: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     getTotalRewards(
       _token: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     getTotalStaked(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getTotalWithdrawalFees(
       _token: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
@@ -2769,22 +2882,12 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    getWithdrawalFeeDivisor(
-      _tokenId: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
     getkNFTRewardBoost(
       _tokenId: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     helixERC20(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    kNFTRewardBoostDivisorERC20(
-      arg0: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
 
     kNFTRewardBoostERC20(
       arg0: PromiseOrValue<string>,
@@ -2830,14 +2933,20 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
-    setFoundersRewardBoost(
-      _foundersRewardBoost: PromiseOrValue<BigNumberish>,
+    setDivisorERC20(
+      _divisor: PromiseOrValue<BigNumberish>,
       _tokenId: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
-    setFoundersRewardBoostDivisor(
-      _foundersRewardBoostDivisor: PromiseOrValue<BigNumberish>,
+    setEarlyWithdrawalPenalty(
+      token: PromiseOrValue<string>,
+      penaltyPercentage: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setFoundersRewardBoost(
+      _foundersRewardBoost: PromiseOrValue<BigNumberish>,
       _tokenId: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
@@ -2869,6 +2978,12 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
+    setTimelockCategoryBoost(
+      _category: PromiseOrValue<BigNumberish>,
+      _boost: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
     setTreasury(
       _treasury: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -2880,20 +2995,8 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
-    setWithdrawalFeeDivisor(
-      _withdrawalFeeDivisor: PromiseOrValue<BigNumberish>,
-      _tokenId: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
     setkNFTRewardBoost(
       _kNFTRewardBoost: PromiseOrValue<BigNumberish>,
-      _tokenId: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
-    setkNFTRewardBoostDivisor(
-      _kNFTRewardBoostDivisor: PromiseOrValue<BigNumberish>,
       _tokenId: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
@@ -2903,12 +3006,22 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
+    timelockCategoryBoost(
+      arg0: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     totalRewarded(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     totalStaked(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    totalWithdrawalFees(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
@@ -2950,9 +3063,10 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
-    withdrawalFeeDivisorERC20(
-      arg0: PromiseOrValue<string>,
-      overrides?: CallOverrides
+    withdrawBeforeTimelock(
+      _amount: PromiseOrValue<BigNumberish>,
+      _depositId: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     withdrawalFeeERC20(
