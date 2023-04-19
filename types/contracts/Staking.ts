@@ -702,17 +702,14 @@ export interface StakingInterface extends utils.Interface {
     "NewCompoundFreq(uint256,address)": EventFragment;
     "NewDivisorERC20(uint256,address)": EventFragment;
     "NewFoundersRewardBoost(uint256,address)": EventFragment;
-    "NewFoundersRewardBoostDivisor(uint256,address)": EventFragment;
     "NewHelixERC20(address)": EventFragment;
     "NewKNFTRewardBoost(uint256,address)": EventFragment;
-    "NewKNFTRewardBoostDivisor(uint256,address)": EventFragment;
     "NewKonduxERC721Founders(address)": EventFragment;
     "NewKonduxERC721kNFT(address)": EventFragment;
     "NewMinStake(uint256,address)": EventFragment;
     "NewRatio(uint256,address)": EventFragment;
     "NewTreasury(address)": EventFragment;
     "NewWithdrawalFee(uint256,address)": EventFragment;
-    "NewWithdrawalFeeDivisor(uint256,address)": EventFragment;
     "Reward(address,uint256)": EventFragment;
     "Stake(uint256,address,address,uint256)": EventFragment;
     "Unstake(address,uint256)": EventFragment;
@@ -727,19 +724,14 @@ export interface StakingInterface extends utils.Interface {
   getEvent(nameOrSignatureOrTopic: "NewCompoundFreq"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NewDivisorERC20"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NewFoundersRewardBoost"): EventFragment;
-  getEvent(
-    nameOrSignatureOrTopic: "NewFoundersRewardBoostDivisor"
-  ): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NewHelixERC20"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NewKNFTRewardBoost"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "NewKNFTRewardBoostDivisor"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NewKonduxERC721Founders"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NewKonduxERC721kNFT"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NewMinStake"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NewRatio"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NewTreasury"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NewWithdrawalFee"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "NewWithdrawalFeeDivisor"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Reward"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Stake"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Unstake"): EventFragment;
@@ -823,18 +815,6 @@ export type NewFoundersRewardBoostEvent = TypedEvent<
 export type NewFoundersRewardBoostEventFilter =
   TypedEventFilter<NewFoundersRewardBoostEvent>;
 
-export interface NewFoundersRewardBoostDivisorEventObject {
-  amount: BigNumber;
-  token: string;
-}
-export type NewFoundersRewardBoostDivisorEvent = TypedEvent<
-  [BigNumber, string],
-  NewFoundersRewardBoostDivisorEventObject
->;
-
-export type NewFoundersRewardBoostDivisorEventFilter =
-  TypedEventFilter<NewFoundersRewardBoostDivisorEvent>;
-
 export interface NewHelixERC20EventObject {
   helixERC20: string;
 }
@@ -853,18 +833,6 @@ export type NewKNFTRewardBoostEvent = TypedEvent<
 
 export type NewKNFTRewardBoostEventFilter =
   TypedEventFilter<NewKNFTRewardBoostEvent>;
-
-export interface NewKNFTRewardBoostDivisorEventObject {
-  amount: BigNumber;
-  token: string;
-}
-export type NewKNFTRewardBoostDivisorEvent = TypedEvent<
-  [BigNumber, string],
-  NewKNFTRewardBoostDivisorEventObject
->;
-
-export type NewKNFTRewardBoostDivisorEventFilter =
-  TypedEventFilter<NewKNFTRewardBoostDivisorEvent>;
 
 export interface NewKonduxERC721FoundersEventObject {
   konduxERC721Founders: string;
@@ -928,18 +896,6 @@ export type NewWithdrawalFeeEvent = TypedEvent<
 
 export type NewWithdrawalFeeEventFilter =
   TypedEventFilter<NewWithdrawalFeeEvent>;
-
-export interface NewWithdrawalFeeDivisorEventObject {
-  amount: BigNumber;
-  token: string;
-}
-export type NewWithdrawalFeeDivisorEvent = TypedEvent<
-  [BigNumber, string],
-  NewWithdrawalFeeDivisorEventObject
->;
-
-export type NewWithdrawalFeeDivisorEventFilter =
-  TypedEventFilter<NewWithdrawalFeeDivisorEvent>;
 
 export interface RewardEventObject {
   staker: string;
@@ -2220,15 +2176,6 @@ export interface Staking extends BaseContract {
       token?: PromiseOrValue<string> | null
     ): NewFoundersRewardBoostEventFilter;
 
-    "NewFoundersRewardBoostDivisor(uint256,address)"(
-      amount?: PromiseOrValue<BigNumberish> | null,
-      token?: PromiseOrValue<string> | null
-    ): NewFoundersRewardBoostDivisorEventFilter;
-    NewFoundersRewardBoostDivisor(
-      amount?: PromiseOrValue<BigNumberish> | null,
-      token?: PromiseOrValue<string> | null
-    ): NewFoundersRewardBoostDivisorEventFilter;
-
     "NewHelixERC20(address)"(
       helixERC20?: PromiseOrValue<string> | null
     ): NewHelixERC20EventFilter;
@@ -2244,15 +2191,6 @@ export interface Staking extends BaseContract {
       amount?: PromiseOrValue<BigNumberish> | null,
       token?: PromiseOrValue<string> | null
     ): NewKNFTRewardBoostEventFilter;
-
-    "NewKNFTRewardBoostDivisor(uint256,address)"(
-      amount?: PromiseOrValue<BigNumberish> | null,
-      token?: PromiseOrValue<string> | null
-    ): NewKNFTRewardBoostDivisorEventFilter;
-    NewKNFTRewardBoostDivisor(
-      amount?: PromiseOrValue<BigNumberish> | null,
-      token?: PromiseOrValue<string> | null
-    ): NewKNFTRewardBoostDivisorEventFilter;
 
     "NewKonduxERC721Founders(address)"(
       konduxERC721Founders?: PromiseOrValue<string> | null
@@ -2301,15 +2239,6 @@ export interface Staking extends BaseContract {
       amount?: PromiseOrValue<BigNumberish> | null,
       token?: PromiseOrValue<string> | null
     ): NewWithdrawalFeeEventFilter;
-
-    "NewWithdrawalFeeDivisor(uint256,address)"(
-      amount?: PromiseOrValue<BigNumberish> | null,
-      token?: PromiseOrValue<string> | null
-    ): NewWithdrawalFeeDivisorEventFilter;
-    NewWithdrawalFeeDivisor(
-      amount?: PromiseOrValue<BigNumberish> | null,
-      token?: PromiseOrValue<string> | null
-    ): NewWithdrawalFeeDivisorEventFilter;
 
     "Reward(address,uint256)"(
       staker?: PromiseOrValue<string> | null,

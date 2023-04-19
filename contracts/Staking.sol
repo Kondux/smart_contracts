@@ -344,7 +344,7 @@ contract Staking is AccessControlled {
 
         IERC20 konduxERC20 = IERC20(userDeposits[_depositId].token);
 
-        uint256 netRewards = (rewards * (10_000 - withdrawalFeeERC20[userDeposits[_depositId].token])) / 10_000;
+        uint256 netRewards = (rewards * (10_000 - withdrawalFeeERC20[userDeposits[_depositId].token])) / divisorERC20[userDeposits[_depositId].token];
 
         konduxERC20.transferFrom(authority.vault(), msg.sender, netRewards); 
 
@@ -382,7 +382,7 @@ contract Staking is AccessControlled {
         userDeposits[_depositId].unclaimedRewards += _rewards;
 
         // Calculate the liquid amount to transfer after applying the withdrawal fee
-        uint256 _liquid = (_amount * (10_000 - withdrawalFeeERC20[userDeposits[_depositId].token])) / 10_000;
+        uint256 _liquid = (_amount * (divisorERC20[userDeposits[_depositId].token] - withdrawalFeeERC20[userDeposits[_depositId].token])) / divisorERC20[userDeposits[_depositId].token];
 
         // Get the token contract
         IERC20 konduxERC20 = IERC20(userDeposits[_depositId].token);
@@ -451,7 +451,7 @@ contract Staking is AccessControlled {
         console.log("totalFeePercentage: %s", totalFeePercentage);
 
         // Calculate the liquid amount to transfer after applying the total fee
-        uint256 _liquid = (_amount * (10000 - totalFeePercentage)) / 10000;
+        uint256 _liquid = (_amount * (divisorERC20[userDeposits[_depositId].token] - totalFeePercentage)) / divisorERC20[userDeposits[_depositId].token];
 
         // Update the deposit record
         userDeposits[_depositId].deposited -= _amount;
@@ -532,45 +532,44 @@ contract Staking is AccessControlled {
      * @return rewards The calculated rewards for the specified staker and deposit ID.
      */
     function calculateRewards(address _staker, uint _depositId) public view returns (uint256 rewards) {
-        // Check if _staker has _depositId, if not, return 0;
-        if (userDeposits[_depositId].staker != _staker) {
-            return 0;
-        }
+        Staker memory deposit_ = userDeposits[_depositId];  
 
-        uint256 elapsedTime = block.timestamp - userDeposits[_depositId].timeOfLastUpdate;
-        uint256 depositedAmount = userDeposits[_depositId].deposited;
+        // Check if _staker has _depositId, if not, return 0;
+        if (deposit_.staker != _staker) {
+            return 0;
+        } 
+
+        uint256 elapsedTime = block.timestamp - deposit_.timeOfLastUpdate; 
+        uint256 depositedAmount = deposit_.deposited;
 
         // Calculate 25% APR, avoiding truncating to zero
-        uint256 rewardPerSecond = (depositedAmount * aprERC20[userDeposits[_depositId].token] * 1e18) / (365 * 24 * 3600 * 100);
+        uint256 tokenApr = aprERC20[deposit_.token];
+        uint256 rewardPerSecond = (depositedAmount * tokenApr * 1e18) / (365 * 24 * 3600 * 100);
         uint256 _reward = elapsedTime * rewardPerSecond / 1e18;
 
-        uint256 boostPercentage = 10_000;
+        uint256 boostPercentage = divisorERC20[deposit_.token]; 
 
         if (IERC721(konduxERC721Founders).balanceOf(_staker) > 0) {
-            boostPercentage += foundersRewardBoostERC20[userDeposits[_depositId].token];
-            console.log("_foundersNFTBalance: %s", IERC721(konduxERC721Founders).balanceOf(_staker));
+            boostPercentage += foundersRewardBoostERC20[deposit_.token];
         }
 
         if (IERC721(konduxERC721kNFT).balanceOf(_staker) > 0) {
             uint256 _kNFTBalance = IERC721(konduxERC721kNFT).balanceOf(_staker);
-            console.log("_kNFTBalance: %s", _kNFTBalance);
             if (_kNFTBalance > 5) {
                 _kNFTBalance = 5;
             }
-            boostPercentage += (_kNFTBalance * kNFTRewardBoostERC20[userDeposits[_depositId].token]);
+            boostPercentage += (_kNFTBalance * kNFTRewardBoostERC20[deposit_.token]);
         }
 
-        if (userDeposits[_depositId].timelockCategory > 0) {
-            boostPercentage += timelockCategoryBoost[userDeposits[_depositId].timelockCategory];
-            console.log("timelockCategoryBoost: %s", timelockCategoryBoost[userDeposits[_depositId].timelockCategory]);
+        if (deposit_.timelockCategory > 0) {
+            boostPercentage += timelockCategoryBoost[deposit_.timelockCategory];
         }
 
-        console.log("boostPercentage: %s", boostPercentage);
-
-        _reward = (_reward * boostPercentage) / 10_000;
+        _reward = (_reward * boostPercentage) / divisorERC20[deposit_.token]; 
 
         return _reward;
     }
+
 
     // Internal functions:
 
