@@ -17,6 +17,8 @@ contract Kondux is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Roya
     event Received(address sender, uint value);
     event DnaChanged(uint256 tokenID, uint256 dna);
     event DenominatorChanged(uint96 denominator);
+    event DnaModified(uint256 indexed tokenID, uint256 dna, uint256 inputValue, uint8 startIndex, uint8 endIndex);
+
 
     using Counters for Counters.Counter;
 
@@ -82,8 +84,76 @@ contract Kondux is ERC721, ERC721Enumerable,Pausable, ERC721Burnable, ERC721Roya
     function getDna (uint256 _tokenID) public view returns (uint256) {
         require(_exists(_tokenID), "ERC721Metadata: URI query for nonexistent token");
         return indexDna[_tokenID];
-    }  
+    }
 
+    function readDNA(uint256 _tokenID, uint8 startIndex, uint8 endIndex) public view returns (int256) {
+        require(startIndex < endIndex && endIndex <= 32, "Invalid range");
+
+        uint256 originalValue = indexDna[_tokenID];
+        uint256 extractedValue;
+
+        for (uint8 i = startIndex; i < endIndex; i++) {
+            assembly {
+                let bytePos := sub(31, i) // Reverse the index since bytes are stored in big-endian
+                let shiftAmount := mul(8, bytePos)
+
+                // Extract the byte from the original value at the current position
+                let extractedByte := and(shr(shiftAmount, originalValue), 0xff)
+
+                // Shift the extracted byte to the left by the number of positions
+                // from the start of the requested range
+                let adjustedShiftAmount := mul(8, sub(i, startIndex))
+
+                // Combine the shifted byte with the previously extracted bytes
+                extractedValue := or(extractedValue, shl(adjustedShiftAmount, extractedByte))
+            }
+        }
+
+        return int256(extractedValue);
+    }
+
+    function writeDNA(uint256 _tokenID, uint256 inputValue, uint8 startIndex, uint8 endIndex) public {
+        require(startIndex < endIndex && endIndex <= 32, "Invalid range");
+        require(inputValue >= 0, "Only positive values are supported");
+
+        uint256 originalValue = indexDna[_tokenID];
+        uint256 mask;
+        uint256 updatedValue;
+
+        for (uint8 i = startIndex; i < endIndex; i++) {
+            assembly {
+                let bytePos := sub(31, i) // Reverse the index since bytes are stored in big-endian
+                let shiftAmount := mul(8, bytePos)
+
+                // Prepare the mask for the current byte
+                mask := or(mask, shl(shiftAmount, 0xff))
+
+                // Prepare the updated value
+                updatedValue := or(updatedValue, shl(shiftAmount, and(shr(mul(8, sub(i, startIndex)), inputValue), 0xff)))
+            }
+        }
+
+        // Clear the bytes in the specified range of the original value, then store the updated value
+        indexDna[_tokenID] = (originalValue & ~mask) | (updatedValue & mask);
+
+
+        // Emit the BytesRangeModified event
+        emit DnaModified(_tokenID, indexDna[_tokenID], inputValue, startIndex, endIndex); 
+    }
+
+    function faucet() public {
+        uint256 tokenId = _tokenIdCounter.current();
+        _tokenIdCounter.increment();
+        _safeMint(msg.sender, tokenId);
+    }
+
+    function faucetBonus(uint256 _bonus) public {
+        uint256 tokenId = _tokenIdCounter.current();
+        _tokenIdCounter.increment();
+        _safeMint(msg.sender, tokenId);
+        writeDNA(tokenId, _bonus, 1, 2); 
+    }  
+  
     // Internal functions //
 
     function _baseURI() internal view override returns (string memory) {

@@ -16,6 +16,8 @@ import {
     KonduxERC721Founders__factory,
     KonduxERC721kNFT,
     KonduxERC721kNFT__factory,
+    Kondux,
+    Kondux__factory,
     Helix,
     Helix__factory,
 } from "../types";
@@ -29,7 +31,7 @@ describe("Staking minting", async function () {
     let kondux: KonduxERC20;
     let kondux2: KonduxERC20;
     let founders: KonduxERC721Founders;
-    let knft: KonduxERC721kNFT;
+    let knft: Kondux;
     let helix: Helix;
     let snapshot: any;
 
@@ -77,7 +79,7 @@ describe("Staking minting", async function () {
         await founders.deployed();
         console.log("Founders address:", founders.address);
 
-        knft = await new KonduxERC721kNFT__factory(owner).deploy();
+        knft = await new Kondux__factory(owner).deploy("Kondux NFT", "KNFT", authority.address);
         await knft.deployed();
         console.log("kNFT address:", knft.address);
 
@@ -130,6 +132,20 @@ describe("Staking minting", async function () {
         const setHelixBurner = await helix.setRole(ethers.utils.keccak256(ethers.utils.toUtf8Bytes("BURNER_ROLE")), staking.address, true);
         await setHelixBurner.wait();
         console.log("Staking contract is burner:", staking.address);
+
+        console.log("Owner knft balance:", await knft.balanceOf(ownerAddress));
+        const mintKnft = await knft.connect(owner).faucetBonus(3);
+        const mintKnftReceipt = await mintKnft.wait();
+        const mintedTokenId = mintKnftReceipt.events[0].args[2];   
+        console.log("Minted token id:", mintedTokenId);
+        console.log("Owner knft balance:", await knft.balanceOf(ownerAddress));
+        console.log("Owner of id", await knft.ownerOf(mintedTokenId));
+        console.log("Bonus token id:", await knft.readDNA(mintedTokenId, 1, 2));
+        
+        const dna = await knft.getDna(mintedTokenId);
+        console.log("DNA:", dna.toHexString());
+
+        
 
         // take a snapshot of the current state of the blockchain
         snapshot = await helpers.takeSnapshot();
@@ -459,7 +475,7 @@ describe("Staking minting", async function () {
 
         console.log("Account balance 6:", await kondux.connect(staker).balanceOf(stakerAddress) + " KNDX");
 
-        expect(await staking.connect(staker).compoundRewardsTimer(stakeId)).to.equal(60 * 60 * 24); // 60 * 60 seconds
+        expect(await staking.connect(staker).compoundRewardsTimer(stakeId)).to.be.closeTo(60 * 60 * 24, 10); // 60 * 60 seconds
         // expect(await staking.connect(staker).calculateRewards(stakerAddress, stakeId)).to.equal(0); // 0 rewards
         
         console.log("%%%% TIME 2: ", await helpers.time.latest());

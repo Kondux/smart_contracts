@@ -37,6 +37,8 @@ export interface KonduxInterface extends utils.Interface {
     "burn(uint256)": FunctionFragment;
     "changeDenominator(uint96)": FunctionFragment;
     "denominator()": FunctionFragment;
+    "faucet()": FunctionFragment;
+    "faucetBonus(uint256)": FunctionFragment;
     "getApproved(uint256)": FunctionFragment;
     "getDna(uint256)": FunctionFragment;
     "indexDna(uint256)": FunctionFragment;
@@ -45,6 +47,7 @@ export interface KonduxInterface extends utils.Interface {
     "ownerOf(uint256)": FunctionFragment;
     "pause()": FunctionFragment;
     "paused()": FunctionFragment;
+    "readDNA(uint256,uint8,uint8)": FunctionFragment;
     "royaltyInfo(uint256,uint256)": FunctionFragment;
     "safeMint(address,uint256)": FunctionFragment;
     "safeTransferFrom(address,address,uint256)": FunctionFragment;
@@ -63,6 +66,7 @@ export interface KonduxInterface extends utils.Interface {
     "totalSupply()": FunctionFragment;
     "transferFrom(address,address,uint256)": FunctionFragment;
     "unpause()": FunctionFragment;
+    "writeDNA(uint256,uint256,uint8,uint8)": FunctionFragment;
   };
 
   getFunction(
@@ -75,6 +79,8 @@ export interface KonduxInterface extends utils.Interface {
       | "burn"
       | "changeDenominator"
       | "denominator"
+      | "faucet"
+      | "faucetBonus"
       | "getApproved"
       | "getDna"
       | "indexDna"
@@ -83,6 +89,7 @@ export interface KonduxInterface extends utils.Interface {
       | "ownerOf"
       | "pause"
       | "paused"
+      | "readDNA"
       | "royaltyInfo"
       | "safeMint"
       | "safeTransferFrom(address,address,uint256)"
@@ -101,6 +108,7 @@ export interface KonduxInterface extends utils.Interface {
       | "totalSupply"
       | "transferFrom"
       | "unpause"
+      | "writeDNA"
   ): FunctionFragment;
 
   encodeFunctionData(
@@ -129,6 +137,11 @@ export interface KonduxInterface extends utils.Interface {
     functionFragment: "denominator",
     values?: undefined
   ): string;
+  encodeFunctionData(functionFragment: "faucet", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "faucetBonus",
+    values: [PromiseOrValue<BigNumberish>]
+  ): string;
   encodeFunctionData(
     functionFragment: "getApproved",
     values: [PromiseOrValue<BigNumberish>]
@@ -152,6 +165,14 @@ export interface KonduxInterface extends utils.Interface {
   ): string;
   encodeFunctionData(functionFragment: "pause", values?: undefined): string;
   encodeFunctionData(functionFragment: "paused", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "readDNA",
+    values: [
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BigNumberish>
+    ]
+  ): string;
   encodeFunctionData(
     functionFragment: "royaltyInfo",
     values: [PromiseOrValue<BigNumberish>, PromiseOrValue<BigNumberish>]
@@ -235,6 +256,15 @@ export interface KonduxInterface extends utils.Interface {
     ]
   ): string;
   encodeFunctionData(functionFragment: "unpause", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "writeDNA",
+    values: [
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BigNumberish>
+    ]
+  ): string;
 
   decodeFunctionResult(
     functionFragment: "MINTER_ROLE",
@@ -253,6 +283,11 @@ export interface KonduxInterface extends utils.Interface {
     functionFragment: "denominator",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "faucet", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "faucetBonus",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "getApproved",
     data: BytesLike
@@ -267,6 +302,7 @@ export interface KonduxInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "ownerOf", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "pause", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "paused", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "readDNA", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "royaltyInfo",
     data: BytesLike
@@ -321,6 +357,7 @@ export interface KonduxInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "unpause", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "writeDNA", data: BytesLike): Result;
 
   events: {
     "Approval(address,address,uint256)": EventFragment;
@@ -329,6 +366,7 @@ export interface KonduxInterface extends utils.Interface {
     "BaseURIChanged(string)": EventFragment;
     "DenominatorChanged(uint96)": EventFragment;
     "DnaChanged(uint256,uint256)": EventFragment;
+    "DnaModified(uint256,uint256,uint256,uint8,uint8)": EventFragment;
     "Paused(address)": EventFragment;
     "Received(address,uint256)": EventFragment;
     "Transfer(address,address,uint256)": EventFragment;
@@ -341,6 +379,7 @@ export interface KonduxInterface extends utils.Interface {
   getEvent(nameOrSignatureOrTopic: "BaseURIChanged"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "DenominatorChanged"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "DnaChanged"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "DnaModified"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Paused"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Received"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Transfer"): EventFragment;
@@ -413,6 +452,20 @@ export type DnaChangedEvent = TypedEvent<
 >;
 
 export type DnaChangedEventFilter = TypedEventFilter<DnaChangedEvent>;
+
+export interface DnaModifiedEventObject {
+  tokenID: BigNumber;
+  dna: BigNumber;
+  inputValue: BigNumber;
+  startIndex: number;
+  endIndex: number;
+}
+export type DnaModifiedEvent = TypedEvent<
+  [BigNumber, BigNumber, BigNumber, number, number],
+  DnaModifiedEventObject
+>;
+
+export type DnaModifiedEventFilter = TypedEventFilter<DnaModifiedEvent>;
 
 export interface PausedEventObject {
   account: string;
@@ -507,6 +560,15 @@ export interface Kondux extends BaseContract {
 
     denominator(overrides?: CallOverrides): Promise<[BigNumber]>;
 
+    faucet(
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    faucetBonus(
+      _bonus: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
     getApproved(
       tokenId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
@@ -540,6 +602,13 @@ export interface Kondux extends BaseContract {
     ): Promise<ContractTransaction>;
 
     paused(overrides?: CallOverrides): Promise<[boolean]>;
+
+    readDNA(
+      _tokenID: PromiseOrValue<BigNumberish>,
+      startIndex: PromiseOrValue<BigNumberish>,
+      endIndex: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
 
     royaltyInfo(
       _tokenId: PromiseOrValue<BigNumberish>,
@@ -638,6 +707,14 @@ export interface Kondux extends BaseContract {
     unpause(
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
+
+    writeDNA(
+      _tokenID: PromiseOrValue<BigNumberish>,
+      inputValue: PromiseOrValue<BigNumberish>,
+      startIndex: PromiseOrValue<BigNumberish>,
+      endIndex: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
   };
 
   MINTER_ROLE(overrides?: CallOverrides): Promise<string>;
@@ -668,6 +745,15 @@ export interface Kondux extends BaseContract {
   ): Promise<ContractTransaction>;
 
   denominator(overrides?: CallOverrides): Promise<BigNumber>;
+
+  faucet(
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  faucetBonus(
+    _bonus: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
 
   getApproved(
     tokenId: PromiseOrValue<BigNumberish>,
@@ -702,6 +788,13 @@ export interface Kondux extends BaseContract {
   ): Promise<ContractTransaction>;
 
   paused(overrides?: CallOverrides): Promise<boolean>;
+
+  readDNA(
+    _tokenID: PromiseOrValue<BigNumberish>,
+    startIndex: PromiseOrValue<BigNumberish>,
+    endIndex: PromiseOrValue<BigNumberish>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
 
   royaltyInfo(
     _tokenId: PromiseOrValue<BigNumberish>,
@@ -801,6 +894,14 @@ export interface Kondux extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
+  writeDNA(
+    _tokenID: PromiseOrValue<BigNumberish>,
+    inputValue: PromiseOrValue<BigNumberish>,
+    startIndex: PromiseOrValue<BigNumberish>,
+    endIndex: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
   callStatic: {
     MINTER_ROLE(overrides?: CallOverrides): Promise<string>;
 
@@ -830,6 +931,13 @@ export interface Kondux extends BaseContract {
     ): Promise<BigNumber>;
 
     denominator(overrides?: CallOverrides): Promise<BigNumber>;
+
+    faucet(overrides?: CallOverrides): Promise<void>;
+
+    faucetBonus(
+      _bonus: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     getApproved(
       tokenId: PromiseOrValue<BigNumberish>,
@@ -862,6 +970,13 @@ export interface Kondux extends BaseContract {
     pause(overrides?: CallOverrides): Promise<void>;
 
     paused(overrides?: CallOverrides): Promise<boolean>;
+
+    readDNA(
+      _tokenID: PromiseOrValue<BigNumberish>,
+      startIndex: PromiseOrValue<BigNumberish>,
+      endIndex: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
     royaltyInfo(
       _tokenId: PromiseOrValue<BigNumberish>,
@@ -958,6 +1073,14 @@ export interface Kondux extends BaseContract {
     ): Promise<void>;
 
     unpause(overrides?: CallOverrides): Promise<void>;
+
+    writeDNA(
+      _tokenID: PromiseOrValue<BigNumberish>,
+      inputValue: PromiseOrValue<BigNumberish>,
+      startIndex: PromiseOrValue<BigNumberish>,
+      endIndex: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<void>;
   };
 
   filters: {
@@ -999,6 +1122,21 @@ export interface Kondux extends BaseContract {
       dna?: null
     ): DnaChangedEventFilter;
     DnaChanged(tokenID?: null, dna?: null): DnaChangedEventFilter;
+
+    "DnaModified(uint256,uint256,uint256,uint8,uint8)"(
+      tokenID?: PromiseOrValue<BigNumberish> | null,
+      dna?: null,
+      inputValue?: null,
+      startIndex?: null,
+      endIndex?: null
+    ): DnaModifiedEventFilter;
+    DnaModified(
+      tokenID?: PromiseOrValue<BigNumberish> | null,
+      dna?: null,
+      inputValue?: null,
+      startIndex?: null,
+      endIndex?: null
+    ): DnaModifiedEventFilter;
 
     "Paused(address)"(account?: null): PausedEventFilter;
     Paused(account?: null): PausedEventFilter;
@@ -1054,6 +1192,15 @@ export interface Kondux extends BaseContract {
 
     denominator(overrides?: CallOverrides): Promise<BigNumber>;
 
+    faucet(
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    faucetBonus(
+      _bonus: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
     getApproved(
       tokenId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
@@ -1087,6 +1234,13 @@ export interface Kondux extends BaseContract {
     ): Promise<BigNumber>;
 
     paused(overrides?: CallOverrides): Promise<BigNumber>;
+
+    readDNA(
+      _tokenID: PromiseOrValue<BigNumberish>,
+      startIndex: PromiseOrValue<BigNumberish>,
+      endIndex: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
     royaltyInfo(
       _tokenId: PromiseOrValue<BigNumberish>,
@@ -1185,6 +1339,14 @@ export interface Kondux extends BaseContract {
     unpause(
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
+
+    writeDNA(
+      _tokenID: PromiseOrValue<BigNumberish>,
+      inputValue: PromiseOrValue<BigNumberish>,
+      startIndex: PromiseOrValue<BigNumberish>,
+      endIndex: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
   };
 
   populateTransaction: {
@@ -1216,6 +1378,15 @@ export interface Kondux extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     denominator(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    faucet(
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    faucetBonus(
+      _bonus: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
 
     getApproved(
       tokenId: PromiseOrValue<BigNumberish>,
@@ -1250,6 +1421,13 @@ export interface Kondux extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     paused(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    readDNA(
+      _tokenID: PromiseOrValue<BigNumberish>,
+      startIndex: PromiseOrValue<BigNumberish>,
+      endIndex: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
 
     royaltyInfo(
       _tokenId: PromiseOrValue<BigNumberish>,
@@ -1346,6 +1524,14 @@ export interface Kondux extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     unpause(
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    writeDNA(
+      _tokenID: PromiseOrValue<BigNumberish>,
+      inputValue: PromiseOrValue<BigNumberish>,
+      startIndex: PromiseOrValue<BigNumberish>,
+      endIndex: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
   };

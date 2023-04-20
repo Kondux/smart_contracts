@@ -21,12 +21,6 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         skipIfAlreadyDeployed: true,
     });
 
-    await deploy(CONTRACTS.konduxERC721kNFT, {
-        from: deployer,
-        args: [],
-        log: true,
-        skipIfAlreadyDeployed: true,
-    });
 };
 
 func.tags = [CONTRACTS.konduxERC20];
