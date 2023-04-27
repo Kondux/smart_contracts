@@ -26,34 +26,52 @@ import type {
 export interface IKonduxInterface extends utils.Interface {
   functions: {
     "changeDenominator(uint96)": FunctionFragment;
+    "getDna(uint256)": FunctionFragment;
     "pause()": FunctionFragment;
+    "readGen(uint256,uint8,uint8)": FunctionFragment;
     "safeMint(address,uint256)": FunctionFragment;
     "setBaseURI(string)": FunctionFragment;
     "setDefaultRoyalty(address,uint96)": FunctionFragment;
     "setDna(uint256,uint256)": FunctionFragment;
-    "setMinter(address)": FunctionFragment;
     "setTokenRoyalty(uint256,address,uint96)": FunctionFragment;
+    "tokenURI(uint256)": FunctionFragment;
     "unpause()": FunctionFragment;
+    "writeGen(uint256,uint256,uint8,uint8)": FunctionFragment;
   };
 
   getFunction(
     nameOrSignatureOrTopic:
       | "changeDenominator"
+      | "getDna"
       | "pause"
+      | "readGen"
       | "safeMint"
       | "setBaseURI"
       | "setDefaultRoyalty"
       | "setDna"
-      | "setMinter"
       | "setTokenRoyalty"
+      | "tokenURI"
       | "unpause"
+      | "writeGen"
   ): FunctionFragment;
 
   encodeFunctionData(
     functionFragment: "changeDenominator",
     values: [PromiseOrValue<BigNumberish>]
   ): string;
+  encodeFunctionData(
+    functionFragment: "getDna",
+    values: [PromiseOrValue<BigNumberish>]
+  ): string;
   encodeFunctionData(functionFragment: "pause", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "readGen",
+    values: [
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BigNumberish>
+    ]
+  ): string;
   encodeFunctionData(
     functionFragment: "safeMint",
     values: [PromiseOrValue<string>, PromiseOrValue<BigNumberish>]
@@ -71,10 +89,6 @@ export interface IKonduxInterface extends utils.Interface {
     values: [PromiseOrValue<BigNumberish>, PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
-    functionFragment: "setMinter",
-    values: [PromiseOrValue<string>]
-  ): string;
-  encodeFunctionData(
     functionFragment: "setTokenRoyalty",
     values: [
       PromiseOrValue<BigNumberish>,
@@ -82,13 +96,28 @@ export interface IKonduxInterface extends utils.Interface {
       PromiseOrValue<BigNumberish>
     ]
   ): string;
+  encodeFunctionData(
+    functionFragment: "tokenURI",
+    values: [PromiseOrValue<BigNumberish>]
+  ): string;
   encodeFunctionData(functionFragment: "unpause", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "writeGen",
+    values: [
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BigNumberish>
+    ]
+  ): string;
 
   decodeFunctionResult(
     functionFragment: "changeDenominator",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "getDna", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "pause", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "readGen", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "safeMint", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "setBaseURI", data: BytesLike): Result;
   decodeFunctionResult(
@@ -96,12 +125,13 @@ export interface IKonduxInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "setDna", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "setMinter", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "setTokenRoyalty",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "tokenURI", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "unpause", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "writeGen", data: BytesLike): Result;
 
   events: {};
 }
@@ -138,9 +168,21 @@ export interface IKondux extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
+    getDna(
+      _tokenID: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
     pause(
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
+
+    readGen(
+      _tokenID: PromiseOrValue<BigNumberish>,
+      startIndex: PromiseOrValue<BigNumberish>,
+      endIndex: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
 
     safeMint(
       to: PromiseOrValue<string>,
@@ -165,11 +207,6 @@ export interface IKondux extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    setMinter(
-      _minter: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
     setTokenRoyalty(
       tokenId: PromiseOrValue<BigNumberish>,
       receiver: PromiseOrValue<string>,
@@ -177,7 +214,20 @@ export interface IKondux extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
+    tokenURI(
+      tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<[string]>;
+
     unpause(
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    writeGen(
+      _tokenID: PromiseOrValue<BigNumberish>,
+      inputValue: PromiseOrValue<BigNumberish>,
+      startIndex: PromiseOrValue<BigNumberish>,
+      endIndex: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
   };
@@ -187,9 +237,21 @@ export interface IKondux extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
+  getDna(
+    _tokenID: PromiseOrValue<BigNumberish>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
   pause(
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
+
+  readGen(
+    _tokenID: PromiseOrValue<BigNumberish>,
+    startIndex: PromiseOrValue<BigNumberish>,
+    endIndex: PromiseOrValue<BigNumberish>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
 
   safeMint(
     to: PromiseOrValue<string>,
@@ -214,11 +276,6 @@ export interface IKondux extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  setMinter(
-    _minter: PromiseOrValue<string>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
-
   setTokenRoyalty(
     tokenId: PromiseOrValue<BigNumberish>,
     receiver: PromiseOrValue<string>,
@@ -226,7 +283,20 @@ export interface IKondux extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
+  tokenURI(
+    tokenId: PromiseOrValue<BigNumberish>,
+    overrides?: CallOverrides
+  ): Promise<string>;
+
   unpause(
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  writeGen(
+    _tokenID: PromiseOrValue<BigNumberish>,
+    inputValue: PromiseOrValue<BigNumberish>,
+    startIndex: PromiseOrValue<BigNumberish>,
+    endIndex: PromiseOrValue<BigNumberish>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
@@ -236,7 +306,19 @@ export interface IKondux extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    getDna(
+      _tokenID: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     pause(overrides?: CallOverrides): Promise<void>;
+
+    readGen(
+      _tokenID: PromiseOrValue<BigNumberish>,
+      startIndex: PromiseOrValue<BigNumberish>,
+      endIndex: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
     safeMint(
       to: PromiseOrValue<string>,
@@ -261,11 +343,6 @@ export interface IKondux extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setMinter(
-      _minter: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
     setTokenRoyalty(
       tokenId: PromiseOrValue<BigNumberish>,
       receiver: PromiseOrValue<string>,
@@ -273,7 +350,20 @@ export interface IKondux extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    tokenURI(
+      tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<string>;
+
     unpause(overrides?: CallOverrides): Promise<void>;
+
+    writeGen(
+      _tokenID: PromiseOrValue<BigNumberish>,
+      inputValue: PromiseOrValue<BigNumberish>,
+      startIndex: PromiseOrValue<BigNumberish>,
+      endIndex: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<void>;
   };
 
   filters: {};
@@ -284,8 +374,20 @@ export interface IKondux extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
+    getDna(
+      _tokenID: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     pause(
       overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    readGen(
+      _tokenID: PromiseOrValue<BigNumberish>,
+      startIndex: PromiseOrValue<BigNumberish>,
+      endIndex: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     safeMint(
@@ -311,11 +413,6 @@ export interface IKondux extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    setMinter(
-      _minter: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
     setTokenRoyalty(
       tokenId: PromiseOrValue<BigNumberish>,
       receiver: PromiseOrValue<string>,
@@ -323,7 +420,20 @@ export interface IKondux extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
+    tokenURI(
+      tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     unpause(
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    writeGen(
+      _tokenID: PromiseOrValue<BigNumberish>,
+      inputValue: PromiseOrValue<BigNumberish>,
+      startIndex: PromiseOrValue<BigNumberish>,
+      endIndex: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
   };
@@ -334,8 +444,20 @@ export interface IKondux extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
+    getDna(
+      _tokenID: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     pause(
       overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    readGen(
+      _tokenID: PromiseOrValue<BigNumberish>,
+      startIndex: PromiseOrValue<BigNumberish>,
+      endIndex: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     safeMint(
@@ -361,11 +483,6 @@ export interface IKondux extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
-    setMinter(
-      _minter: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
     setTokenRoyalty(
       tokenId: PromiseOrValue<BigNumberish>,
       receiver: PromiseOrValue<string>,
@@ -373,7 +490,20 @@ export interface IKondux extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
+    tokenURI(
+      tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     unpause(
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    writeGen(
+      _tokenID: PromiseOrValue<BigNumberish>,
+      inputValue: PromiseOrValue<BigNumberish>,
+      startIndex: PromiseOrValue<BigNumberish>,
+      endIndex: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
   };

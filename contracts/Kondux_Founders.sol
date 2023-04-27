@@ -56,7 +56,7 @@ contract KonduxFounders is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, E
         _unpause();
     }
 
-    function safeMint(address to) public onlyRole(MINTER_ROLE) returns (uint256) {
+    function safeMint(address to) public onlyGlobalRole(MINTER_ROLE) returns (uint256) {
         uint256 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
         _safeMint(to, tokenId);

@@ -3,9 +3,11 @@ pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "./interfaces/ITreasury.sol";
 import "./interfaces/IHelix.sol";
+import "./interfaces/IKondux.sol";
 import "./types/AccessControlled.sol";
 import "hardhat/console.sol";
 
@@ -44,7 +46,9 @@ contract Staking is AccessControlled {
         ThreeMonths, // 1
         SixMonths, // 2
         OneYear, // 3
-        Test // 4
+        Test, // 4
+        Test24h, // 5
+        Test48h // 6
     }
 
     // The deposit IDs associated with a user's address
@@ -104,7 +108,7 @@ contract Staking is AccessControlled {
 
     IHelix public helixERC20; // Helix ERC20 Token
     IERC721 public konduxERC721Founders; // Kondux ERC721 Founders Token
-    IERC721 public konduxERC721kNFT; // Kondux ERC721 kNFT Token
+    address public konduxERC721kNFT; // Kondux ERC721 kNFT Token
     ITreasury public treasury; // Treasury Contract
 
     // Events
@@ -196,7 +200,7 @@ contract Staking is AccessControlled {
 
         // Initialize contract variables
         konduxERC721Founders = IERC721(_konduxERC721Founders);
-        konduxERC721kNFT = IERC721(_konduxERC721kNFT);
+        konduxERC721kNFT = _konduxERC721kNFT;
         helixERC20 = IHelix(_helixERC20);
         treasury = ITreasury(_treasury);
 
@@ -213,6 +217,10 @@ contract Staking is AccessControlled {
         setTimelockCategoryBoost(1, 100); // 1% boost for 90 days timelock
         setTimelockCategoryBoost(2, 300); // 3% boost for 180 days timelock 
         setTimelockCategoryBoost(3, 900); // 9% boost for 365 days timelock
+
+        //testing 24 and 48h timelocks
+        setTimelockCategoryBoost(5, 5000); // 50% boost for 1 day timelock
+        setTimelockCategoryBoost(6, 10000); // 100% boost for 2 days timelock
 
         _setAuthorizedERC20(_konduxERC20, true);
     }
@@ -547,25 +555,46 @@ contract Staking is AccessControlled {
         uint256 rewardPerSecond = (depositedAmount * tokenApr * 1e18) / (365 * 24 * 3600 * 100);
         uint256 _reward = elapsedTime * rewardPerSecond / 1e18;
 
-        uint256 boostPercentage = divisorERC20[deposit_.token]; 
+        uint256 boostPercentage = divisorERC20[deposit_.token];
+        console.log("boostPercentage 1:", boostPercentage); 
 
         if (IERC721(konduxERC721Founders).balanceOf(_staker) > 0) {
             boostPercentage += foundersRewardBoostERC20[deposit_.token];
         }
+        console.log("boostPercentage 2:", boostPercentage); 
 
         if (IERC721(konduxERC721kNFT).balanceOf(_staker) > 0) {
-            uint256 _kNFTBalance = IERC721(konduxERC721kNFT).balanceOf(_staker);
-            if (_kNFTBalance > 5) {
-                _kNFTBalance = 5;
+            uint256 kNFTBalance = IERC721(konduxERC721kNFT).balanceOf(_staker);
+            for (uint256 i = 0; i < kNFTBalance; i++) {
+                uint256 tokenId = IERC721Enumerable(konduxERC721kNFT).tokenOfOwnerByIndex(_staker, i);
+
+                int256 dnaVersion = IKondux(konduxERC721kNFT).readGen(tokenId, 0, 1);                
+                if (dnaVersion != 1) {
+                    continue;
+                }            
+
+                int256 dnaBoost = IKondux(konduxERC721kNFT).readGen(tokenId, 1, 2);
+                if (dnaBoost < 0) {
+                    dnaBoost = 0;
+                } else if (dnaBoost > 100) {
+                    dnaBoost = 100;
+                } // prevent overflow
+
+                boostPercentage += uint256(dnaBoost) * 100; 
+                console.log("boostPercentage 3:", boostPercentage); 
             }
-            boostPercentage += (_kNFTBalance * kNFTRewardBoostERC20[deposit_.token]);
         }
 
         if (deposit_.timelockCategory > 0) {
             boostPercentage += timelockCategoryBoost[deposit_.timelockCategory];
         }
+        console.log("boostPercentage 4:", boostPercentage); 
+
+        console.log("reward pre-boost:", _reward);
 
         _reward = (_reward * boostPercentage) / divisorERC20[deposit_.token]; 
+
+        console.log("reward post-boost:", _reward);
 
         return _reward;
     }
@@ -703,7 +732,7 @@ contract Staking is AccessControlled {
      */
     function setKonduxERC721kNFT(address _konduxERC721kNFT) public onlyGovernor {
         require(_konduxERC721kNFT != address(0), "kNFT address cannot be 0x0");
-        konduxERC721kNFT = IERC721(_konduxERC721kNFT);
+        konduxERC721kNFT = _konduxERC721kNFT;
         emit NewKonduxERC721kNFT(_konduxERC721kNFT);
     }
 

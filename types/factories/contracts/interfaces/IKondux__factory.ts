@@ -30,10 +30,58 @@ const _abi = [
     type: "function",
   },
   {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_tokenID",
+        type: "uint256",
+      },
+    ],
+    name: "getDna",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [],
     name: "pause",
     outputs: [],
     stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_tokenID",
+        type: "uint256",
+      },
+      {
+        internalType: "uint8",
+        name: "startIndex",
+        type: "uint8",
+      },
+      {
+        internalType: "uint8",
+        name: "endIndex",
+        type: "uint8",
+      },
+    ],
+    name: "readGen",
+    outputs: [
+      {
+        internalType: "int256",
+        name: "",
+        type: "int256",
+      },
+    ],
+    stateMutability: "view",
     type: "function",
   },
   {
@@ -118,19 +166,6 @@ const _abi = [
   {
     inputs: [
       {
-        internalType: "address",
-        name: "_minter",
-        type: "address",
-      },
-    ],
-    name: "setMinter",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
         internalType: "uint256",
         name: "tokenId",
         type: "uint256",
@@ -152,8 +187,55 @@ const _abi = [
     type: "function",
   },
   {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "tokenId",
+        type: "uint256",
+      },
+    ],
+    name: "tokenURI",
+    outputs: [
+      {
+        internalType: "string",
+        name: "",
+        type: "string",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [],
     name: "unpause",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_tokenID",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "inputValue",
+        type: "uint256",
+      },
+      {
+        internalType: "uint8",
+        name: "startIndex",
+        type: "uint8",
+      },
+      {
+        internalType: "uint8",
+        name: "endIndex",
+        type: "uint8",
+      },
+    ],
+    name: "writeGen",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",

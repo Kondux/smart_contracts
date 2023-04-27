@@ -46,7 +46,7 @@ abstract contract AccessControlled {
         _;
     }
 
-    modifier onlyRole(bytes32 _role){
+    modifier onlyGlobalRole(bytes32 _role){
         _onlyRole(_role);
         _;
     }
@@ -86,6 +86,5 @@ abstract contract AccessControlled {
     function _onlyRole(bytes32 _role) internal view {
         require(authority.roles(msg.sender) == _role, "UNAUTHORIZED");
     }
-
   
 }

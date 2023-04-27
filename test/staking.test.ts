@@ -79,7 +79,7 @@ describe("Staking minting", async function () {
         await founders.deployed();
         console.log("Founders address:", founders.address);
 
-        knft = await new Kondux__factory(owner).deploy("Kondux NFT", "KNFT", authority.address);
+        knft = await new Kondux__factory(owner).deploy("Kondux NFT", "KNFT");
         await knft.deployed();
         console.log("kNFT address:", knft.address);
 
@@ -140,7 +140,7 @@ describe("Staking minting", async function () {
         console.log("Minted token id:", mintedTokenId);
         console.log("Owner knft balance:", await knft.balanceOf(ownerAddress));
         console.log("Owner of id", await knft.ownerOf(mintedTokenId));
-        console.log("Bonus token id:", await knft.readDNA(mintedTokenId, 1, 2));
+        console.log("Bonus token id:", await knft.readGen(mintedTokenId, 1, 2));
         
         const dna = await knft.getDna(mintedTokenId);
         console.log("DNA:", dna.toHexString());
@@ -151,6 +151,105 @@ describe("Staking minting", async function () {
         snapshot = await helpers.takeSnapshot();
     });
 
+    it("Should mint kNFTs with 5% boost and check if the boost modifies the calculateRewards(...) expected result", async function () {
+        snapshot.restore();
+        timeIncrease = 60 * 60 * 24 * 30 + 60 * 60; // 1 month
+    
+        const [owner, staker] = await ethers.getSigners();
+        const stakerAddress = await staker.getAddress();
+    
+        expect(await knft.balanceOf(stakerAddress)).to.equal(0);        
+    
+        await console.log("Rewarded token 1:", await staking.getTotalRewards(kondux.address) + " KNDX");
+        await console.log("Rewarded  user 1:", await staking.getUserTotalRewardsByCoin( stakerAddress, kondux.address) + " KNDX");
+
+        expect(await kondux.balanceOf(stakerAddress)).to.equal(0);
+
+        const mint = await kondux.connect(staker).faucet();
+        await mint.wait();
+
+        expect(await kondux.balanceOf(stakerAddress)).to.equal(ethers.BigNumber.from(10).pow(29));
+
+        console.log("Account balance 5:", await kondux.balanceOf(stakerAddress) + " KNDX");
+
+        const approve = await kondux.connect(staker).approve(staking.address, ethers.BigNumber.from(10).pow(28));
+        await approve.wait();
+        
+        const stake = await staking.connect(staker).deposit(ethers.BigNumber.from(10).pow(18), 4, kondux.address);
+        const stakeReceipt = await stake.wait();
+
+        await console.log("Rewarded token 2:", await staking.getTotalRewards(kondux.address) + " KNDX");
+        await console.log("Rewarded  user 2:", await staking.getUserTotalRewardsByCoin(stakerAddress, kondux.address) + " KNDX");
+
+        expect(await staking.getTotalStaked(kondux.address)).to.equal(ethers.BigNumber.from(10).pow(18)); 
+        expect(await staking.getUserTotalStakedByCoin(stakerAddress, kondux.address)).to.equal(ethers.BigNumber.from(10).pow(18));
+
+        const stakeEvent = stakeReceipt.events?.filter((e) => e.event === "Stake")[0];
+        const stakeId = stakeEvent?.args?.id;
+
+        console.log("Stake id:", stakeId);
+
+        const depositInfo = await staking.connect(staker).getDepositInfo(stakeId);
+        console.log("Stake info:", depositInfo);
+        expect(depositInfo._stake).to.equal(ethers.BigNumber.from(10).pow(18)); 
+
+        await console.log("Rewarded token 3:", await staking.getTotalRewards(kondux.address) + " KNDX");
+        await console.log("Rewarded  user 3:", await staking.getUserTotalRewardsByCoin( stakerAddress, kondux.address) + " KNDX");
+
+        console.log("Account balance 6:", await kondux.connect(staker).balanceOf(stakerAddress) + " KNDX");
+
+        expect(await staking.connect(staker).compoundRewardsTimer(stakeId)).to.equal(60 * 60 * 24); // 60 * 60 seconds
+        expect(await staking.connect(staker).calculateRewards(stakerAddress, stakeId)).to.equal(0); // 0 rewards
+        
+        console.log("%%%% TIME 2: ", await helpers.time.latest());
+        await console.log("CALCULATING REWARDS before:", await staking.connect(staker).calculateRewards(stakerAddress, stakeId));
+        await helpers.time.increase(timeIncrease);
+        console.log("%%%% TIME 3: ", await helpers.time.latest());
+        await console.log("CALCULATING REWARDS after:", await staking.connect(staker).calculateRewards(stakerAddress, stakeId));
+
+        expect(await staking.connect(staker).compoundRewardsTimer(stakeId)).to.equal(0); // 23h left
+        expect(await staking.connect(staker).calculateRewards(stakerAddress, stakeId)).to.be.closeTo(ethers.BigNumber.from(10).pow(18).div(4).div(12), ethers.BigNumber.from(10).pow(16)); // 1 reward per hour 
+    
+        // Replace the original rewards calculation with the boosted rewards calculation
+        const originalReward = await staking.connect(staker).calculateRewards(stakerAddress, stakeId);
+
+        const bonus = 5; // 5% boost
+    
+        const mintNFT = await knft.connect(staker).faucetBonus(bonus);
+        await mintNFT.wait();
+    
+        expect(await knft.balanceOf(stakerAddress)).to.equal(1);
+        const tokenId = await knft.tokenOfOwnerByIndex(stakerAddress, 0);
+        const dnaBoost = await knft.readGen(tokenId, 1, 2);
+        expect(dnaBoost).to.equal(bonus);
+
+        const boostedReward = originalReward.mul(100 + bonus).div(100);
+
+        console.log("Original reward:", originalReward.toString());
+        console.log("Boosted reward:", boostedReward.toString());
+    
+        expect(await staking.connect(staker).calculateRewards(stakerAddress, stakeId)).to.be.closeTo(boostedReward, ethers.BigNumber.from(10).pow(11));
+
+        const bonuses = [1, 10, 25, 50];
+        const totalBoost = bonuses.reduce((a, b) => a + b, 0) + bonus; // 5 is the initial bonus
+
+        for (const bonus of bonuses) {
+            const mint = await knft.connect(staker).faucetBonus(bonus);
+            await mint.wait();
+    
+            const tokenId = await knft.tokenOfOwnerByIndex(stakerAddress, (await knft.balanceOf(stakerAddress)).toNumber() - 1);
+            const dnaBoost = await knft.readGen(tokenId, 1, 2);
+            expect(dnaBoost).to.equal(bonus); 
+        }
+
+        expect(await knft.balanceOf(stakerAddress)).to.equal(5);
+
+        const boostedReward2 = originalReward.mul(100 + totalBoost).div(100);
+
+        expect(await staking.connect(staker).calculateRewards(stakerAddress, stakeId)).to.be.closeTo(boostedReward2, ethers.BigNumber.from(10).pow(11));
+
+    });
+    
     it("Should stake 10_000_000 tokens, advance time 1h and get first reward", async function () {
         snapshot.restore();
         timeIncrease = 60 * 60; // 1 hour

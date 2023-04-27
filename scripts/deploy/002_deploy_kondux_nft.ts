@@ -14,11 +14,10 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
          from: deployer,
          args: [
              CONFIGURATION.erc721,
-             CONFIGURATION.ticker,
-             authorityDeployment.address
+             CONFIGURATION.ticker
          ],
          log: true,
-         skipIfAlreadyDeployed: true,
+         skipIfAlreadyDeployed: false,
      });
 };
 

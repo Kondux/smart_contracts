@@ -46,7 +46,7 @@ describe("Whitelist minting", async function () {
     const konduxFounders = await KonduxFounders.deploy("Kondux Founders NFT", "fKDX", authority.address);
 
     const Kondux = await ethers.getContractFactory("Kondux");
-    const kondux = await Kondux.deploy("Kondux", "KDX", authority.address);
+    const kondux = await Kondux.deploy("Kondux", "KDX");
 
     const MinterFounders = await ethers.getContractFactory("MinterFounders");
     const minterFounders = await MinterFounders.deploy(authority.address, konduxFounders.address, kondux.address, treasury.address);
@@ -105,7 +105,7 @@ describe("Whitelist minting", async function () {
     const konduxFounders = await KonduxFounders.deploy("Kondux Founders NFT", "fKDX", authority.address);
 
     const Kondux = await ethers.getContractFactory("Kondux");
-    const kondux = await Kondux.deploy("Kondux", "KDX", authority.address);
+    const kondux = await Kondux.deploy("Kondux", "KDX");
 
     const MinterFounders = await ethers.getContractFactory("MinterFounders");
     const minterFounders = await MinterFounders.deploy(authority.address, konduxFounders.address, kondux.address, treasury.address);
@@ -164,7 +164,7 @@ describe("Whitelist minting", async function () {
     const konduxFounders = await KonduxFounders.deploy("Kondux Founders NFT", "fKDX", authority.address);
 
     const Kondux = await ethers.getContractFactory("Kondux");
-    const kondux = await Kondux.deploy("Kondux", "KDX", authority.address);
+    const kondux = await Kondux.deploy("Kondux", "KDX");
 
     const MinterFounders = await ethers.getContractFactory("MinterFounders");
     const minterFounders = await MinterFounders.deploy(authority.address, konduxFounders.address, kondux.address, treasury.address);
@@ -213,12 +213,12 @@ describe("Whitelist minting", async function () {
     const konduxFounders = await KonduxFounders.deploy("Kondux Founders NFT", "fKDX", authority.address);
 
     const Kondux = await ethers.getContractFactory("Kondux");
-    const kondux = await Kondux.deploy("Kondux", "KDX", authority.address);
+    const kondux = await Kondux.deploy("Kondux", "KDX");
 
     const MinterFounders = await ethers.getContractFactory("MinterFounders");
     const minterFounders = await MinterFounders.deploy(authority.address, konduxFounders.address, kondux.address, treasury.address);
     
-    const pushMinter = await authority.pushRole(minterFounders.address, keccak256(ethers.utils.toUtf8Bytes("MINTER_ROLE")));
+    const pushMinter = await kondux.setRole(keccak256(ethers.utils.toUtf8Bytes("MINTER_ROLE")), minterFounders.address, true);
     await pushMinter.wait();
 
     const treasuryApprove = await treasury.setPermission(0, minterFounders.address, true);

@@ -29,9 +29,10 @@ import type {
 
 export interface KonduxInterface extends utils.Interface {
   functions: {
+    "DEFAULT_ADMIN_ROLE()": FunctionFragment;
+    "DNA_MODIFIER_ROLE()": FunctionFragment;
     "MINTER_ROLE()": FunctionFragment;
     "approve(address,uint256)": FunctionFragment;
-    "authority()": FunctionFragment;
     "balanceOf(address)": FunctionFragment;
     "baseURI()": FunctionFragment;
     "burn(uint256)": FunctionFragment;
@@ -41,22 +42,27 @@ export interface KonduxInterface extends utils.Interface {
     "faucetBonus(uint256)": FunctionFragment;
     "getApproved(uint256)": FunctionFragment;
     "getDna(uint256)": FunctionFragment;
+    "getRoleAdmin(bytes32)": FunctionFragment;
+    "grantRole(bytes32,address)": FunctionFragment;
+    "hasRole(bytes32,address)": FunctionFragment;
     "indexDna(uint256)": FunctionFragment;
     "isApprovedForAll(address,address)": FunctionFragment;
     "name()": FunctionFragment;
     "ownerOf(uint256)": FunctionFragment;
     "pause()": FunctionFragment;
     "paused()": FunctionFragment;
-    "readDNA(uint256,uint8,uint8)": FunctionFragment;
+    "readGen(uint256,uint8,uint8)": FunctionFragment;
+    "renounceRole(bytes32,address)": FunctionFragment;
+    "revokeRole(bytes32,address)": FunctionFragment;
     "royaltyInfo(uint256,uint256)": FunctionFragment;
     "safeMint(address,uint256)": FunctionFragment;
     "safeTransferFrom(address,address,uint256)": FunctionFragment;
     "safeTransferFrom(address,address,uint256,bytes)": FunctionFragment;
     "setApprovalForAll(address,bool)": FunctionFragment;
-    "setAuthority(address)": FunctionFragment;
     "setBaseURI(string)": FunctionFragment;
     "setDefaultRoyalty(address,uint96)": FunctionFragment;
     "setDna(uint256,uint256)": FunctionFragment;
+    "setRole(bytes32,address,bool)": FunctionFragment;
     "setTokenRoyalty(uint256,address,uint96)": FunctionFragment;
     "supportsInterface(bytes4)": FunctionFragment;
     "symbol()": FunctionFragment;
@@ -66,14 +72,15 @@ export interface KonduxInterface extends utils.Interface {
     "totalSupply()": FunctionFragment;
     "transferFrom(address,address,uint256)": FunctionFragment;
     "unpause()": FunctionFragment;
-    "writeDNA(uint256,uint256,uint8,uint8)": FunctionFragment;
+    "writeGen(uint256,uint256,uint8,uint8)": FunctionFragment;
   };
 
   getFunction(
     nameOrSignatureOrTopic:
+      | "DEFAULT_ADMIN_ROLE"
+      | "DNA_MODIFIER_ROLE"
       | "MINTER_ROLE"
       | "approve"
-      | "authority"
       | "balanceOf"
       | "baseURI"
       | "burn"
@@ -83,22 +90,27 @@ export interface KonduxInterface extends utils.Interface {
       | "faucetBonus"
       | "getApproved"
       | "getDna"
+      | "getRoleAdmin"
+      | "grantRole"
+      | "hasRole"
       | "indexDna"
       | "isApprovedForAll"
       | "name"
       | "ownerOf"
       | "pause"
       | "paused"
-      | "readDNA"
+      | "readGen"
+      | "renounceRole"
+      | "revokeRole"
       | "royaltyInfo"
       | "safeMint"
       | "safeTransferFrom(address,address,uint256)"
       | "safeTransferFrom(address,address,uint256,bytes)"
       | "setApprovalForAll"
-      | "setAuthority"
       | "setBaseURI"
       | "setDefaultRoyalty"
       | "setDna"
+      | "setRole"
       | "setTokenRoyalty"
       | "supportsInterface"
       | "symbol"
@@ -108,9 +120,17 @@ export interface KonduxInterface extends utils.Interface {
       | "totalSupply"
       | "transferFrom"
       | "unpause"
-      | "writeDNA"
+      | "writeGen"
   ): FunctionFragment;
 
+  encodeFunctionData(
+    functionFragment: "DEFAULT_ADMIN_ROLE",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "DNA_MODIFIER_ROLE",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "MINTER_ROLE",
     values?: undefined
@@ -119,7 +139,6 @@ export interface KonduxInterface extends utils.Interface {
     functionFragment: "approve",
     values: [PromiseOrValue<string>, PromiseOrValue<BigNumberish>]
   ): string;
-  encodeFunctionData(functionFragment: "authority", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "balanceOf",
     values: [PromiseOrValue<string>]
@@ -151,6 +170,18 @@ export interface KonduxInterface extends utils.Interface {
     values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
+    functionFragment: "getRoleAdmin",
+    values: [PromiseOrValue<BytesLike>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "grantRole",
+    values: [PromiseOrValue<BytesLike>, PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "hasRole",
+    values: [PromiseOrValue<BytesLike>, PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
     functionFragment: "indexDna",
     values: [PromiseOrValue<BigNumberish>]
   ): string;
@@ -166,12 +197,20 @@ export interface KonduxInterface extends utils.Interface {
   encodeFunctionData(functionFragment: "pause", values?: undefined): string;
   encodeFunctionData(functionFragment: "paused", values?: undefined): string;
   encodeFunctionData(
-    functionFragment: "readDNA",
+    functionFragment: "readGen",
     values: [
       PromiseOrValue<BigNumberish>,
       PromiseOrValue<BigNumberish>,
       PromiseOrValue<BigNumberish>
     ]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "renounceRole",
+    values: [PromiseOrValue<BytesLike>, PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "revokeRole",
+    values: [PromiseOrValue<BytesLike>, PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
     functionFragment: "royaltyInfo",
@@ -203,10 +242,6 @@ export interface KonduxInterface extends utils.Interface {
     values: [PromiseOrValue<string>, PromiseOrValue<boolean>]
   ): string;
   encodeFunctionData(
-    functionFragment: "setAuthority",
-    values: [PromiseOrValue<string>]
-  ): string;
-  encodeFunctionData(
     functionFragment: "setBaseURI",
     values: [PromiseOrValue<string>]
   ): string;
@@ -217,6 +252,14 @@ export interface KonduxInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "setDna",
     values: [PromiseOrValue<BigNumberish>, PromiseOrValue<BigNumberish>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setRole",
+    values: [
+      PromiseOrValue<BytesLike>,
+      PromiseOrValue<string>,
+      PromiseOrValue<boolean>
+    ]
   ): string;
   encodeFunctionData(
     functionFragment: "setTokenRoyalty",
@@ -257,7 +300,7 @@ export interface KonduxInterface extends utils.Interface {
   ): string;
   encodeFunctionData(functionFragment: "unpause", values?: undefined): string;
   encodeFunctionData(
-    functionFragment: "writeDNA",
+    functionFragment: "writeGen",
     values: [
       PromiseOrValue<BigNumberish>,
       PromiseOrValue<BigNumberish>,
@@ -267,11 +310,18 @@ export interface KonduxInterface extends utils.Interface {
   ): string;
 
   decodeFunctionResult(
+    functionFragment: "DEFAULT_ADMIN_ROLE",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "DNA_MODIFIER_ROLE",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "MINTER_ROLE",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "approve", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "authority", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "balanceOf", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "baseURI", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "burn", data: BytesLike): Result;
@@ -293,6 +343,12 @@ export interface KonduxInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "getDna", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "getRoleAdmin",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "grantRole", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "hasRole", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "indexDna", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "isApprovedForAll",
@@ -302,7 +358,12 @@ export interface KonduxInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "ownerOf", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "pause", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "paused", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "readDNA", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "readGen", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "renounceRole",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "revokeRole", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "royaltyInfo",
     data: BytesLike
@@ -320,16 +381,13 @@ export interface KonduxInterface extends utils.Interface {
     functionFragment: "setApprovalForAll",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(
-    functionFragment: "setAuthority",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(functionFragment: "setBaseURI", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "setDefaultRoyalty",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "setDna", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "setRole", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "setTokenRoyalty",
     data: BytesLike
@@ -357,31 +415,35 @@ export interface KonduxInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "unpause", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "writeDNA", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "writeGen", data: BytesLike): Result;
 
   events: {
     "Approval(address,address,uint256)": EventFragment;
     "ApprovalForAll(address,address,bool)": EventFragment;
-    "AuthorityUpdated(address)": EventFragment;
     "BaseURIChanged(string)": EventFragment;
     "DenominatorChanged(uint96)": EventFragment;
     "DnaChanged(uint256,uint256)": EventFragment;
     "DnaModified(uint256,uint256,uint256,uint8,uint8)": EventFragment;
     "Paused(address)": EventFragment;
-    "Received(address,uint256)": EventFragment;
+    "RoleAdminChanged(bytes32,bytes32,bytes32)": EventFragment;
+    "RoleChanged(address,bytes32,bool)": EventFragment;
+    "RoleGranted(bytes32,address,address)": EventFragment;
+    "RoleRevoked(bytes32,address,address)": EventFragment;
     "Transfer(address,address,uint256)": EventFragment;
     "Unpaused(address)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "Approval"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "ApprovalForAll"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "AuthorityUpdated"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "BaseURIChanged"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "DenominatorChanged"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "DnaChanged"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "DnaModified"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Paused"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "Received"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "RoleAdminChanged"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "RoleChanged"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "RoleGranted"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "RoleRevoked"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Transfer"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Unpaused"): EventFragment;
 }
@@ -409,17 +471,6 @@ export type ApprovalForAllEvent = TypedEvent<
 >;
 
 export type ApprovalForAllEventFilter = TypedEventFilter<ApprovalForAllEvent>;
-
-export interface AuthorityUpdatedEventObject {
-  authority: string;
-}
-export type AuthorityUpdatedEvent = TypedEvent<
-  [string],
-  AuthorityUpdatedEventObject
->;
-
-export type AuthorityUpdatedEventFilter =
-  TypedEventFilter<AuthorityUpdatedEvent>;
 
 export interface BaseURIChangedEventObject {
   baseURI: string;
@@ -474,16 +525,54 @@ export type PausedEvent = TypedEvent<[string], PausedEventObject>;
 
 export type PausedEventFilter = TypedEventFilter<PausedEvent>;
 
-export interface ReceivedEventObject {
-  sender: string;
-  value: BigNumber;
+export interface RoleAdminChangedEventObject {
+  role: string;
+  previousAdminRole: string;
+  newAdminRole: string;
 }
-export type ReceivedEvent = TypedEvent<
-  [string, BigNumber],
-  ReceivedEventObject
+export type RoleAdminChangedEvent = TypedEvent<
+  [string, string, string],
+  RoleAdminChangedEventObject
 >;
 
-export type ReceivedEventFilter = TypedEventFilter<ReceivedEvent>;
+export type RoleAdminChangedEventFilter =
+  TypedEventFilter<RoleAdminChangedEvent>;
+
+export interface RoleChangedEventObject {
+  addr: string;
+  role: string;
+  enabled: boolean;
+}
+export type RoleChangedEvent = TypedEvent<
+  [string, string, boolean],
+  RoleChangedEventObject
+>;
+
+export type RoleChangedEventFilter = TypedEventFilter<RoleChangedEvent>;
+
+export interface RoleGrantedEventObject {
+  role: string;
+  account: string;
+  sender: string;
+}
+export type RoleGrantedEvent = TypedEvent<
+  [string, string, string],
+  RoleGrantedEventObject
+>;
+
+export type RoleGrantedEventFilter = TypedEventFilter<RoleGrantedEvent>;
+
+export interface RoleRevokedEventObject {
+  role: string;
+  account: string;
+  sender: string;
+}
+export type RoleRevokedEvent = TypedEvent<
+  [string, string, string],
+  RoleRevokedEventObject
+>;
+
+export type RoleRevokedEventFilter = TypedEventFilter<RoleRevokedEvent>;
 
 export interface TransferEventObject {
   from: string;
@@ -531,6 +620,10 @@ export interface Kondux extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
+    DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<[string]>;
+
+    DNA_MODIFIER_ROLE(overrides?: CallOverrides): Promise<[string]>;
+
     MINTER_ROLE(overrides?: CallOverrides): Promise<[string]>;
 
     approve(
@@ -538,8 +631,6 @@ export interface Kondux extends BaseContract {
       tokenId: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
-
-    authority(overrides?: CallOverrides): Promise<[string]>;
 
     balanceOf(
       owner: PromiseOrValue<string>,
@@ -579,6 +670,23 @@ export interface Kondux extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
+    getRoleAdmin(
+      role: PromiseOrValue<BytesLike>,
+      overrides?: CallOverrides
+    ): Promise<[string]>;
+
+    grantRole(
+      role: PromiseOrValue<BytesLike>,
+      account: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    hasRole(
+      role: PromiseOrValue<BytesLike>,
+      account: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[boolean]>;
+
     indexDna(
       arg0: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
@@ -603,12 +711,24 @@ export interface Kondux extends BaseContract {
 
     paused(overrides?: CallOverrides): Promise<[boolean]>;
 
-    readDNA(
+    readGen(
       _tokenID: PromiseOrValue<BigNumberish>,
       startIndex: PromiseOrValue<BigNumberish>,
       endIndex: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
+
+    renounceRole(
+      role: PromiseOrValue<BytesLike>,
+      account: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    revokeRole(
+      role: PromiseOrValue<BytesLike>,
+      account: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
 
     royaltyInfo(
       _tokenId: PromiseOrValue<BigNumberish>,
@@ -643,11 +763,6 @@ export interface Kondux extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    setAuthority(
-      _newAuthority: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
     setBaseURI(
       _newURI: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -662,6 +777,13 @@ export interface Kondux extends BaseContract {
     setDna(
       _tokenID: PromiseOrValue<BigNumberish>,
       _dna: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    setRole(
+      role: PromiseOrValue<BytesLike>,
+      addr: PromiseOrValue<string>,
+      enabled: PromiseOrValue<boolean>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
@@ -708,7 +830,7 @@ export interface Kondux extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    writeDNA(
+    writeGen(
       _tokenID: PromiseOrValue<BigNumberish>,
       inputValue: PromiseOrValue<BigNumberish>,
       startIndex: PromiseOrValue<BigNumberish>,
@@ -717,6 +839,10 @@ export interface Kondux extends BaseContract {
     ): Promise<ContractTransaction>;
   };
 
+  DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<string>;
+
+  DNA_MODIFIER_ROLE(overrides?: CallOverrides): Promise<string>;
+
   MINTER_ROLE(overrides?: CallOverrides): Promise<string>;
 
   approve(
@@ -724,8 +850,6 @@ export interface Kondux extends BaseContract {
     tokenId: PromiseOrValue<BigNumberish>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
-
-  authority(overrides?: CallOverrides): Promise<string>;
 
   balanceOf(
     owner: PromiseOrValue<string>,
@@ -765,6 +889,23 @@ export interface Kondux extends BaseContract {
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
+  getRoleAdmin(
+    role: PromiseOrValue<BytesLike>,
+    overrides?: CallOverrides
+  ): Promise<string>;
+
+  grantRole(
+    role: PromiseOrValue<BytesLike>,
+    account: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  hasRole(
+    role: PromiseOrValue<BytesLike>,
+    account: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<boolean>;
+
   indexDna(
     arg0: PromiseOrValue<BigNumberish>,
     overrides?: CallOverrides
@@ -789,12 +930,24 @@ export interface Kondux extends BaseContract {
 
   paused(overrides?: CallOverrides): Promise<boolean>;
 
-  readDNA(
+  readGen(
     _tokenID: PromiseOrValue<BigNumberish>,
     startIndex: PromiseOrValue<BigNumberish>,
     endIndex: PromiseOrValue<BigNumberish>,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
+
+  renounceRole(
+    role: PromiseOrValue<BytesLike>,
+    account: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  revokeRole(
+    role: PromiseOrValue<BytesLike>,
+    account: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
 
   royaltyInfo(
     _tokenId: PromiseOrValue<BigNumberish>,
@@ -829,11 +982,6 @@ export interface Kondux extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  setAuthority(
-    _newAuthority: PromiseOrValue<string>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
-
   setBaseURI(
     _newURI: PromiseOrValue<string>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -848,6 +996,13 @@ export interface Kondux extends BaseContract {
   setDna(
     _tokenID: PromiseOrValue<BigNumberish>,
     _dna: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  setRole(
+    role: PromiseOrValue<BytesLike>,
+    addr: PromiseOrValue<string>,
+    enabled: PromiseOrValue<boolean>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
@@ -894,7 +1049,7 @@ export interface Kondux extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  writeDNA(
+  writeGen(
     _tokenID: PromiseOrValue<BigNumberish>,
     inputValue: PromiseOrValue<BigNumberish>,
     startIndex: PromiseOrValue<BigNumberish>,
@@ -903,6 +1058,10 @@ export interface Kondux extends BaseContract {
   ): Promise<ContractTransaction>;
 
   callStatic: {
+    DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<string>;
+
+    DNA_MODIFIER_ROLE(overrides?: CallOverrides): Promise<string>;
+
     MINTER_ROLE(overrides?: CallOverrides): Promise<string>;
 
     approve(
@@ -910,8 +1069,6 @@ export interface Kondux extends BaseContract {
       tokenId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
-
-    authority(overrides?: CallOverrides): Promise<string>;
 
     balanceOf(
       owner: PromiseOrValue<string>,
@@ -949,6 +1106,23 @@ export interface Kondux extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    getRoleAdmin(
+      role: PromiseOrValue<BytesLike>,
+      overrides?: CallOverrides
+    ): Promise<string>;
+
+    grantRole(
+      role: PromiseOrValue<BytesLike>,
+      account: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    hasRole(
+      role: PromiseOrValue<BytesLike>,
+      account: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<boolean>;
+
     indexDna(
       arg0: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
@@ -971,12 +1145,24 @@ export interface Kondux extends BaseContract {
 
     paused(overrides?: CallOverrides): Promise<boolean>;
 
-    readDNA(
+    readGen(
       _tokenID: PromiseOrValue<BigNumberish>,
       startIndex: PromiseOrValue<BigNumberish>,
       endIndex: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
+
+    renounceRole(
+      role: PromiseOrValue<BytesLike>,
+      account: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    revokeRole(
+      role: PromiseOrValue<BytesLike>,
+      account: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     royaltyInfo(
       _tokenId: PromiseOrValue<BigNumberish>,
@@ -1011,11 +1197,6 @@ export interface Kondux extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setAuthority(
-      _newAuthority: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
     setBaseURI(
       _newURI: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -1030,6 +1211,13 @@ export interface Kondux extends BaseContract {
     setDna(
       _tokenID: PromiseOrValue<BigNumberish>,
       _dna: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setRole(
+      role: PromiseOrValue<BytesLike>,
+      addr: PromiseOrValue<string>,
+      enabled: PromiseOrValue<boolean>,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -1074,7 +1262,7 @@ export interface Kondux extends BaseContract {
 
     unpause(overrides?: CallOverrides): Promise<void>;
 
-    writeDNA(
+    writeGen(
       _tokenID: PromiseOrValue<BigNumberish>,
       inputValue: PromiseOrValue<BigNumberish>,
       startIndex: PromiseOrValue<BigNumberish>,
@@ -1106,9 +1294,6 @@ export interface Kondux extends BaseContract {
       approved?: null
     ): ApprovalForAllEventFilter;
 
-    "AuthorityUpdated(address)"(authority?: null): AuthorityUpdatedEventFilter;
-    AuthorityUpdated(authority?: null): AuthorityUpdatedEventFilter;
-
     "BaseURIChanged(string)"(baseURI?: null): BaseURIChangedEventFilter;
     BaseURIChanged(baseURI?: null): BaseURIChangedEventFilter;
 
@@ -1118,10 +1303,13 @@ export interface Kondux extends BaseContract {
     DenominatorChanged(denominator?: null): DenominatorChangedEventFilter;
 
     "DnaChanged(uint256,uint256)"(
-      tokenID?: null,
+      tokenID?: PromiseOrValue<BigNumberish> | null,
       dna?: null
     ): DnaChangedEventFilter;
-    DnaChanged(tokenID?: null, dna?: null): DnaChangedEventFilter;
+    DnaChanged(
+      tokenID?: PromiseOrValue<BigNumberish> | null,
+      dna?: null
+    ): DnaChangedEventFilter;
 
     "DnaModified(uint256,uint256,uint256,uint8,uint8)"(
       tokenID?: PromiseOrValue<BigNumberish> | null,
@@ -1141,11 +1329,49 @@ export interface Kondux extends BaseContract {
     "Paused(address)"(account?: null): PausedEventFilter;
     Paused(account?: null): PausedEventFilter;
 
-    "Received(address,uint256)"(
-      sender?: null,
-      value?: null
-    ): ReceivedEventFilter;
-    Received(sender?: null, value?: null): ReceivedEventFilter;
+    "RoleAdminChanged(bytes32,bytes32,bytes32)"(
+      role?: PromiseOrValue<BytesLike> | null,
+      previousAdminRole?: PromiseOrValue<BytesLike> | null,
+      newAdminRole?: PromiseOrValue<BytesLike> | null
+    ): RoleAdminChangedEventFilter;
+    RoleAdminChanged(
+      role?: PromiseOrValue<BytesLike> | null,
+      previousAdminRole?: PromiseOrValue<BytesLike> | null,
+      newAdminRole?: PromiseOrValue<BytesLike> | null
+    ): RoleAdminChangedEventFilter;
+
+    "RoleChanged(address,bytes32,bool)"(
+      addr?: PromiseOrValue<string> | null,
+      role?: null,
+      enabled?: null
+    ): RoleChangedEventFilter;
+    RoleChanged(
+      addr?: PromiseOrValue<string> | null,
+      role?: null,
+      enabled?: null
+    ): RoleChangedEventFilter;
+
+    "RoleGranted(bytes32,address,address)"(
+      role?: PromiseOrValue<BytesLike> | null,
+      account?: PromiseOrValue<string> | null,
+      sender?: PromiseOrValue<string> | null
+    ): RoleGrantedEventFilter;
+    RoleGranted(
+      role?: PromiseOrValue<BytesLike> | null,
+      account?: PromiseOrValue<string> | null,
+      sender?: PromiseOrValue<string> | null
+    ): RoleGrantedEventFilter;
+
+    "RoleRevoked(bytes32,address,address)"(
+      role?: PromiseOrValue<BytesLike> | null,
+      account?: PromiseOrValue<string> | null,
+      sender?: PromiseOrValue<string> | null
+    ): RoleRevokedEventFilter;
+    RoleRevoked(
+      role?: PromiseOrValue<BytesLike> | null,
+      account?: PromiseOrValue<string> | null,
+      sender?: PromiseOrValue<string> | null
+    ): RoleRevokedEventFilter;
 
     "Transfer(address,address,uint256)"(
       from?: PromiseOrValue<string> | null,
@@ -1163,6 +1389,10 @@ export interface Kondux extends BaseContract {
   };
 
   estimateGas: {
+    DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<BigNumber>;
+
+    DNA_MODIFIER_ROLE(overrides?: CallOverrides): Promise<BigNumber>;
+
     MINTER_ROLE(overrides?: CallOverrides): Promise<BigNumber>;
 
     approve(
@@ -1170,8 +1400,6 @@ export interface Kondux extends BaseContract {
       tokenId: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
-
-    authority(overrides?: CallOverrides): Promise<BigNumber>;
 
     balanceOf(
       owner: PromiseOrValue<string>,
@@ -1211,6 +1439,23 @@ export interface Kondux extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    getRoleAdmin(
+      role: PromiseOrValue<BytesLike>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    grantRole(
+      role: PromiseOrValue<BytesLike>,
+      account: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    hasRole(
+      role: PromiseOrValue<BytesLike>,
+      account: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     indexDna(
       arg0: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
@@ -1235,11 +1480,23 @@ export interface Kondux extends BaseContract {
 
     paused(overrides?: CallOverrides): Promise<BigNumber>;
 
-    readDNA(
+    readGen(
       _tokenID: PromiseOrValue<BigNumberish>,
       startIndex: PromiseOrValue<BigNumberish>,
       endIndex: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    renounceRole(
+      role: PromiseOrValue<BytesLike>,
+      account: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    revokeRole(
+      role: PromiseOrValue<BytesLike>,
+      account: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     royaltyInfo(
@@ -1275,11 +1532,6 @@ export interface Kondux extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    setAuthority(
-      _newAuthority: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
     setBaseURI(
       _newURI: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -1294,6 +1546,13 @@ export interface Kondux extends BaseContract {
     setDna(
       _tokenID: PromiseOrValue<BigNumberish>,
       _dna: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    setRole(
+      role: PromiseOrValue<BytesLike>,
+      addr: PromiseOrValue<string>,
+      enabled: PromiseOrValue<boolean>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
@@ -1340,7 +1599,7 @@ export interface Kondux extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    writeDNA(
+    writeGen(
       _tokenID: PromiseOrValue<BigNumberish>,
       inputValue: PromiseOrValue<BigNumberish>,
       startIndex: PromiseOrValue<BigNumberish>,
@@ -1350,6 +1609,12 @@ export interface Kondux extends BaseContract {
   };
 
   populateTransaction: {
+    DEFAULT_ADMIN_ROLE(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    DNA_MODIFIER_ROLE(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     MINTER_ROLE(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     approve(
@@ -1357,8 +1622,6 @@ export interface Kondux extends BaseContract {
       tokenId: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
-
-    authority(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     balanceOf(
       owner: PromiseOrValue<string>,
@@ -1398,6 +1661,23 @@ export interface Kondux extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
+    getRoleAdmin(
+      role: PromiseOrValue<BytesLike>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    grantRole(
+      role: PromiseOrValue<BytesLike>,
+      account: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    hasRole(
+      role: PromiseOrValue<BytesLike>,
+      account: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     indexDna(
       arg0: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
@@ -1422,11 +1702,23 @@ export interface Kondux extends BaseContract {
 
     paused(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    readDNA(
+    readGen(
       _tokenID: PromiseOrValue<BigNumberish>,
       startIndex: PromiseOrValue<BigNumberish>,
       endIndex: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    renounceRole(
+      role: PromiseOrValue<BytesLike>,
+      account: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    revokeRole(
+      role: PromiseOrValue<BytesLike>,
+      account: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     royaltyInfo(
@@ -1462,11 +1754,6 @@ export interface Kondux extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
-    setAuthority(
-      _newAuthority: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
     setBaseURI(
       _newURI: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -1481,6 +1768,13 @@ export interface Kondux extends BaseContract {
     setDna(
       _tokenID: PromiseOrValue<BigNumberish>,
       _dna: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setRole(
+      role: PromiseOrValue<BytesLike>,
+      addr: PromiseOrValue<string>,
+      enabled: PromiseOrValue<boolean>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
@@ -1527,7 +1821,7 @@ export interface Kondux extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
-    writeDNA(
+    writeGen(
       _tokenID: PromiseOrValue<BigNumberish>,
       inputValue: PromiseOrValue<BigNumberish>,
       startIndex: PromiseOrValue<BigNumberish>,

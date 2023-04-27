@@ -38,7 +38,6 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const stakingDeployment = await deployments.get(CONTRACTS.staking);
     const konduxERC20Deployment = await deployments.get(CONTRACTS.konduxERC20);
     const konduxERC721FoundersDeployment = await deployments.get(CONTRACTS.konduxERC721Founders);
-    const konduxERC721kNFTDeployment = await deployments.get(CONTRACTS.konduxERC721kNFT);
     const helixDeployment = await deployments.get(CONTRACTS.helix);
     
     const authority = Authority__factory.connect(authorityDeployment.address, signer);
@@ -56,7 +55,6 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     // Testing only
     const konduxERC20 = KonduxERC20__factory.connect(konduxERC20Deployment.address, signer);
     const konduxERC721Founders = KonduxERC721Founders__factory.connect(konduxERC721FoundersDeployment.address, signer);
-    const konduxERC721kNFT = KonduxERC721kNFT__factory.connect(konduxERC721kNFTDeployment.address, signer);
 
     // // // Step 1: Set base URI
     // await waitFor(kondux.setBaseURI(CONFIGURATION.baseURIkNFTBox)); // PRODUCTION
@@ -136,10 +134,10 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     console.log("Set staking as burner");
 
     // TESTING ONLY
-    await waitFor(konduxERC20.approve(treasuryDeployment.address, ethers.BigNumber.from(10).pow(38)));
-    console.log("Set Approval for konduxERC");
-    await waitFor(treasury.deposit(ethers.BigNumber.from(10).pow(28), konduxERC20Deployment.address));
-    console.log("Deposit konduxERC");
+    // await waitFor(konduxERC20.approve(treasuryDeployment.address, ethers.BigNumber.from(10).pow(28)));
+    // console.log("Set Approval for konduxERC");
+    // await waitFor(treasury.deposit(ethers.BigNumber.from(10).pow(28), konduxERC20Deployment.address));
+    // console.log("Deposit konduxERC");
     // await waitFor(staking.setCompoundFreq(60, konduxERC20Deployment.address));
     // console.log("Set compound frequency to 60 seconds");
     // await waitFor(staking.setAPR(25, konduxERC20Deployment.address));

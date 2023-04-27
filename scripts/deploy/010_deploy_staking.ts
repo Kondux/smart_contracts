@@ -11,7 +11,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const konduxERC20Deployment = await deployments.get(CONTRACTS.konduxERC20);
     const treasuryDeployment = await deployments.get(CONTRACTS.treasury);
     const konduxERC721FoundersDeployment = await deployments.get(CONTRACTS.konduxERC721Founders);
-    const konduxERC721kNFTDeployment = await deployments.get(CONTRACTS.konduxERC721kNFT);
+    const konduxERC721kNFTDeployment = await deployments.get(CONTRACTS.kondux);
     const helix = await deployments.get(CONTRACTS.helix);
 
     await deploy(CONTRACTS.staking, {
@@ -25,7 +25,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
             helix.address
         ],
         log: true,
-        skipIfAlreadyDeployed: true,
+        skipIfAlreadyDeployed: false,
     });
 };
 
