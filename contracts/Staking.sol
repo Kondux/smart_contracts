@@ -105,6 +105,8 @@ contract Staking is AccessControlled {
     // The divisor for a specific token
     mapping (address => uint256) public divisorERC20;
 
+    // The allowed dnaVersion for reward boost
+    mapping (uint256 => bool) public allowedDnaVersions;
 
     IHelix public helixERC20; // Helix ERC20 Token
     IERC721 public konduxERC721Founders; // Kondux ERC721 Founders Token
@@ -217,6 +219,7 @@ contract Staking is AccessControlled {
         setTimelockCategoryBoost(1, 100); // 1% boost for 90 days timelock
         setTimelockCategoryBoost(2, 300); // 3% boost for 180 days timelock 
         setTimelockCategoryBoost(3, 900); // 9% boost for 365 days timelock
+        setAllowedDnaVersion(1, true); // allow DNA version 1
 
         //testing 24 and 48h timelocks
         setTimelockCategoryBoost(5, 5000); // 50% boost for 1 day timelock
@@ -246,8 +249,8 @@ contract Staking is AccessControlled {
         require(konduxERC20.balanceOf(msg.sender) >= _amount, "Can't stake more than you own");
         // Check if the user has approved the staking contract to spend the specified amount
         require(konduxERC20.allowance(msg.sender, address(this)) >= _amount, "Allowance not set");
-        // Check if the selected timelock category is valid (between 0 and 4)
-        require(_timelock >= 0 && _timelock <= 4, "Invalid timelock");
+        // Check if the selected timelock category is valid (between 0 and 3)
+        require(_timelock >= 0 && _timelock <= 6, "Invalid timelock");
 
         // Get the current deposit ID
         uint _id = _depositIds.current();
@@ -276,7 +279,11 @@ contract Staking is AccessControlled {
             userDeposits[_id].timelock = block.timestamp + 365 days; // 1 year 
         } else if (_timelock == uint8(LockingTimes.Test)) {
             userDeposits[_id].timelock = block.timestamp + 2 minutes; // 2 minutes // TEST
-        }
+        } else if (_timelock == uint8(LockingTimes.Test24h)) { 
+            userDeposits[_id].timelock = block.timestamp + 1 days; // 1 day // TEST
+        } else if (_timelock == uint8(LockingTimes.Test48h)) {
+            userDeposits[_id].timelock = block.timestamp + 2 days; // 2 days // TEST
+        } 
 
         // Add the deposit ID to the user's deposit list
         userDepositsIds[msg.sender].push(_id);
@@ -297,7 +304,6 @@ contract Staking is AccessControlled {
 
         return _id;
     }
-
 
     /**
      * @dev This function allows the owner of a deposit to stake their earned rewards.
@@ -361,7 +367,6 @@ contract Staking is AccessControlled {
 
         emit Reward(msg.sender, netRewards);
     }
-
 
     /**
      * @dev This function allows the owner of a deposit to withdraw a specified amount of their deposited tokens.
@@ -500,19 +505,6 @@ contract Staking is AccessControlled {
     }
 
     /**
-     * @dev This function retrieves the deposit information for a given deposit ID. It returns the staked amount
-     *      and the earned rewards (including unclaimed rewards) for the specified deposit.
-     * @param _depositId The ID of the deposit for which to retrieve the information.
-     * @return _stake The staked amount for the specified deposit.
-     * @return _unclaimedRewards The earned rewards (including unclaimed rewards) for the specified deposit.
-     */
-    function getDepositInfo(uint _depositId) public view returns (uint256 _stake, uint256 _unclaimedRewards) {
-        _stake = userDeposits[_depositId].deposited;  
-        _unclaimedRewards = calculateRewards(msg.sender, _depositId) + userDeposits[_depositId].unclaimedRewards;
-        return (_stake, _unclaimedRewards);  
-    }
-
-    /**
      * @dev This function returns the remaining time until the next allowed compounding action for a given deposit ID.
      *      It calculates the remaining time based on the compound frequency for the deposited token.
      *      If the timer has already passed, it returns 0.
@@ -540,64 +532,105 @@ contract Staking is AccessControlled {
      * @return rewards The calculated rewards for the specified staker and deposit ID.
      */
     function calculateRewards(address _staker, uint _depositId) public view returns (uint256 rewards) {
-        Staker memory deposit_ = userDeposits[_depositId];  
+        // Retrieve deposit details by _depositId
+        Staker memory deposit_ = userDeposits[_depositId];
 
-        // Check if _staker has _depositId, if not, return 0;
+        // Check if the staker is the owner of the deposit; if not, return 0
         if (deposit_.staker != _staker) {
             return 0;
-        } 
+        }
 
-        uint256 elapsedTime = block.timestamp - deposit_.timeOfLastUpdate; 
+        // Calculate the elapsed time since the last update
+        uint256 elapsedTime = block.timestamp - deposit_.timeOfLastUpdate;
+        // Get the deposited amount
         uint256 depositedAmount = deposit_.deposited;
 
-        // Calculate 25% APR, avoiding truncating to zero
+        // Calculate the base reward per second using the token's APR
         uint256 tokenApr = aprERC20[deposit_.token];
+
+        /**
+         * @dev This line calculates the reward earned per second by a staker for their deposit, considering the deposit's APR (annual percentage rate).
+         *
+         * The formula breakdown:
+         * 1. depositedAmount: The amount of tokens the staker deposited.
+         * 2. tokenApr: The annual percentage rate for the token in question (e.g. 25% APR).
+         * 3. 1e18: A scaling factor used to maintain precision in the calculations (10^18 or 1 followed by 18 zeros).
+         * 4. 365 * 24 * 3600: The total number of seconds in a year, used to convert the APR to a per-second rate.
+         * 5. 100: Used to convert the APR percentage to a decimal (e.g. 25% becomes 0.25).
+         *
+         * The formula calculates the per-second reward by multiplying the deposited amount and the token's APR, and then scaling it up by 1e18.
+         * After that, it divides the result by the total number of seconds in a year and by 100 to adjust for the percentage.
+         *
+         * Using 1e18 maintains precision in the calculation, avoiding truncation errors due to integer division in Solidity.
+         * By scaling up the result and performing the divisions afterward, the calculation maintains precision without truncating intermediate results to zero.
+         */
         uint256 rewardPerSecond = (depositedAmount * tokenApr * 1e18) / (365 * 24 * 3600 * 100);
+
+        
+        // Calculate the base reward based on elapsed time
         uint256 _reward = elapsedTime * rewardPerSecond / 1e18;
 
+        // Initialize the boost percentage with the base boost percentage for the token
         uint256 boostPercentage = divisorERC20[deposit_.token];
-        console.log("boostPercentage 1:", boostPercentage); 
 
+        // Check if the staker has Founder's NFTs and add the boost percentage
         if (IERC721(konduxERC721Founders).balanceOf(_staker) > 0) {
             boostPercentage += foundersRewardBoostERC20[deposit_.token];
         }
-        console.log("boostPercentage 2:", boostPercentage); 
 
+        // Check if the staker has any kNFTs and calculate the top 5 boosts
         if (IERC721(konduxERC721kNFT).balanceOf(_staker) > 0) {
             uint256 kNFTBalance = IERC721(konduxERC721kNFT).balanceOf(_staker);
+            // Initialize an array to store the top 5 bonuses
+            uint256[] memory top5Bonuses = new uint256[](5);
+
+            // Iterate through the staker's kNFTs
             for (uint256 i = 0; i < kNFTBalance; i++) {
                 uint256 tokenId = IERC721Enumerable(konduxERC721kNFT).tokenOfOwnerByIndex(_staker, i);
 
-                int256 dnaVersion = IKondux(konduxERC721kNFT).readGen(tokenId, 0, 1);                
-                if (dnaVersion != 1) {
+                // Get the kNFT's DNA version and check if it's allowed
+                int256 dnaVersion = IKondux(konduxERC721kNFT).readGen(tokenId, 0, 1);
+                if (!allowedDnaVersions[uint256(dnaVersion)]) { 
                     continue;
-                }            
+                }
 
-                int256 dnaBoost = IKondux(konduxERC721kNFT).readGen(tokenId, 1, 2);
+                // Get the kNFT's boost value and multiply it by 100 to get a percentage
+                int256 dnaBoost = IKondux(konduxERC721kNFT).readGen(tokenId, 1, 2) * 100;
+                // Clamp the boost value between 0 and the token's divisor
                 if (dnaBoost < 0) {
                     dnaBoost = 0;
-                } else if (dnaBoost > 100) {
-                    dnaBoost = 100;
-                } // prevent overflow
+                } else if (uint256(dnaBoost) > divisorERC20[deposit_.token]) { 
+                    dnaBoost = int256(divisorERC20[deposit_.token]); 
+                }
 
-                boostPercentage += uint256(dnaBoost) * 100; 
-                console.log("boostPercentage 3:", boostPercentage); 
+                // Update the top 5 bonuses array with the current kNFT boost
+                for (uint256 j = 0; j < 5; j++) {
+                    if (uint256(dnaBoost) > top5Bonuses[j]) {
+                        uint256 temp = top5Bonuses[j];
+                        top5Bonuses[j] = uint256(dnaBoost);
+                        dnaBoost = int256(temp);
+                    }
+                }
+            }
+
+            // Add the top 5 bonuses to the boost percentage
+            for (uint256 i = 0; i < 5; i++) {
+                boostPercentage += top5Bonuses[i];
             }
         }
 
+        // If the deposit has a timelock category, add the corresponding boost
         if (deposit_.timelockCategory > 0) {
             boostPercentage += timelockCategoryBoost[deposit_.timelockCategory];
         }
-        console.log("boostPercentage 4:", boostPercentage); 
 
-        console.log("reward pre-boost:", _reward);
+        // Calculate the final reward by applying the boost percentage
+        _reward = (_reward * boostPercentage) / divisorERC20[deposit_.token];
 
-        _reward = (_reward * boostPercentage) / divisorERC20[deposit_.token]; 
-
-        console.log("reward post-boost:", _reward);
-
+        // Return the calculated reward
         return _reward;
-    }
+    }      
+
 
 
     // Internal functions:
@@ -850,6 +883,15 @@ contract Staking is AccessControlled {
     }
 
     /**
+     * @dev This function sets the version of dna that is allowed to be used for reward bonus
+     * @param _dnaVersion The dna version to be set.
+     * @param _allowed True to allow the dna version, false to disallow.
+     */
+    function setAllowedDnaVersion(uint256 _dnaVersion, bool _allowed) public onlyGovernor {
+        allowedDnaVersions[_dnaVersion] = _allowed;
+    }
+
+    /**
      * @dev This function adds a new staking token with its parameters.
      * Emits various events based on the setter functions called during token addition.
      * Emits a {NewAuthorizedERC20} event at the end.
@@ -1059,5 +1101,27 @@ contract Staking is AccessControlled {
      */
     function getDivisorERC20(address _token) public view returns (uint256) {
         return divisorERC20[_token];
+    }
+
+    /**
+     * @dev This function returns the permission of usage of a dna version as boost.
+     * @param _dnaVersion The dna version for which the permission is requested.
+     * @return The permission of usage of a dna version as boost
+     */
+    function getAllowedDnaVersion(uint256 _dnaVersion) public view returns (bool) {
+        return allowedDnaVersions[_dnaVersion];
+    }
+
+    /**
+     * @dev This function retrieves the deposit information for a given deposit ID. It returns the staked amount
+     *      and the earned rewards (including unclaimed rewards) for the specified deposit.
+     * @param _depositId The ID of the deposit for which to retrieve the information.
+     * @return _stake The staked amount for the specified deposit.
+     * @return _unclaimedRewards The earned rewards (including unclaimed rewards) for the specified deposit.
+     */
+    function getDepositInfo(uint _depositId) public view returns (uint256 _stake, uint256 _unclaimedRewards) {
+        _stake = userDeposits[_depositId].deposited;  
+        _unclaimedRewards = calculateRewards(msg.sender, _depositId) + userDeposits[_depositId].unclaimedRewards;
+        return (_stake, _unclaimedRewards);  
     }
 }

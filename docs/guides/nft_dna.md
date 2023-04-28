@@ -30,3 +30,47 @@ table:nft_dna
 The DNA protocol is currently in development. There's no official protocol or mapping yet.
 
 The DNA is not meant to be human readable.
+
+# How to Read Genes Using the `readGen` Function in Solidity
+
+This guide will explain how to read genes from a token's DNA value using the `readGen` function provided in the given Solidity code snippet.
+
+## Function Signature
+
+```solidity
+function readGen(uint256 _tokenID, uint8 startIndex, uint8 endIndex) public view returns (int256)
+```
+
+## Parameters
+
+- `_tokenID`: The ID of the token you want to extract the gene information from.
+- `startIndex`: The starting index of the byte range in the DNA value you want to extract.
+- `endIndex`: The ending index of the byte range in the DNA value you want to extract.
+
+## Usage
+
+1. First, you need to have a valid token ID for which you want to extract the gene information. The token ID should correspond to an existing token in the contract.
+
+2. Determine the range of bytes you want to extract from the DNA value. The `startIndex` should be less than the `endIndex`, and the `endIndex` should be less than or equal to 32 (the DNA value has 32 bytes).
+
+3. Call the `readGen` function with the token ID and the byte range you have determined. The function will return the extracted value as an `int256`.
+
+### Example
+
+Suppose you have a token with ID `12345`, and you want to extract the gene information from the bytes between positions 2 and 5 in the DNA value. You can call the `readGen` function like this:
+
+```solidity
+int256 extractedValue = readGen(12345, 2, 5);
+```
+
+The `extractedValue` will now contain the value extracted from the DNA value of the token with ID `12345` in the specified byte range (2 to 5).
+
+## Important Notes
+
+- Make sure the range you specify with `startIndex` and `endIndex` is valid. If the range is invalid, the function will revert with an "Invalid range" error message.
+
+- The byte positions in the DNA value are stored in big-endian, so the function reverses the index while reading the bytes. Keep this in mind when specifying the byte range.
+
+- The extracted value will be returned as an `int256`. You may need to convert or cast it to a different type, depending on your specific use case.
+
+- Remember that the function has the `view` modifier, which means it doesn't modify the contract's state and can be called without incurring any gas costs.

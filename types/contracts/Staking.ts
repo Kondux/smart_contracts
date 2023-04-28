@@ -30,6 +30,7 @@ import type {
 export interface StakingInterface extends utils.Interface {
   functions: {
     "addNewStakingToken(address,uint256,uint256,uint256,uint256,uint256,uint256,uint256)": FunctionFragment;
+    "allowedDnaVersions(uint256)": FunctionFragment;
     "aprERC20(address)": FunctionFragment;
     "authority()": FunctionFragment;
     "authorizedERC20(address)": FunctionFragment;
@@ -42,6 +43,7 @@ export interface StakingInterface extends utils.Interface {
     "earlyWithdrawalPenalty(address)": FunctionFragment;
     "foundersRewardBoostERC20(address)": FunctionFragment;
     "getAPR(address)": FunctionFragment;
+    "getAllowedDnaVersion(uint256)": FunctionFragment;
     "getDepositIds(address)": FunctionFragment;
     "getDepositInfo(uint256)": FunctionFragment;
     "getDepositTimestamp(uint256)": FunctionFragment;
@@ -68,6 +70,7 @@ export interface StakingInterface extends utils.Interface {
     "minStakeERC20(address)": FunctionFragment;
     "ratioERC20(address)": FunctionFragment;
     "setAPR(uint256,address)": FunctionFragment;
+    "setAllowedDnaVersion(uint256,bool)": FunctionFragment;
     "setAuthority(address)": FunctionFragment;
     "setAuthorizedERC20(address,bool)": FunctionFragment;
     "setCompoundFreq(uint256,address)": FunctionFragment;
@@ -102,6 +105,7 @@ export interface StakingInterface extends utils.Interface {
   getFunction(
     nameOrSignatureOrTopic:
       | "addNewStakingToken"
+      | "allowedDnaVersions"
       | "aprERC20"
       | "authority"
       | "authorizedERC20"
@@ -114,6 +118,7 @@ export interface StakingInterface extends utils.Interface {
       | "earlyWithdrawalPenalty"
       | "foundersRewardBoostERC20"
       | "getAPR"
+      | "getAllowedDnaVersion"
       | "getDepositIds"
       | "getDepositInfo"
       | "getDepositTimestamp"
@@ -140,6 +145,7 @@ export interface StakingInterface extends utils.Interface {
       | "minStakeERC20"
       | "ratioERC20"
       | "setAPR"
+      | "setAllowedDnaVersion"
       | "setAuthority"
       | "setAuthorizedERC20"
       | "setCompoundFreq"
@@ -183,6 +189,10 @@ export interface StakingInterface extends utils.Interface {
       PromiseOrValue<BigNumberish>,
       PromiseOrValue<BigNumberish>
     ]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "allowedDnaVersions",
+    values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "aprERC20",
@@ -232,6 +242,10 @@ export interface StakingInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "getAPR",
     values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getAllowedDnaVersion",
+    values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "getDepositIds",
@@ -336,6 +350,10 @@ export interface StakingInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "setAPR",
     values: [PromiseOrValue<BigNumberish>, PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setAllowedDnaVersion",
+    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<boolean>]
   ): string;
   encodeFunctionData(
     functionFragment: "setAuthority",
@@ -455,6 +473,10 @@ export interface StakingInterface extends utils.Interface {
     functionFragment: "addNewStakingToken",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "allowedDnaVersions",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "aprERC20", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "authority", data: BytesLike): Result;
   decodeFunctionResult(
@@ -491,6 +513,10 @@ export interface StakingInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "getAPR", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "getAllowedDnaVersion",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "getDepositIds",
     data: BytesLike
@@ -586,6 +612,10 @@ export interface StakingInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "ratioERC20", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "setAPR", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "setAllowedDnaVersion",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "setAuthority",
     data: BytesLike
@@ -987,6 +1017,11 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
+    allowedDnaVersions(
+      arg0: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<[boolean]>;
+
     aprERC20(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -1046,6 +1081,11 @@ export interface Staking extends BaseContract {
       _tokenId: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<[BigNumber] & { _rewardsPerHour: BigNumber }>;
+
+    getAllowedDnaVersion(
+      _dnaVersion: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<[boolean]>;
 
     getDepositIds(
       _user: PromiseOrValue<string>,
@@ -1173,6 +1213,12 @@ export interface Staking extends BaseContract {
     setAPR(
       _apr: PromiseOrValue<BigNumberish>,
       _tokenId: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    setAllowedDnaVersion(
+      _dnaVersion: PromiseOrValue<BigNumberish>,
+      _allowed: PromiseOrValue<boolean>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
@@ -1369,6 +1415,11 @@ export interface Staking extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
+  allowedDnaVersions(
+    arg0: PromiseOrValue<BigNumberish>,
+    overrides?: CallOverrides
+  ): Promise<boolean>;
+
   aprERC20(
     arg0: PromiseOrValue<string>,
     overrides?: CallOverrides
@@ -1428,6 +1479,11 @@ export interface Staking extends BaseContract {
     _tokenId: PromiseOrValue<string>,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
+
+  getAllowedDnaVersion(
+    _dnaVersion: PromiseOrValue<BigNumberish>,
+    overrides?: CallOverrides
+  ): Promise<boolean>;
 
   getDepositIds(
     _user: PromiseOrValue<string>,
@@ -1552,6 +1608,12 @@ export interface Staking extends BaseContract {
   setAPR(
     _apr: PromiseOrValue<BigNumberish>,
     _tokenId: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  setAllowedDnaVersion(
+    _dnaVersion: PromiseOrValue<BigNumberish>,
+    _allowed: PromiseOrValue<boolean>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
@@ -1748,6 +1810,11 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    allowedDnaVersions(
+      arg0: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<boolean>;
+
     aprERC20(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -1807,6 +1874,11 @@ export interface Staking extends BaseContract {
       _tokenId: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
+
+    getAllowedDnaVersion(
+      _dnaVersion: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<boolean>;
 
     getDepositIds(
       _user: PromiseOrValue<string>,
@@ -1934,6 +2006,12 @@ export interface Staking extends BaseContract {
     setAPR(
       _apr: PromiseOrValue<BigNumberish>,
       _tokenId: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setAllowedDnaVersion(
+      _dnaVersion: PromiseOrValue<BigNumberish>,
+      _allowed: PromiseOrValue<boolean>,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -2303,6 +2381,11 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
+    allowedDnaVersions(
+      arg0: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     aprERC20(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -2360,6 +2443,11 @@ export interface Staking extends BaseContract {
 
     getAPR(
       _tokenId: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getAllowedDnaVersion(
+      _dnaVersion: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -2484,6 +2572,12 @@ export interface Staking extends BaseContract {
     setAPR(
       _apr: PromiseOrValue<BigNumberish>,
       _tokenId: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    setAllowedDnaVersion(
+      _dnaVersion: PromiseOrValue<BigNumberish>,
+      _allowed: PromiseOrValue<boolean>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
@@ -2659,6 +2753,11 @@ export interface Staking extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
+    allowedDnaVersions(
+      arg0: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     aprERC20(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -2716,6 +2815,11 @@ export interface Staking extends BaseContract {
 
     getAPR(
       _tokenId: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getAllowedDnaVersion(
+      _dnaVersion: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
@@ -2842,6 +2946,12 @@ export interface Staking extends BaseContract {
     setAPR(
       _apr: PromiseOrValue<BigNumberish>,
       _tokenId: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setAllowedDnaVersion(
+      _dnaVersion: PromiseOrValue<BigNumberish>,
+      _allowed: PromiseOrValue<boolean>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
