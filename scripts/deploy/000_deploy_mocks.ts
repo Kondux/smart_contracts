@@ -7,7 +7,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const { deploy } = deployments;
     const { deployer } = await getNamedAccounts();
 
-    await deploy(CONTRACTS.konduxERC20, {
+    await deploy(CONTRACTS.realKNDX_ERC20, {
         from: deployer,
         args: [],
         log: true,

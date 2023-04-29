@@ -157,6 +157,26 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ITreasury__factory>;
     getContractFactory(
+      name: "Auth",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Auth__factory>;
+    getContractFactory(
+      name: "IERC20",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IERC20__factory>;
+    getContractFactory(
+      name: "IUniswapV2Factory",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IUniswapV2Factory__factory>;
+    getContractFactory(
+      name: "IUniswapV2Router02",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IUniswapV2Router02__factory>;
+    getContractFactory(
+      name: "KNDX",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.KNDX__factory>;
+    getContractFactory(
       name: "KonduxFounders",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.KonduxFounders__factory>;
@@ -389,6 +409,31 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.ITreasury>;
+    getContractAt(
+      name: "Auth",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Auth>;
+    getContractAt(
+      name: "IERC20",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IERC20>;
+    getContractAt(
+      name: "IUniswapV2Factory",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IUniswapV2Factory>;
+    getContractAt(
+      name: "IUniswapV2Router02",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IUniswapV2Router02>;
+    getContractAt(
+      name: "KNDX",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.KNDX>;
     getContractAt(
       name: "KonduxFounders",
       address: string,

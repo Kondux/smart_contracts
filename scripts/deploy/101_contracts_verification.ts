@@ -26,7 +26,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const konduxFoundersDeployment = await deployments.get(CONTRACTS.konduxFounders);
     const minterFoundersDeployment = await deployments.get(CONTRACTS.minterFounders);
     const minterPublicDeployment = await deployments.get(CONTRACTS.minterPublic);
-    const konduxERC20Deployment = await deployments.get(CONTRACTS.konduxERC20);
+    const konduxERC20Deployment = await deployments.get(CONTRACTS.realKNDX_ERC20);
     const konduxERC721FoundersDeployment = await deployments.get(CONTRACTS.konduxERC721Founders);
     const helixDeployment = await deployments.get(CONTRACTS.helix);
     

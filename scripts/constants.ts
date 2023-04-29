@@ -15,6 +15,7 @@ export const CONTRACTS: Record<string, string> = {
   konduxERC721Founders: "KonduxERC721Founders",
   konduxERC721kNFT: "KonduxERC721kNFT",
   helix: "Helix",
+  realKNDX_ERC20: "KNDX"
 };
 
 export const CONFIGURATION: Record<string, any> = {

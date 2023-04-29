@@ -14,6 +14,7 @@ import {
     Treasury__factory,
     Staking__factory,
     KonduxERC20__factory,
+    KNDX__factory,
     KonduxERC721Founders__factory,
     KonduxERC721kNFT__factory,
     Helix__factory,
@@ -36,7 +37,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const minterPublicDeployment = await deployments.get(CONTRACTS.minterPublic);
     const treasuryDeployment = await deployments.get(CONTRACTS.treasury);
     const stakingDeployment = await deployments.get(CONTRACTS.staking);
-    const konduxERC20Deployment = await deployments.get(CONTRACTS.konduxERC20);
+    const konduxERC20Deployment = await deployments.get(CONTRACTS.realKNDX_ERC20);
     const konduxERC721FoundersDeployment = await deployments.get(CONTRACTS.konduxERC721Founders);
     const helixDeployment = await deployments.get(CONTRACTS.helix);
     
@@ -53,7 +54,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const helix = Helix__factory.connect(helixDeployment.address, signer);
 
     // Testing only
-    const konduxERC20 = KonduxERC20__factory.connect(konduxERC20Deployment.address, signer);
+    const konduxERC20 = KNDX__factory.connect(konduxERC20Deployment.address, signer);
     const konduxERC721Founders = KonduxERC721Founders__factory.connect(konduxERC721FoundersDeployment.address, signer);
 
     // // // Step 1: Set base URI
