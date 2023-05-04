@@ -39,6 +39,76 @@ const _abi = [
     anonymous: false,
     inputs: [
       {
+        indexed: false,
+        internalType: "uint8",
+        name: "newBuyTax",
+        type: "uint8",
+      },
+      {
+        indexed: false,
+        internalType: "uint8",
+        name: "newSellTax",
+        type: "uint8",
+      },
+    ],
+    name: "TaxRateChanged",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "address",
+        name: "newTaxWallet",
+        type: "address",
+      },
+    ],
+    name: "TaxWalletChanged",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "totalWallets",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "totalTokens",
+        type: "uint256",
+      },
+    ],
+    name: "TokensAirdropped",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "burnedByWallet",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "tokenAmount",
+        type: "uint256",
+      },
+    ],
+    name: "TokensBurned",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
         indexed: true,
         internalType: "address",
         name: "from",
@@ -64,7 +134,63 @@ const _abi = [
     inputs: [
       {
         internalType: "address",
-        name: "owner",
+        name: "",
+        type: "address",
+      },
+    ],
+    name: "_isLiqPool",
+    outputs: [
+      {
+        internalType: "bool",
+        name: "",
+        type: "bool",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    name: "_lastSwapBlock",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint8",
+        name: "newBuyTax",
+        type: "uint8",
+      },
+      {
+        internalType: "uint8",
+        name: "newSellTax",
+        type: "uint8",
+      },
+    ],
+    name: "adjustTaxRate",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "_owner",
         type: "address",
       },
       {
@@ -79,6 +205,19 @@ const _abi = [
         internalType: "uint256",
         name: "",
         type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "antiBotEnabled",
+    outputs: [
+      {
+        internalType: "bool",
+        name: "",
+        type: "bool",
       },
     ],
     stateMutability: "view",
@@ -130,24 +269,46 @@ const _abi = [
   {
     inputs: [
       {
-        internalType: "address",
-        name: "spender",
-        type: "address",
-      },
-      {
         internalType: "uint256",
-        name: "subtractedValue",
+        name: "amount",
         type: "uint256",
       },
     ],
-    name: "decreaseAllowance",
+    name: "burnTokens",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "decimals",
     outputs: [
       {
-        internalType: "bool",
+        internalType: "uint8",
         name: "",
+        type: "uint8",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bool",
+        name: "isEnabled",
         type: "bool",
       },
     ],
+    name: "enableAntiBot",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "enableTrading",
+    outputs: [],
     stateMutability: "nonpayable",
     type: "function",
   },
@@ -155,16 +316,47 @@ const _abi = [
     inputs: [
       {
         internalType: "address",
-        name: "spender",
+        name: "wallet",
         type: "address",
       },
       {
-        internalType: "uint256",
-        name: "addedValue",
-        type: "uint256",
+        internalType: "bool",
+        name: "isExcluded",
+        type: "bool",
       },
     ],
-    name: "increaseAllowance",
+    name: "excludeFromAntiBot",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "wallet",
+        type: "address",
+      },
+      {
+        internalType: "bool",
+        name: "isExcluded",
+        type: "bool",
+      },
+    ],
+    name: "excludeFromFees",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    name: "excludedFromAntiBot",
     outputs: [
       {
         internalType: "bool",
@@ -172,7 +364,178 @@ const _abi = [
         type: "bool",
       },
     ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    name: "excludedFromFees",
+    outputs: [
+      {
+        internalType: "bool",
+        name: "",
+        type: "bool",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "getOwner",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "initLP",
+    outputs: [],
     stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "name",
+    outputs: [
+      {
+        internalType: "string",
+        name: "",
+        type: "string",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "newTaxWallet",
+        type: "address",
+      },
+    ],
+    name: "setTaxWallet",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "symbol",
+    outputs: [
+      {
+        internalType: "string",
+        name: "",
+        type: "string",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "taxRateBuy",
+    outputs: [
+      {
+        internalType: "uint8",
+        name: "",
+        type: "uint8",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "taxRateSell",
+    outputs: [
+      {
+        internalType: "uint8",
+        name: "",
+        type: "uint8",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "taxSwapMax",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "taxSwapMin",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint32",
+        name: "minValue",
+        type: "uint32",
+      },
+      {
+        internalType: "uint32",
+        name: "minDivider",
+        type: "uint32",
+      },
+      {
+        internalType: "uint32",
+        name: "maxValue",
+        type: "uint32",
+      },
+      {
+        internalType: "uint32",
+        name: "maxDivider",
+        type: "uint32",
+      },
+    ],
+    name: "taxSwapSettings",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "taxWallet",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
     type: "function",
   },
   {
@@ -189,10 +552,23 @@ const _abi = [
     type: "function",
   },
   {
+    inputs: [],
+    name: "tradingOpen",
+    outputs: [
+      {
+        internalType: "bool",
+        name: "",
+        type: "bool",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [
       {
         internalType: "address",
-        name: "to",
+        name: "recipient",
         type: "address",
       },
       {
@@ -216,12 +592,12 @@ const _abi = [
     inputs: [
       {
         internalType: "address",
-        name: "from",
+        name: "sender",
         type: "address",
       },
       {
         internalType: "address",
-        name: "to",
+        name: "recipient",
         type: "address",
       },
       {

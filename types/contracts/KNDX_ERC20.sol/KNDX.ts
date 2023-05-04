@@ -43,7 +43,7 @@ export interface KNDXInterface extends utils.Interface {
     "excludeFromFees(address,bool)": FunctionFragment;
     "excludedFromAntiBot(address)": FunctionFragment;
     "excludedFromFees(address)": FunctionFragment;
-    "faucet(uint256)": FunctionFragment;
+    "faucet()": FunctionFragment;
     "getOwner()": FunctionFragment;
     "initLP()": FunctionFragment;
     "name()": FunctionFragment;
@@ -152,10 +152,7 @@ export interface KNDXInterface extends utils.Interface {
     functionFragment: "excludedFromFees",
     values: [PromiseOrValue<string>]
   ): string;
-  encodeFunctionData(
-    functionFragment: "faucet",
-    values: [PromiseOrValue<BigNumberish>]
-  ): string;
+  encodeFunctionData(functionFragment: "faucet", values?: undefined): string;
   encodeFunctionData(functionFragment: "getOwner", values?: undefined): string;
   encodeFunctionData(functionFragment: "initLP", values?: undefined): string;
   encodeFunctionData(functionFragment: "name", values?: undefined): string;
@@ -499,7 +496,6 @@ export interface KNDX extends BaseContract {
     ): Promise<[boolean]>;
 
     faucet(
-      _amount: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
@@ -635,7 +631,6 @@ export interface KNDX extends BaseContract {
   ): Promise<boolean>;
 
   faucet(
-    _amount: PromiseOrValue<BigNumberish>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
@@ -768,10 +763,7 @@ export interface KNDX extends BaseContract {
       overrides?: CallOverrides
     ): Promise<boolean>;
 
-    faucet(
-      _amount: PromiseOrValue<BigNumberish>,
-      overrides?: CallOverrides
-    ): Promise<void>;
+    faucet(overrides?: CallOverrides): Promise<void>;
 
     getOwner(overrides?: CallOverrides): Promise<string>;
 
@@ -961,7 +953,6 @@ export interface KNDX extends BaseContract {
     ): Promise<BigNumber>;
 
     faucet(
-      _amount: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
@@ -1098,7 +1089,6 @@ export interface KNDX extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     faucet(
-      _amount: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 

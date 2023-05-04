@@ -20,6 +20,8 @@ import {
     Kondux__factory,
     Helix,
     Helix__factory,
+    KNDX,
+    KNDX__factory,
 } from "../types";
  
 const BASE_URL = "https://h7af1y611a.execute-api.us-east-1.amazonaws.com/";
@@ -28,8 +30,8 @@ describe("Staking minting", async function () {
     let authority: Authority;
     let treasury: Treasury;
     let staking: Staking;
-    let kondux: KonduxERC20;
-    let kondux2: KonduxERC20;
+    let kondux: KNDX;
+    let kondux2: KNDX;
     let founders: KonduxERC721Founders;
     let knft: Kondux;
     let helix: Helix;
@@ -63,12 +65,20 @@ describe("Staking minting", async function () {
         const pushVault = await authority.pushVault(treasury.address, true);
         await pushVault.wait();
 
-        kondux = await new KonduxERC20__factory(owner).deploy();
+        kondux = await new KNDX__factory(owner).deploy();
         await kondux.deployed();
+        const konduxEnableTrading = await kondux.enableTrading();
+        await konduxEnableTrading.wait();
+        const konduxFaucet = await kondux.faucet();
+        await konduxFaucet.wait();
         console.log("KNDX address:", kondux.address);
 
-        kondux2 = await new KonduxERC20__factory(owner).deploy();
+        kondux2 = await new KNDX__factory(owner).deploy();
         await kondux2.deployed();
+        const kondux2EnableTrading = await kondux2.enableTrading();
+        await kondux2EnableTrading.wait();
+        const kondux2Faucet = await kondux2.faucet();
+        await kondux2Faucet.wait();
         console.log("KNDX2 address:", kondux2.address);
 
         helix = await new Helix__factory(owner).deploy("Helix", "HLX");
@@ -112,10 +122,12 @@ describe("Staking minting", async function () {
         
         const setupApproval = await treasury.erc20ApprovalSetup(kondux.address, ethers.BigNumber.from(10).pow(38));
         await setupApproval.wait();
+        console.log("Account balance 2:", await kondux.balanceOf(ownerAddress) + " KNDX");
 
         const approve = await kondux.approve(treasury.address, ethers.BigNumber.from(10).pow(38));
         await approve.wait();
         console.log("Account balance 3:", await kondux.balanceOf(ownerAddress) + " KNDX");
+        console.log("Approval:", await kondux.allowance(ownerAddress, treasury.address) + " KNDX");
 
         const deposit = await treasury.deposit(ethers.BigNumber.from(10).pow(28), kondux.address);
         await deposit.wait();

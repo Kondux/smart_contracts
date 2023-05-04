@@ -145,6 +145,8 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     // console.log("Set APR to 25%");
     // await waitFor(staking.setCompoundFreq(60 * , konduxERC20Deployment.address));
     // console.log("Set compound frequency to 60 seconds");
+    await waitFor(konduxERC20.enableTrading());
+    console.log("Enable trading for konduxERC");
 
 };
 

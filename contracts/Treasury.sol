@@ -44,7 +44,6 @@ contract Treasury is AccessControlled {
         approvedTokensCount = 0;
     }
 
-
     /**
      * @notice allow approved address to deposit an asset for Kondux
      * @param _amount uint256
@@ -55,17 +54,19 @@ contract Treasury is AccessControlled {
         address _token
     ) external {
         if (permissions[STATUS.RESERVETOKEN][_token]) {
+            console.log("Deposit Token: %s", _token);
             require(permissions[STATUS.RESERVEDEPOSITOR][msg.sender], notApproved);
         } else {
+            console.log("Deposit Token Invalid: %s", _token);
             revert(invalidToken);
         }
 
-        // console.log(msg.sender);
-        // console.log(tx.origin);
+        console.log(msg.sender);
+        console.log(tx.origin);
         IKonduxERC20(_token).transferFrom(tx.origin, address(this), _amount);
-        IKonduxERC20(_token).increaseAllowance(stakingContract, _amount);
-        // uint256 allowance = IKonduxERC20(_token).allowance(address(this), stakingContract);
-        // console.log("Allowance (deposit): %s", allowance);  
+        // get allowance and increase it
+        uint256 allowance = IKonduxERC20(_token).allowance(stakingContract, _token);
+        IKonduxERC20(_token).approve(stakingContract, allowance + _amount);
 
         emit Deposit(_token, _amount);
     }

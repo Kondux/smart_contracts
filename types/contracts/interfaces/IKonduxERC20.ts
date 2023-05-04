@@ -29,31 +29,91 @@ import type {
 
 export interface IKonduxERC20Interface extends utils.Interface {
   functions: {
+    "_isLiqPool(address)": FunctionFragment;
+    "_lastSwapBlock(address)": FunctionFragment;
+    "adjustTaxRate(uint8,uint8)": FunctionFragment;
     "allowance(address,address)": FunctionFragment;
+    "antiBotEnabled()": FunctionFragment;
     "approve(address,uint256)": FunctionFragment;
     "balanceOf(address)": FunctionFragment;
-    "decreaseAllowance(address,uint256)": FunctionFragment;
-    "increaseAllowance(address,uint256)": FunctionFragment;
+    "burnTokens(uint256)": FunctionFragment;
+    "decimals()": FunctionFragment;
+    "enableAntiBot(bool)": FunctionFragment;
+    "enableTrading()": FunctionFragment;
+    "excludeFromAntiBot(address,bool)": FunctionFragment;
+    "excludeFromFees(address,bool)": FunctionFragment;
+    "excludedFromAntiBot(address)": FunctionFragment;
+    "excludedFromFees(address)": FunctionFragment;
+    "getOwner()": FunctionFragment;
+    "initLP()": FunctionFragment;
+    "name()": FunctionFragment;
+    "setTaxWallet(address)": FunctionFragment;
+    "symbol()": FunctionFragment;
+    "taxRateBuy()": FunctionFragment;
+    "taxRateSell()": FunctionFragment;
+    "taxSwapMax()": FunctionFragment;
+    "taxSwapMin()": FunctionFragment;
+    "taxSwapSettings(uint32,uint32,uint32,uint32)": FunctionFragment;
+    "taxWallet()": FunctionFragment;
     "totalSupply()": FunctionFragment;
+    "tradingOpen()": FunctionFragment;
     "transfer(address,uint256)": FunctionFragment;
     "transferFrom(address,address,uint256)": FunctionFragment;
   };
 
   getFunction(
     nameOrSignatureOrTopic:
+      | "_isLiqPool"
+      | "_lastSwapBlock"
+      | "adjustTaxRate"
       | "allowance"
+      | "antiBotEnabled"
       | "approve"
       | "balanceOf"
-      | "decreaseAllowance"
-      | "increaseAllowance"
+      | "burnTokens"
+      | "decimals"
+      | "enableAntiBot"
+      | "enableTrading"
+      | "excludeFromAntiBot"
+      | "excludeFromFees"
+      | "excludedFromAntiBot"
+      | "excludedFromFees"
+      | "getOwner"
+      | "initLP"
+      | "name"
+      | "setTaxWallet"
+      | "symbol"
+      | "taxRateBuy"
+      | "taxRateSell"
+      | "taxSwapMax"
+      | "taxSwapMin"
+      | "taxSwapSettings"
+      | "taxWallet"
       | "totalSupply"
+      | "tradingOpen"
       | "transfer"
       | "transferFrom"
   ): FunctionFragment;
 
   encodeFunctionData(
+    functionFragment: "_isLiqPool",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "_lastSwapBlock",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "adjustTaxRate",
+    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<BigNumberish>]
+  ): string;
+  encodeFunctionData(
     functionFragment: "allowance",
     values: [PromiseOrValue<string>, PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "antiBotEnabled",
+    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "approve",
@@ -64,15 +124,74 @@ export interface IKonduxERC20Interface extends utils.Interface {
     values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
-    functionFragment: "decreaseAllowance",
-    values: [PromiseOrValue<string>, PromiseOrValue<BigNumberish>]
+    functionFragment: "burnTokens",
+    values: [PromiseOrValue<BigNumberish>]
+  ): string;
+  encodeFunctionData(functionFragment: "decimals", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "enableAntiBot",
+    values: [PromiseOrValue<boolean>]
   ): string;
   encodeFunctionData(
-    functionFragment: "increaseAllowance",
-    values: [PromiseOrValue<string>, PromiseOrValue<BigNumberish>]
+    functionFragment: "enableTrading",
+    values?: undefined
   ): string;
+  encodeFunctionData(
+    functionFragment: "excludeFromAntiBot",
+    values: [PromiseOrValue<string>, PromiseOrValue<boolean>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "excludeFromFees",
+    values: [PromiseOrValue<string>, PromiseOrValue<boolean>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "excludedFromAntiBot",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "excludedFromFees",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(functionFragment: "getOwner", values?: undefined): string;
+  encodeFunctionData(functionFragment: "initLP", values?: undefined): string;
+  encodeFunctionData(functionFragment: "name", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "setTaxWallet",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(functionFragment: "symbol", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "taxRateBuy",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "taxRateSell",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "taxSwapMax",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "taxSwapMin",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "taxSwapSettings",
+    values: [
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BigNumberish>
+    ]
+  ): string;
+  encodeFunctionData(functionFragment: "taxWallet", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "totalSupply",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "tradingOpen",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -88,19 +207,74 @@ export interface IKonduxERC20Interface extends utils.Interface {
     ]
   ): string;
 
+  decodeFunctionResult(functionFragment: "_isLiqPool", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "_lastSwapBlock",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "adjustTaxRate",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "allowance", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "antiBotEnabled",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "approve", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "balanceOf", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "burnTokens", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "decimals", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "decreaseAllowance",
+    functionFragment: "enableAntiBot",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "increaseAllowance",
+    functionFragment: "enableTrading",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "excludeFromAntiBot",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "excludeFromFees",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "excludedFromAntiBot",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "excludedFromFees",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "getOwner", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "initLP", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "name", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "setTaxWallet",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "symbol", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "taxRateBuy", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "taxRateSell",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "taxSwapMax", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "taxSwapMin", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "taxSwapSettings",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "taxWallet", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "totalSupply",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "tradingOpen",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "transfer", data: BytesLike): Result;
@@ -111,10 +285,18 @@ export interface IKonduxERC20Interface extends utils.Interface {
 
   events: {
     "Approval(address,address,uint256)": EventFragment;
+    "TaxRateChanged(uint8,uint8)": EventFragment;
+    "TaxWalletChanged(address)": EventFragment;
+    "TokensAirdropped(uint256,uint256)": EventFragment;
+    "TokensBurned(address,uint256)": EventFragment;
     "Transfer(address,address,uint256)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "Approval"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "TaxRateChanged"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "TaxWalletChanged"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "TokensAirdropped"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "TokensBurned"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Transfer"): EventFragment;
 }
 
@@ -129,6 +311,51 @@ export type ApprovalEvent = TypedEvent<
 >;
 
 export type ApprovalEventFilter = TypedEventFilter<ApprovalEvent>;
+
+export interface TaxRateChangedEventObject {
+  newBuyTax: number;
+  newSellTax: number;
+}
+export type TaxRateChangedEvent = TypedEvent<
+  [number, number],
+  TaxRateChangedEventObject
+>;
+
+export type TaxRateChangedEventFilter = TypedEventFilter<TaxRateChangedEvent>;
+
+export interface TaxWalletChangedEventObject {
+  newTaxWallet: string;
+}
+export type TaxWalletChangedEvent = TypedEvent<
+  [string],
+  TaxWalletChangedEventObject
+>;
+
+export type TaxWalletChangedEventFilter =
+  TypedEventFilter<TaxWalletChangedEvent>;
+
+export interface TokensAirdroppedEventObject {
+  totalWallets: BigNumber;
+  totalTokens: BigNumber;
+}
+export type TokensAirdroppedEvent = TypedEvent<
+  [BigNumber, BigNumber],
+  TokensAirdroppedEventObject
+>;
+
+export type TokensAirdroppedEventFilter =
+  TypedEventFilter<TokensAirdroppedEvent>;
+
+export interface TokensBurnedEventObject {
+  burnedByWallet: string;
+  tokenAmount: BigNumber;
+}
+export type TokensBurnedEvent = TypedEvent<
+  [string, BigNumber],
+  TokensBurnedEventObject
+>;
+
+export type TokensBurnedEventFilter = TypedEventFilter<TokensBurnedEvent>;
 
 export interface TransferEventObject {
   from: string;
@@ -169,11 +396,29 @@ export interface IKonduxERC20 extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
+    _isLiqPool(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[boolean]>;
+
+    _lastSwapBlock(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
+    adjustTaxRate(
+      newBuyTax: PromiseOrValue<BigNumberish>,
+      newSellTax: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
     allowance(
-      owner: PromiseOrValue<string>,
+      _owner: PromiseOrValue<string>,
       spender: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
+
+    antiBotEnabled(overrides?: CallOverrides): Promise<[boolean]>;
 
     approve(
       spender: PromiseOrValue<string>,
@@ -186,39 +431,118 @@ export interface IKonduxERC20 extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
-    decreaseAllowance(
-      spender: PromiseOrValue<string>,
-      subtractedValue: PromiseOrValue<BigNumberish>,
+    burnTokens(
+      amount: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
-    increaseAllowance(
-      spender: PromiseOrValue<string>,
-      addedValue: PromiseOrValue<BigNumberish>,
+    decimals(overrides?: CallOverrides): Promise<[number]>;
+
+    enableAntiBot(
+      isEnabled: PromiseOrValue<boolean>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
+
+    enableTrading(
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    excludeFromAntiBot(
+      wallet: PromiseOrValue<string>,
+      isExcluded: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    excludeFromFees(
+      wallet: PromiseOrValue<string>,
+      isExcluded: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    excludedFromAntiBot(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[boolean]>;
+
+    excludedFromFees(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[boolean]>;
+
+    getOwner(overrides?: CallOverrides): Promise<[string]>;
+
+    initLP(
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    name(overrides?: CallOverrides): Promise<[string]>;
+
+    setTaxWallet(
+      newTaxWallet: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    symbol(overrides?: CallOverrides): Promise<[string]>;
+
+    taxRateBuy(overrides?: CallOverrides): Promise<[number]>;
+
+    taxRateSell(overrides?: CallOverrides): Promise<[number]>;
+
+    taxSwapMax(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    taxSwapMin(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    taxSwapSettings(
+      minValue: PromiseOrValue<BigNumberish>,
+      minDivider: PromiseOrValue<BigNumberish>,
+      maxValue: PromiseOrValue<BigNumberish>,
+      maxDivider: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    taxWallet(overrides?: CallOverrides): Promise<[string]>;
 
     totalSupply(overrides?: CallOverrides): Promise<[BigNumber]>;
 
+    tradingOpen(overrides?: CallOverrides): Promise<[boolean]>;
+
     transfer(
-      to: PromiseOrValue<string>,
+      recipient: PromiseOrValue<string>,
       amount: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     transferFrom(
-      from: PromiseOrValue<string>,
-      to: PromiseOrValue<string>,
+      sender: PromiseOrValue<string>,
+      recipient: PromiseOrValue<string>,
       amount: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
   };
 
+  _isLiqPool(
+    arg0: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<boolean>;
+
+  _lastSwapBlock(
+    arg0: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  adjustTaxRate(
+    newBuyTax: PromiseOrValue<BigNumberish>,
+    newSellTax: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
   allowance(
-    owner: PromiseOrValue<string>,
+    _owner: PromiseOrValue<string>,
     spender: PromiseOrValue<string>,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
+
+  antiBotEnabled(overrides?: CallOverrides): Promise<boolean>;
 
   approve(
     spender: PromiseOrValue<string>,
@@ -231,39 +555,118 @@ export interface IKonduxERC20 extends BaseContract {
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
-  decreaseAllowance(
-    spender: PromiseOrValue<string>,
-    subtractedValue: PromiseOrValue<BigNumberish>,
+  burnTokens(
+    amount: PromiseOrValue<BigNumberish>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  increaseAllowance(
-    spender: PromiseOrValue<string>,
-    addedValue: PromiseOrValue<BigNumberish>,
+  decimals(overrides?: CallOverrides): Promise<number>;
+
+  enableAntiBot(
+    isEnabled: PromiseOrValue<boolean>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
+
+  enableTrading(
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  excludeFromAntiBot(
+    wallet: PromiseOrValue<string>,
+    isExcluded: PromiseOrValue<boolean>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  excludeFromFees(
+    wallet: PromiseOrValue<string>,
+    isExcluded: PromiseOrValue<boolean>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  excludedFromAntiBot(
+    arg0: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<boolean>;
+
+  excludedFromFees(
+    arg0: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<boolean>;
+
+  getOwner(overrides?: CallOverrides): Promise<string>;
+
+  initLP(
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  name(overrides?: CallOverrides): Promise<string>;
+
+  setTaxWallet(
+    newTaxWallet: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  symbol(overrides?: CallOverrides): Promise<string>;
+
+  taxRateBuy(overrides?: CallOverrides): Promise<number>;
+
+  taxRateSell(overrides?: CallOverrides): Promise<number>;
+
+  taxSwapMax(overrides?: CallOverrides): Promise<BigNumber>;
+
+  taxSwapMin(overrides?: CallOverrides): Promise<BigNumber>;
+
+  taxSwapSettings(
+    minValue: PromiseOrValue<BigNumberish>,
+    minDivider: PromiseOrValue<BigNumberish>,
+    maxValue: PromiseOrValue<BigNumberish>,
+    maxDivider: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  taxWallet(overrides?: CallOverrides): Promise<string>;
 
   totalSupply(overrides?: CallOverrides): Promise<BigNumber>;
 
+  tradingOpen(overrides?: CallOverrides): Promise<boolean>;
+
   transfer(
-    to: PromiseOrValue<string>,
+    recipient: PromiseOrValue<string>,
     amount: PromiseOrValue<BigNumberish>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   transferFrom(
-    from: PromiseOrValue<string>,
-    to: PromiseOrValue<string>,
+    sender: PromiseOrValue<string>,
+    recipient: PromiseOrValue<string>,
     amount: PromiseOrValue<BigNumberish>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   callStatic: {
+    _isLiqPool(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<boolean>;
+
+    _lastSwapBlock(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    adjustTaxRate(
+      newBuyTax: PromiseOrValue<BigNumberish>,
+      newSellTax: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     allowance(
-      owner: PromiseOrValue<string>,
+      _owner: PromiseOrValue<string>,
       spender: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
+
+    antiBotEnabled(overrides?: CallOverrides): Promise<boolean>;
 
     approve(
       spender: PromiseOrValue<string>,
@@ -276,29 +679,86 @@ export interface IKonduxERC20 extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    decreaseAllowance(
-      spender: PromiseOrValue<string>,
-      subtractedValue: PromiseOrValue<BigNumberish>,
+    burnTokens(
+      amount: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    decimals(overrides?: CallOverrides): Promise<number>;
+
+    enableAntiBot(
+      isEnabled: PromiseOrValue<boolean>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    enableTrading(overrides?: CallOverrides): Promise<void>;
+
+    excludeFromAntiBot(
+      wallet: PromiseOrValue<string>,
+      isExcluded: PromiseOrValue<boolean>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    excludeFromFees(
+      wallet: PromiseOrValue<string>,
+      isExcluded: PromiseOrValue<boolean>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    excludedFromAntiBot(
+      arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<boolean>;
 
-    increaseAllowance(
-      spender: PromiseOrValue<string>,
-      addedValue: PromiseOrValue<BigNumberish>,
+    excludedFromFees(
+      arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<boolean>;
+
+    getOwner(overrides?: CallOverrides): Promise<string>;
+
+    initLP(overrides?: CallOverrides): Promise<void>;
+
+    name(overrides?: CallOverrides): Promise<string>;
+
+    setTaxWallet(
+      newTaxWallet: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    symbol(overrides?: CallOverrides): Promise<string>;
+
+    taxRateBuy(overrides?: CallOverrides): Promise<number>;
+
+    taxRateSell(overrides?: CallOverrides): Promise<number>;
+
+    taxSwapMax(overrides?: CallOverrides): Promise<BigNumber>;
+
+    taxSwapMin(overrides?: CallOverrides): Promise<BigNumber>;
+
+    taxSwapSettings(
+      minValue: PromiseOrValue<BigNumberish>,
+      minDivider: PromiseOrValue<BigNumberish>,
+      maxValue: PromiseOrValue<BigNumberish>,
+      maxDivider: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    taxWallet(overrides?: CallOverrides): Promise<string>;
 
     totalSupply(overrides?: CallOverrides): Promise<BigNumber>;
 
+    tradingOpen(overrides?: CallOverrides): Promise<boolean>;
+
     transfer(
-      to: PromiseOrValue<string>,
+      recipient: PromiseOrValue<string>,
       amount: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<boolean>;
 
     transferFrom(
-      from: PromiseOrValue<string>,
-      to: PromiseOrValue<string>,
+      sender: PromiseOrValue<string>,
+      recipient: PromiseOrValue<string>,
       amount: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<boolean>;
@@ -316,6 +776,38 @@ export interface IKonduxERC20 extends BaseContract {
       value?: null
     ): ApprovalEventFilter;
 
+    "TaxRateChanged(uint8,uint8)"(
+      newBuyTax?: null,
+      newSellTax?: null
+    ): TaxRateChangedEventFilter;
+    TaxRateChanged(
+      newBuyTax?: null,
+      newSellTax?: null
+    ): TaxRateChangedEventFilter;
+
+    "TaxWalletChanged(address)"(
+      newTaxWallet?: null
+    ): TaxWalletChangedEventFilter;
+    TaxWalletChanged(newTaxWallet?: null): TaxWalletChangedEventFilter;
+
+    "TokensAirdropped(uint256,uint256)"(
+      totalWallets?: null,
+      totalTokens?: null
+    ): TokensAirdroppedEventFilter;
+    TokensAirdropped(
+      totalWallets?: null,
+      totalTokens?: null
+    ): TokensAirdroppedEventFilter;
+
+    "TokensBurned(address,uint256)"(
+      burnedByWallet?: PromiseOrValue<string> | null,
+      tokenAmount?: null
+    ): TokensBurnedEventFilter;
+    TokensBurned(
+      burnedByWallet?: PromiseOrValue<string> | null,
+      tokenAmount?: null
+    ): TokensBurnedEventFilter;
+
     "Transfer(address,address,uint256)"(
       from?: PromiseOrValue<string> | null,
       to?: PromiseOrValue<string> | null,
@@ -329,11 +821,29 @@ export interface IKonduxERC20 extends BaseContract {
   };
 
   estimateGas: {
+    _isLiqPool(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    _lastSwapBlock(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    adjustTaxRate(
+      newBuyTax: PromiseOrValue<BigNumberish>,
+      newSellTax: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
     allowance(
-      owner: PromiseOrValue<string>,
+      _owner: PromiseOrValue<string>,
       spender: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
+
+    antiBotEnabled(overrides?: CallOverrides): Promise<BigNumber>;
 
     approve(
       spender: PromiseOrValue<string>,
@@ -346,40 +856,119 @@ export interface IKonduxERC20 extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    decreaseAllowance(
-      spender: PromiseOrValue<string>,
-      subtractedValue: PromiseOrValue<BigNumberish>,
+    burnTokens(
+      amount: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    increaseAllowance(
-      spender: PromiseOrValue<string>,
-      addedValue: PromiseOrValue<BigNumberish>,
+    decimals(overrides?: CallOverrides): Promise<BigNumber>;
+
+    enableAntiBot(
+      isEnabled: PromiseOrValue<boolean>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
+
+    enableTrading(
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    excludeFromAntiBot(
+      wallet: PromiseOrValue<string>,
+      isExcluded: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    excludeFromFees(
+      wallet: PromiseOrValue<string>,
+      isExcluded: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    excludedFromAntiBot(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    excludedFromFees(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getOwner(overrides?: CallOverrides): Promise<BigNumber>;
+
+    initLP(
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    name(overrides?: CallOverrides): Promise<BigNumber>;
+
+    setTaxWallet(
+      newTaxWallet: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    symbol(overrides?: CallOverrides): Promise<BigNumber>;
+
+    taxRateBuy(overrides?: CallOverrides): Promise<BigNumber>;
+
+    taxRateSell(overrides?: CallOverrides): Promise<BigNumber>;
+
+    taxSwapMax(overrides?: CallOverrides): Promise<BigNumber>;
+
+    taxSwapMin(overrides?: CallOverrides): Promise<BigNumber>;
+
+    taxSwapSettings(
+      minValue: PromiseOrValue<BigNumberish>,
+      minDivider: PromiseOrValue<BigNumberish>,
+      maxValue: PromiseOrValue<BigNumberish>,
+      maxDivider: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    taxWallet(overrides?: CallOverrides): Promise<BigNumber>;
 
     totalSupply(overrides?: CallOverrides): Promise<BigNumber>;
 
+    tradingOpen(overrides?: CallOverrides): Promise<BigNumber>;
+
     transfer(
-      to: PromiseOrValue<string>,
+      recipient: PromiseOrValue<string>,
       amount: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     transferFrom(
-      from: PromiseOrValue<string>,
-      to: PromiseOrValue<string>,
+      sender: PromiseOrValue<string>,
+      recipient: PromiseOrValue<string>,
       amount: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
   };
 
   populateTransaction: {
+    _isLiqPool(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    _lastSwapBlock(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    adjustTaxRate(
+      newBuyTax: PromiseOrValue<BigNumberish>,
+      newSellTax: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
     allowance(
-      owner: PromiseOrValue<string>,
+      _owner: PromiseOrValue<string>,
       spender: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
+
+    antiBotEnabled(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     approve(
       spender: PromiseOrValue<string>,
@@ -392,29 +981,90 @@ export interface IKonduxERC20 extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    decreaseAllowance(
-      spender: PromiseOrValue<string>,
-      subtractedValue: PromiseOrValue<BigNumberish>,
+    burnTokens(
+      amount: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
-    increaseAllowance(
-      spender: PromiseOrValue<string>,
-      addedValue: PromiseOrValue<BigNumberish>,
+    decimals(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    enableAntiBot(
+      isEnabled: PromiseOrValue<boolean>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
+
+    enableTrading(
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    excludeFromAntiBot(
+      wallet: PromiseOrValue<string>,
+      isExcluded: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    excludeFromFees(
+      wallet: PromiseOrValue<string>,
+      isExcluded: PromiseOrValue<boolean>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    excludedFromAntiBot(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    excludedFromFees(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getOwner(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    initLP(
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    name(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    setTaxWallet(
+      newTaxWallet: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    symbol(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    taxRateBuy(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    taxRateSell(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    taxSwapMax(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    taxSwapMin(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    taxSwapSettings(
+      minValue: PromiseOrValue<BigNumberish>,
+      minDivider: PromiseOrValue<BigNumberish>,
+      maxValue: PromiseOrValue<BigNumberish>,
+      maxDivider: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    taxWallet(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     totalSupply(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    tradingOpen(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     transfer(
-      to: PromiseOrValue<string>,
+      recipient: PromiseOrValue<string>,
       amount: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     transferFrom(
-      from: PromiseOrValue<string>,
-      to: PromiseOrValue<string>,
+      sender: PromiseOrValue<string>,
+      recipient: PromiseOrValue<string>,
       amount: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;

@@ -38,12 +38,14 @@ export interface StakingInterface extends utils.Interface {
     "claimRewards(uint256)": FunctionFragment;
     "compoundFreqERC20(address)": FunctionFragment;
     "compoundRewardsTimer(uint256)": FunctionFragment;
+    "decimalsERC20(address)": FunctionFragment;
     "deposit(uint256,uint8,address)": FunctionFragment;
     "divisorERC20(address)": FunctionFragment;
     "earlyWithdrawalPenalty(address)": FunctionFragment;
     "foundersRewardBoostERC20(address)": FunctionFragment;
     "getAPR(address)": FunctionFragment;
     "getAllowedDnaVersion(uint256)": FunctionFragment;
+    "getDecimalsERC20(address)": FunctionFragment;
     "getDepositIds(address)": FunctionFragment;
     "getDepositInfo(uint256)": FunctionFragment;
     "getDepositTimestamp(uint256)": FunctionFragment;
@@ -74,6 +76,7 @@ export interface StakingInterface extends utils.Interface {
     "setAuthority(address)": FunctionFragment;
     "setAuthorizedERC20(address,bool)": FunctionFragment;
     "setCompoundFreq(uint256,address)": FunctionFragment;
+    "setDecimalsERC20(uint8,address)": FunctionFragment;
     "setDivisorERC20(uint256,address)": FunctionFragment;
     "setEarlyWithdrawalPenalty(address,uint256)": FunctionFragment;
     "setFoundersRewardBoost(uint256,address)": FunctionFragment;
@@ -113,12 +116,14 @@ export interface StakingInterface extends utils.Interface {
       | "claimRewards"
       | "compoundFreqERC20"
       | "compoundRewardsTimer"
+      | "decimalsERC20"
       | "deposit"
       | "divisorERC20"
       | "earlyWithdrawalPenalty"
       | "foundersRewardBoostERC20"
       | "getAPR"
       | "getAllowedDnaVersion"
+      | "getDecimalsERC20"
       | "getDepositIds"
       | "getDepositInfo"
       | "getDepositTimestamp"
@@ -149,6 +154,7 @@ export interface StakingInterface extends utils.Interface {
       | "setAuthority"
       | "setAuthorizedERC20"
       | "setCompoundFreq"
+      | "setDecimalsERC20"
       | "setDivisorERC20"
       | "setEarlyWithdrawalPenalty"
       | "setFoundersRewardBoost"
@@ -220,6 +226,10 @@ export interface StakingInterface extends utils.Interface {
     values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
+    functionFragment: "decimalsERC20",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
     functionFragment: "deposit",
     values: [
       PromiseOrValue<BigNumberish>,
@@ -246,6 +256,10 @@ export interface StakingInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "getAllowedDnaVersion",
     values: [PromiseOrValue<BigNumberish>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getDecimalsERC20",
+    values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
     functionFragment: "getDepositIds",
@@ -365,6 +379,10 @@ export interface StakingInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "setCompoundFreq",
+    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setDecimalsERC20",
     values: [PromiseOrValue<BigNumberish>, PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
@@ -499,6 +517,10 @@ export interface StakingInterface extends utils.Interface {
     functionFragment: "compoundRewardsTimer",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "decimalsERC20",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "deposit", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "divisorERC20",
@@ -515,6 +537,10 @@ export interface StakingInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "getAPR", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "getAllowedDnaVersion",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getDecimalsERC20",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -626,6 +652,10 @@ export interface StakingInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "setCompoundFreq",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setDecimalsERC20",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -1055,6 +1085,11 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[BigNumber] & { remainingTime: BigNumber }>;
 
+    decimalsERC20(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[number]>;
+
     deposit(
       _amount: PromiseOrValue<BigNumberish>,
       _timelock: PromiseOrValue<BigNumberish>,
@@ -1086,6 +1121,11 @@ export interface Staking extends BaseContract {
       _dnaVersion: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<[boolean]>;
+
+    getDecimalsERC20(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[number]>;
 
     getDepositIds(
       _user: PromiseOrValue<string>,
@@ -1235,6 +1275,12 @@ export interface Staking extends BaseContract {
 
     setCompoundFreq(
       _compoundFreq: PromiseOrValue<BigNumberish>,
+      _tokenId: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    setDecimalsERC20(
+      _decimals: PromiseOrValue<BigNumberish>,
       _tokenId: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
@@ -1453,6 +1499,11 @@ export interface Staking extends BaseContract {
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
+  decimalsERC20(
+    arg0: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<number>;
+
   deposit(
     _amount: PromiseOrValue<BigNumberish>,
     _timelock: PromiseOrValue<BigNumberish>,
@@ -1484,6 +1535,11 @@ export interface Staking extends BaseContract {
     _dnaVersion: PromiseOrValue<BigNumberish>,
     overrides?: CallOverrides
   ): Promise<boolean>;
+
+  getDecimalsERC20(
+    _token: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<number>;
 
   getDepositIds(
     _user: PromiseOrValue<string>,
@@ -1630,6 +1686,12 @@ export interface Staking extends BaseContract {
 
   setCompoundFreq(
     _compoundFreq: PromiseOrValue<BigNumberish>,
+    _tokenId: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  setDecimalsERC20(
+    _decimals: PromiseOrValue<BigNumberish>,
     _tokenId: PromiseOrValue<string>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
@@ -1848,6 +1910,11 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    decimalsERC20(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<number>;
+
     deposit(
       _amount: PromiseOrValue<BigNumberish>,
       _timelock: PromiseOrValue<BigNumberish>,
@@ -1879,6 +1946,11 @@ export interface Staking extends BaseContract {
       _dnaVersion: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<boolean>;
+
+    getDecimalsERC20(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<number>;
 
     getDepositIds(
       _user: PromiseOrValue<string>,
@@ -2028,6 +2100,12 @@ export interface Staking extends BaseContract {
 
     setCompoundFreq(
       _compoundFreq: PromiseOrValue<BigNumberish>,
+      _tokenId: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setDecimalsERC20(
+      _decimals: PromiseOrValue<BigNumberish>,
       _tokenId: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<void>;
@@ -2419,6 +2497,11 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    decimalsERC20(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     deposit(
       _amount: PromiseOrValue<BigNumberish>,
       _timelock: PromiseOrValue<BigNumberish>,
@@ -2448,6 +2531,11 @@ export interface Staking extends BaseContract {
 
     getAllowedDnaVersion(
       _dnaVersion: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getDecimalsERC20(
+      _token: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -2594,6 +2682,12 @@ export interface Staking extends BaseContract {
 
     setCompoundFreq(
       _compoundFreq: PromiseOrValue<BigNumberish>,
+      _tokenId: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    setDecimalsERC20(
+      _decimals: PromiseOrValue<BigNumberish>,
       _tokenId: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
@@ -2791,6 +2885,11 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
+    decimalsERC20(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     deposit(
       _amount: PromiseOrValue<BigNumberish>,
       _timelock: PromiseOrValue<BigNumberish>,
@@ -2820,6 +2919,11 @@ export interface Staking extends BaseContract {
 
     getAllowedDnaVersion(
       _dnaVersion: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getDecimalsERC20(
+      _token: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
@@ -2968,6 +3072,12 @@ export interface Staking extends BaseContract {
 
     setCompoundFreq(
       _compoundFreq: PromiseOrValue<BigNumberish>,
+      _tokenId: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setDecimalsERC20(
+      _decimals: PromiseOrValue<BigNumberish>,
       _tokenId: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;

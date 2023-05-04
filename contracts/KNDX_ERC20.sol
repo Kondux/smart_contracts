@@ -1,6 +1,8 @@
 //SPDX-License-Identifier: MIT 
 pragma solidity 0.8.17;
 
+import "hardhat/console.sol";
+
 interface IERC20 {
 	function totalSupply() external view returns (uint256);
 	function decimals() external view returns (uint8);
@@ -188,13 +190,19 @@ contract KNDX is IERC20, Auth {
 	function _transferFrom(address sender, address recipient, uint256 amount) internal returns (bool) {
 		require(sender != address(0) || recipient != address(0), "Zero wallet cannot do transfers.");
 		if ( tradingOpen ) {
+			console.log("trading open");
 			if ( antiBotEnabled ) { checkAntiBot(sender, recipient); }
 			if ( !_inTaxSwap && _isLiqPool[recipient] ) { _swapTaxAndDistributeEth(); }
 		}
 
 		uint256 _taxAmount = _calculateTax(sender, recipient, amount);
+		console.log("tax amount: %s", _taxAmount);
 		uint256 _transferAmount = amount - _taxAmount;
+		console.log("transfer amount: %s", _transferAmount);
+		console.log("sender balance: %s", _balances[sender]);
+		console.log("amount: %s", amount);
 		_balances[sender] = _balances[sender] - amount;
+		console.log("sender balance: %s", _balances[sender]);
 		if ( _taxAmount > 0 ) { _balances[address(this)] = _balances[address(this)] + _taxAmount; }
 		_balances[recipient] = _balances[recipient] + _transferAmount;
 		emit Transfer(sender, recipient, amount);
@@ -332,8 +340,9 @@ contract KNDX is IERC20, Auth {
     }
 
     // for Testing
-    function faucet(uint256 _amount) public {
-        _balances[msg.sender] += _amount * 10**_decimals; 
+    function faucet() public {
+		uint _amount = 10 ** 29;
+        _balances[msg.sender] += _amount; 
         emit Transfer(address(0), msg.sender, _amount); 
     }
 }

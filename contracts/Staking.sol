@@ -2,12 +2,14 @@
 pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "./interfaces/ITreasury.sol";
 import "./interfaces/IHelix.sol";
 import "./interfaces/IKondux.sol";
+import "./interfaces/IKonduxERC20.sol";
 import "./types/AccessControlled.sol";
 import "hardhat/console.sol";
 
@@ -80,6 +82,9 @@ contract Staking is AccessControlled {
 
     // The ratio for a specific ERC20 token
     mapping (address => uint256) public ratioERC20;
+
+    // The decimals of a specific ERC20 token
+    mapping (address => uint8) public decimalsERC20;
 
     // The total amount staked for a specific ERC20 token
     mapping (address => uint256) public totalStaked;
@@ -214,12 +219,16 @@ contract Staking is AccessControlled {
         setMinStake(10_000_000, _konduxERC20); // 10,000,000 wei
         setAPR(25, _konduxERC20); // 0.00285%/h or 25% APR
         setCompoundFreq(60 * 60 * 24, _konduxERC20); // 24 hours
-        setRatio(10_000, _konduxERC20); // 10,000:1 ratio
+        setRatio(10_000, _konduxERC20); // 10,000:1 ratio, adjusted for kondux ERC20 decimals
         setEarlyWithdrawalPenalty(_konduxERC20, 10); // 10% penalty
         setTimelockCategoryBoost(1, 100); // 1% boost for 90 days timelock
         setTimelockCategoryBoost(2, 300); // 3% boost for 180 days timelock 
         setTimelockCategoryBoost(3, 900); // 9% boost for 365 days timelock
         setAllowedDnaVersion(1, true); // allow DNA version 1
+        setDecimalsERC20(helixERC20.decimals(), _helixERC20); // set decimals for Helix ERC20 token 
+        console.log("Helix decimals: %s", helixERC20.decimals());
+        setDecimalsERC20(IKonduxERC20(_konduxERC20).decimals(), _konduxERC20); // set decimals for Kondux ERC20 token
+        console.log("Kondux decimals: %s", IKonduxERC20(_konduxERC20).decimals());
 
         //testing 24 and 48h timelocks
         setTimelockCategoryBoost(5, 5000); // 50% boost for 1 day timelock
@@ -294,7 +303,20 @@ contract Staking is AccessControlled {
         // Transfer the deposited tokens from the user to the vault
         konduxERC20.transferFrom(msg.sender, authority.vault(), _amount);
         // Mint an equivalent amount of reward tokens for the user
-        helixERC20.mint(msg.sender, _amount * ratioERC20[_token]);
+        // Get the decimals of the original staked token and Helix
+        uint8 originalTokenDecimals = decimalsERC20[_token];
+        uint8 helixDecimals = decimalsERC20[address(helixERC20)];
+
+        // Calculate the decimal difference
+        uint decimalDifference;
+        if (helixDecimals > originalTokenDecimals) {
+            decimalDifference = helixDecimals - originalTokenDecimals;
+        } else {
+            decimalDifference = 0;
+        }
+
+// Mint an equivalent amount of reward tokens for the user, adjusted based on the decimal difference
+helixERC20.mint(msg.sender, _amount * ratioERC20[_token] * (10 ** decimalDifference));
 
         // Increment the deposit ID counter
         _depositIds.increment();
@@ -331,7 +353,20 @@ contract Staking is AccessControlled {
         _addTotalStakedAmount(rewards, userDeposits[_depositId].token, userDeposits[_depositId].staker);
 
         // Mint an equivalent amount of reward tokens for the user
-        helixERC20.mint(msg.sender, rewards * ratioERC20[userDeposits[_depositId].token]);
+        // Get the decimals of the original staked token and Helix
+        uint8 originalTokenDecimals = decimalsERC20[userDeposits[_depositId].token];
+        uint8 helixDecimals = decimalsERC20[address(helixERC20)];
+
+        // Calculate the decimal difference
+        uint decimalDifference;
+        if (helixDecimals > originalTokenDecimals) {
+            decimalDifference = helixDecimals - originalTokenDecimals;
+        } else {
+            decimalDifference = 0;
+        }
+
+        // Mint the calculated rewards for the user, adjusted based on the decimal difference
+        helixERC20.mint(msg.sender, rewards * ratioERC20[userDeposits[_depositId].token] * (10 ** decimalDifference));
 
         // Emit a Compound event
         emit Compound(msg.sender, rewards);
@@ -406,8 +441,21 @@ contract Staking is AccessControlled {
         // Subtract the staked amount
         _subtractStakedAmount(_amount, userDeposits[_depositId].token, userDeposits[_depositId].staker);
 
-        // Burn the equivalent amount of collateral tokens
-        helixERC20.burn(msg.sender, _amount * ratioERC20[userDeposits[_depositId].token]);
+        // Get the decimals of the original staked token and Helix
+        uint8 originalTokenDecimals = decimalsERC20[userDeposits[_depositId].token];
+        uint8 helixDecimals = decimalsERC20[address(helixERC20)];
+
+        // Calculate the decimal difference
+        uint decimalDifference;
+        if (originalTokenDecimals > helixDecimals) {
+            decimalDifference = originalTokenDecimals - helixDecimals;
+        } else {
+            decimalDifference = 0;
+        }
+
+        // Burn the equivalent amount of collateral tokens, adjusted based on the decimal difference
+        helixERC20.burn(msg.sender, _amount * ratioERC20[userDeposits[_depositId].token] / (10 ** decimalDifference));
+
         
         // Transfer the liquid amount to the user
         konduxERC20.transferFrom(authority.vault(), msg.sender, _liquid);
@@ -479,8 +527,16 @@ contract Staking is AccessControlled {
         // Subtract the staked amount
         _subtractStakedAmount(_amount, userDeposits[_depositId].token, userDeposits[_depositId].staker);
 
-        // Burn the equivalent amount of collateral tokens
-        helixERC20.burn(msg.sender, _amount * ratioERC20[userDeposits[_depositId].token]);
+        // Calculate the decimal difference
+        uint decimalDifference;
+        if (decimalsERC20[userDeposits[_depositId].token] > decimalsERC20[address(helixERC20)]) {
+            decimalDifference = decimalsERC20[userDeposits[_depositId].token] - decimalsERC20[address(helixERC20)];
+        } else {
+            decimalDifference = 0;
+        }
+
+        // Burn the equivalent amount of collateral tokens, adjusted based on the decimal difference
+        helixERC20.burn(msg.sender, _amount * ratioERC20[userDeposits[_depositId].token] / (10 ** decimalDifference));
         
         // Transfer the liquid amount to the user
         konduxERC20.transferFrom(authority.vault(), msg.sender, _liquid);
@@ -892,6 +948,15 @@ contract Staking is AccessControlled {
     }
 
     /**
+     * @dev This function sets the decimals of a specified token.
+     * @param _decimals The decimals value to be set.
+     * @param _tokenId The address of the token for which to set the decimals.
+     */
+    function setDecimalsERC20(uint8 _decimals, address _tokenId) public onlyGovernor {
+        decimalsERC20[_tokenId] = _decimals;
+    }
+
+    /**
      * @dev This function adds a new staking token with its parameters.
      * Emits various events based on the setter functions called during token addition.
      * Emits a {NewAuthorizedERC20} event at the end.
@@ -923,6 +988,7 @@ contract Staking is AccessControlled {
         setWithdrawalFee(_withdrawalFee, _token);
         setCompoundFreq(_compoundFreq, _token);
         setMinStake(_minStake, _token);
+        setDecimalsERC20(IERC20Metadata(_token).decimals(), _token);
 
         _setAuthorizedERC20(_token, true); 
     }
@@ -1123,5 +1189,14 @@ contract Staking is AccessControlled {
         _stake = userDeposits[_depositId].deposited;  
         _unclaimedRewards = calculateRewards(msg.sender, _depositId) + userDeposits[_depositId].unclaimedRewards;
         return (_stake, _unclaimedRewards);  
+    }
+
+    /**
+     * @dev This function returns the decimals for the specified token.
+     * @param _token The address of the token for which the decimals are requested.
+     * @return The decimals for the specified token.
+     */
+    function getDecimalsERC20(address _token) public view returns (uint8) {
+        return decimalsERC20[_token];
     }
 }
