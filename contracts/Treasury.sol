@@ -87,7 +87,7 @@ contract Treasury is AccessControlled {
         require(permissions[STATUS.RESERVETOKEN][_token], notAccepted); // Only reserves can be used for redemptions
         require(permissions[STATUS.RESERVESPENDER][msg.sender], notApproved);
 
-        IKonduxERC20(_token).transferFrom(address(this), msg.sender, _amount);
+        IKonduxERC20(_token).transfer(msg.sender, _amount);
 
         emit Withdrawal(_token, _amount);
     }

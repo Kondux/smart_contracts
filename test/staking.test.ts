@@ -157,6 +157,18 @@ describe("Staking minting", async function () {
         const dna = await knft.getDna(mintedTokenId);
         console.log("DNA:", dna.toHexString());
 
+        const approveKndx = await treasury.setPermission(2, kondux.address, true);
+        await approveKndx.wait();
+
+        const approveOwnerAsSpender = await treasury.setPermission(1, ownerAddress, true);
+        await approveOwnerAsSpender.wait();
+
+       
+
+
+
+        
+        
         
 
         // take a snapshot of the current state of the blockchain
@@ -867,5 +879,30 @@ describe("Staking minting", async function () {
         expect(userDeposits[0]).to.equal(stakeId);
     });
     
+    it("Should test treasury withdraw", async function () {
+        snapshot.restore();
+        const [owner] = await ethers.getSigners();
+        const ownerAddress = await owner.getAddress();
+
+        console.log("Account balance 5:", await kondux.balanceOf(ownerAddress) + " KNDX");
+        console.log("Account balance 6:", await kondux.balanceOf(treasury.address) + " KNDX");
+        expect(await kondux.balanceOf(ownerAddress)).to.equal(ethers.BigNumber.from(10).pow(29).sub(ethers.BigNumber.from(10).pow(28)));
+        expect(await kondux.balanceOf(treasury.address)).to.equal(ethers.BigNumber.from(10).pow(28));
+        const treasuryWithdrawERC20 = await treasury.withdraw(ethers.BigNumber.from(10).pow(28), kondux.address);
+        await treasuryWithdrawERC20.wait();
+        expect(await kondux.balanceOf(ownerAddress)).to.equal(ethers.BigNumber.from(10).pow(29));
+        expect(await kondux.balanceOf(treasury.address)).to.equal(0);
+        //print Withdrawal event looking for it's present in the receipt 
+        console.log("Account balance 7:", await kondux.balanceOf(ownerAddress) + " KNDX");
+        console.log("Account balance 8:", await kondux.balanceOf(treasury.address) + " KNDX");
+
+        const depositAgain = await treasury.deposit(ethers.BigNumber.from(10).pow(28), kondux.address);
+        await depositAgain.wait();
+        expect(await kondux.balanceOf(ownerAddress)).to.equal(ethers.BigNumber.from(10).pow(29).sub(ethers.BigNumber.from(10).pow(28)));
+        expect(await kondux.balanceOf(treasury.address)).to.equal(ethers.BigNumber.from(10).pow(28));
+        console.log("Account balance 9:", await kondux.balanceOf(ownerAddress) + " KNDX");
+        console.log("Account balance 10:", await kondux.balanceOf(treasury.address) + " KNDX");
+    
+    });
 
 });
