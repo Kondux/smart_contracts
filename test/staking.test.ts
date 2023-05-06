@@ -828,9 +828,11 @@ describe("Staking minting", async function () {
 
     });
 
-    it("Should stake 10_000_000 tokens, advance time to half of the timelock, and withdraw 10_000 with penalty", async function () {
+    it("Should stake 10_000_000 tokens, advance time to half of the timelock, and withdraw `toWithdraw` with penalty", async function () {
         snapshot.restore();
         const halfTimeIncrease = 60 * 60 * 24 * 365 / 2; // Half of the timelock period
+
+        const toWithdraw = 10_000_000;
     
         const [owner] = await ethers.getSigners();
         const ownerAddress = await owner.getAddress();
@@ -860,18 +862,17 @@ describe("Staking minting", async function () {
         expect(staking.withdraw(10_000, stakeId)).to.be.reverted;
     
         await helpers.time.increase(halfTimeIncrease);
-    
         // Add a function for early withdrawal with penalty
-        const earlyWithdraw = await staking.withdrawBeforeTimelock(10_000, stakeId);
+        const earlyWithdraw = await staking.withdrawBeforeTimelock(toWithdraw, stakeId);
         const earlyWithdrawReceipt = await earlyWithdraw.wait();
         const earlyWithdrawEvent = earlyWithdrawReceipt.events?.find((e) => e.event === "Withdraw");
-        expect(earlyWithdrawEvent?.args?.amount).to.be.closeTo(10_000 * 0.94, 10); // 5% penalty
+        expect(earlyWithdrawEvent?.args?.amount).to.be.closeTo(toWithdraw * 0.94, 100_000); // 5% penalty
     
         console.log("Account balance 7:", await kondux.balanceOf(ownerAddress) + " KNDX");
     
-        expect((await kondux.balanceOf(ownerAddress)).mod(100000)).to.be.closeTo(10_000 * 0.99 * 0.95, 10); // 5% penalty
+        expect((await kondux.balanceOf(ownerAddress)).mod(toWithdraw)).to.be.closeTo(toWithdraw * 0.99 * 0.95, 100_000); // 5% penalty
     
-        expect((await staking.getDepositInfo(stakeId))._stake).to.equal(ethers.BigNumber.from(10).pow(18).sub(10_000)); // Subtract the withdrawn amount
+        expect((await staking.getDepositInfo(stakeId))._stake).to.equal(ethers.BigNumber.from(10).pow(18).sub(toWithdraw)); // Subtract the withdrawn amount
     
         // Get user deposits ids
         const userDeposits = await staking.getDepositIds(ownerAddress);

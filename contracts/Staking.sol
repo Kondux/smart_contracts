@@ -454,7 +454,7 @@ helixERC20.mint(msg.sender, _amount * ratioERC20[_token] * (10 ** decimalDiffere
         }
 
         // Burn the equivalent amount of collateral tokens, adjusted based on the decimal difference
-        helixERC20.burn(msg.sender, _amount * ratioERC20[userDeposits[_depositId].token] / (10 ** decimalDifference));
+        helixERC20.burn(msg.sender, _amount * ratioERC20[userDeposits[_depositId].token] * (10 ** decimalDifference));
 
         
         // Transfer the liquid amount to the user
@@ -489,10 +489,13 @@ helixERC20.mint(msg.sender, _amount * ratioERC20[_token] * (10 ** decimalDiffere
         require(_amount * ratioERC20[userDeposits[_depositId].token] <= helixERC20.balanceOf(msg.sender), "Can't withdraw more tokens than the collateral you have");
         // Verify if the timelock has passed
         require(block.timestamp < userDeposits[_depositId].timelock, "Timelock has passed");
+        console.log("_amount: %s", _amount);
 
         // Calculate the extra fee proportional to the time left until the lock (the closer to the end of the locking time, the smaller the fee)
         uint256 timeLeft = userDeposits[_depositId].timelock - block.timestamp;
         uint256 lockDuration = userDeposits[_depositId].timelock - userDeposits[_depositId].lastDepositTime;
+        console.log("timeleft: %s", timeLeft);
+        console.log("lockDuration: %s", lockDuration);
         uint256 extraFee = (_amount * earlyWithdrawalPenalty[userDeposits[_depositId].token] * timeLeft) / (lockDuration * 100);
 
         // If extra fee is more than the amount, set it to the amount
@@ -510,9 +513,11 @@ helixERC20.mint(msg.sender, _amount * ratioERC20[_token] * (10 ** decimalDiffere
 
         console.log("extraFee: %s", extraFee);
         console.log("totalFeePercentage: %s", totalFeePercentage);
+        console.log("divisorERC20[userDeposits[_depositId].token]: %s", divisorERC20[userDeposits[_depositId].token]);
 
+        console.log("(_amount - totalFeePercentage)): %s", (_amount - totalFeePercentage)); 
         // Calculate the liquid amount to transfer after applying the total fee
-        uint256 _liquid = (_amount * (divisorERC20[userDeposits[_depositId].token] - totalFeePercentage)) / divisorERC20[userDeposits[_depositId].token];
+        uint256 _liquid = (_amount - totalFeePercentage);
 
         // Update the deposit record
         userDeposits[_depositId].deposited -= _amount;
@@ -536,7 +541,7 @@ helixERC20.mint(msg.sender, _amount * ratioERC20[_token] * (10 ** decimalDiffere
         }
 
         // Burn the equivalent amount of collateral tokens, adjusted based on the decimal difference
-        helixERC20.burn(msg.sender, _amount * ratioERC20[userDeposits[_depositId].token] / (10 ** decimalDifference));
+        helixERC20.burn(msg.sender, _amount * ratioERC20[userDeposits[_depositId].token] * (10 ** decimalDifference));
         
         // Transfer the liquid amount to the user
         konduxERC20.transferFrom(authority.vault(), msg.sender, _liquid);
