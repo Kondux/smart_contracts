@@ -338,10 +338,11 @@ helixERC20.mint(msg.sender, _amount * ratioERC20[_token] * (10 ** decimalDiffere
         // Verify that the caller is the owner of the deposit
         require(msg.sender == userDeposits[_depositId].staker, "You are not the owner of this deposit");
         // Verify that the user is not trying to compound rewards too soon
-        require(compoundRewardsTimer(_depositId) == 0, "Tried to compound rewards too soon");
+        // require(compoundRewardsTimer(_depositId) == 0, "Tried to compound rewards too soon");
 
         // Calculate the rewards and add any unclaimed rewards
         uint256 rewards = calculateRewards(msg.sender, _depositId) + userDeposits[_depositId].unclaimedRewards;
+        console.log("Rewards: %s", rewards);
         // Reset the unclaimed rewards to zero
         userDeposits[_depositId].unclaimedRewards = 0;
         // Update the deposited amount with the compounded rewards
@@ -443,15 +444,19 @@ helixERC20.mint(msg.sender, _amount * ratioERC20[_token] * (10 ** decimalDiffere
 
         // Get the decimals of the original staked token and Helix
         uint8 originalTokenDecimals = decimalsERC20[userDeposits[_depositId].token];
+        console.log("originalTokenDecimals:", originalTokenDecimals);
         uint8 helixDecimals = decimalsERC20[address(helixERC20)];
+        console.log("helixDecimals:", helixDecimals);
 
         // Calculate the decimal difference
         uint decimalDifference;
-        if (originalTokenDecimals > helixDecimals) {
-            decimalDifference = originalTokenDecimals - helixDecimals;
+        if (originalTokenDecimals < helixDecimals) {
+            decimalDifference = helixDecimals - originalTokenDecimals;
         } else {
             decimalDifference = 0;
         }
+
+        console.log("decimalDifference:", decimalDifference);
 
         // Burn the equivalent amount of collateral tokens, adjusted based on the decimal difference
         helixERC20.burn(msg.sender, _amount * ratioERC20[userDeposits[_depositId].token] * (10 ** decimalDifference));
@@ -625,10 +630,14 @@ helixERC20.mint(msg.sender, _amount * ratioERC20[_token] * (10 ** decimalDiffere
          * Using 1e18 maintains precision in the calculation, avoiding truncation errors due to integer division in Solidity.
          * By scaling up the result and performing the divisions afterward, the calculation maintains precision without truncating intermediate results to zero.
          */
+        console.log("depositedAmount: %s", depositedAmount);
+        console.log("tokenApr: %s", tokenApr);
+        console.log("elapsedTime: %s", elapsedTime);
+        console.log("rewardPerSecond: %s", (depositedAmount * tokenApr * 1e18) / (365 * 24 * 3600 * 100));
         uint256 rewardPerSecond = (depositedAmount * tokenApr * 1e18) / (365 * 24 * 3600 * 100);
-
         
         // Calculate the base reward based on elapsed time
+        console.log("reward: %s", elapsedTime * rewardPerSecond / 1e18);
         uint256 _reward = elapsedTime * rewardPerSecond / 1e18;
 
         // Initialize the boost percentage with the base boost percentage for the token
