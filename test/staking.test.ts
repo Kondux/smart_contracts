@@ -181,6 +181,8 @@ describe("Staking minting", async function () {
     
         const [owner, staker] = await ethers.getSigners();
         const stakerAddress = await staker.getAddress();
+
+        const stakeAmount = ethers.BigNumber.from(10).pow(18);
     
         expect(await knft.balanceOf(stakerAddress)).to.equal(0);        
     
@@ -198,15 +200,24 @@ describe("Staking minting", async function () {
 
         const approve = await kondux.connect(staker).approve(staking.address, ethers.BigNumber.from(10).pow(28));
         await approve.wait();
+
+        expect(await helix.balanceOf(stakerAddress)).to.equal(0);
         
-        const stake = await staking.connect(staker).deposit(ethers.BigNumber.from(10).pow(18), 4, kondux.address);
+        const stake = await staking.connect(staker).deposit(stakeAmount, 4, kondux.address);
         const stakeReceipt = await stake.wait();
 
-        await console.log("Rewarded token 2:", await staking.getTotalRewards(kondux.address) + " KNDX");
-        await console.log("Rewarded  user 2:", await staking.getUserTotalRewardsByCoin(stakerAddress, kondux.address) + " KNDX");
+        console.log("Rewarded token 2:", await staking.getTotalRewards(kondux.address) + " KNDX");
+        console.log("Rewarded  user 2:", await staking.getUserTotalRewardsByCoin(stakerAddress, kondux.address) + " KNDX");
 
         expect(await staking.getTotalStaked(kondux.address)).to.equal(ethers.BigNumber.from(10).pow(18)); 
         expect(await staking.getUserTotalStakedByCoin(stakerAddress, kondux.address)).to.equal(ethers.BigNumber.from(10).pow(18));
+
+        const helixRatio = await staking.getRatioERC20(kondux.address);
+        expect(await helix.balanceOf(stakerAddress)).to.equal(stakeAmount.mul(helixRatio).mul(1e9));
+        console.log("Helix ratio:", helixRatio.toString());
+        console.log("Helix balance:", await helix.balanceOf(stakerAddress) + " HELIX");
+        console.log("Stake amount:", stakeAmount.toString() + " KNDX");
+        console.log("Stake amount in Helix:", stakeAmount.mul(helixRatio).mul(1e9).toString() + " HELIX");
 
         const stakeEvent = stakeReceipt.events?.filter((e) => e.event === "Stake")[0];
         const stakeId = stakeEvent?.args?.id;
@@ -387,11 +398,16 @@ describe("Staking minting", async function () {
         const approve = await kondux.approve(staking.address, ethers.BigNumber.from(10).pow(28));
         await approve.wait();
 
+        expect(await helix.balanceOf(ownerAddress)).to.equal(0);
+
         const stake = await staking.deposit(stakeAmount, 4, kondux.address);
         const stakeReceipt = await stake.wait();
 
         expect(await staking.getTotalStaked(kondux.address)).to.equal(stakeAmount); 
         expect(await staking.getUserTotalStakedByCoin(ownerAddress, kondux.address)).to.equal(stakeAmount);
+
+        const helixRatio = await staking.getRatioERC20(kondux.address);
+        expect(await helix.balanceOf(ownerAddress)).to.equal(stakeAmount.mul(helixRatio).mul(1e9));
 
         const stakeEvent = stakeReceipt.events?.filter((e) => e.event === "Stake")[0];
         const stakeId = stakeEvent?.args?.id;
@@ -419,6 +435,8 @@ describe("Staking minting", async function () {
         const helixBalance = await helix.balanceOf(ownerAddress);
         // expect(helixBalance).to.equal();
 
+        expect(await helix.balanceOf(ownerAddress)).to.equal(stakeAmount.mul(helixRatio).mul(1e9));
+
         const withdraw = await staking.withdraw(withdrawAmount, stakeId);
         const withdrawReceipt = await withdraw.wait();
         const withdrawEvent = withdrawReceipt.events?.find((e) => e.event === "Withdraw");
@@ -427,6 +445,8 @@ describe("Staking minting", async function () {
         console.log("Account balance 7:", await kondux.balanceOf(ownerAddress) + " KNDX");
 
         expect((await kondux.balanceOf(ownerAddress))).to.equal(stakerInitialBalance.sub(stakeAmount).add(withdrawAmount.mul(99).div(100))); // 1 reward (285) per hour
+
+        expect(await helix.balanceOf(ownerAddress)).to.equal(stakeAmount.mul(helixRatio).mul(1e9).sub(withdrawAmount.mul(helixRatio).mul(1e9)));
 
         //expect(staking.withdraw(10_000_000_000, stakeId)).to.be.revertedWith("Can't withdraw more than you have");
 

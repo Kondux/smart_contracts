@@ -315,8 +315,8 @@ contract Staking is AccessControlled {
             decimalDifference = 0;
         }
 
-// Mint an equivalent amount of reward tokens for the user, adjusted based on the decimal difference
-helixERC20.mint(msg.sender, _amount * ratioERC20[_token] * (10 ** decimalDifference));
+        // Mint an equivalent amount of reward tokens for the user, adjusted based on the decimal difference
+        helixERC20.mint(msg.sender, _amount * ratioERC20[_token] * (10 ** decimalDifference));
 
         // Increment the deposit ID counter
         _depositIds.increment();
@@ -1212,5 +1212,14 @@ helixERC20.mint(msg.sender, _amount * ratioERC20[_token] * (10 ** decimalDiffere
      */
     function getDecimalsERC20(address _token) public view returns (uint8) {
         return decimalsERC20[_token];
+    }
+
+    /**
+     * @dev This function returns the ratio for the specified token.
+     * @param _token The address of the token for which the ratio is requested.
+     * @return The ratio for the specified token.
+     */
+    function getRatioERC20(address _token) public view returns (uint256) {
+        return ratioERC20[_token];
     }
 }

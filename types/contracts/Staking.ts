@@ -53,6 +53,7 @@ export interface StakingInterface extends utils.Interface {
     "getEarlyWithdrawalPenalty(address)": FunctionFragment;
     "getFoundersRewardBoost(address)": FunctionFragment;
     "getMinStake(address)": FunctionFragment;
+    "getRatioERC20(address)": FunctionFragment;
     "getStakedAmount(uint256)": FunctionFragment;
     "getTimeOfLastUpdate(uint256)": FunctionFragment;
     "getTimelock(uint256)": FunctionFragment;
@@ -131,6 +132,7 @@ export interface StakingInterface extends utils.Interface {
       | "getEarlyWithdrawalPenalty"
       | "getFoundersRewardBoost"
       | "getMinStake"
+      | "getRatioERC20"
       | "getStakedAmount"
       | "getTimeOfLastUpdate"
       | "getTimelock"
@@ -287,6 +289,10 @@ export interface StakingInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "getMinStake",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getRatioERC20",
     values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
@@ -569,6 +575,10 @@ export interface StakingInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "getMinStake",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getRatioERC20",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -1167,6 +1177,11 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[BigNumber] & { _minStake: BigNumber }>;
 
+    getRatioERC20(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
     getStakedAmount(
       _depositId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
@@ -1575,6 +1590,11 @@ export interface Staking extends BaseContract {
 
   getMinStake(
     _tokenId: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  getRatioERC20(
+    _token: PromiseOrValue<string>,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
@@ -1989,6 +2009,11 @@ export interface Staking extends BaseContract {
 
     getMinStake(
       _tokenId: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getRatioERC20(
+      _token: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -2574,6 +2599,11 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    getRatioERC20(
+      _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     getStakedAmount(
       _depositId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
@@ -2959,6 +2989,11 @@ export interface Staking extends BaseContract {
 
     getMinStake(
       _tokenId: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getRatioERC20(
+      _token: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
