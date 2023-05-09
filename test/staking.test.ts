@@ -934,4 +934,83 @@ describe("Staking minting", async function () {
     
     });
 
+    it("Should stake 10_000_000 tokens, advance time 1 day and restake rewards", async function () {
+        snapshot.restore();
+        timeIncrease = 60 * 60; // 1 hour
+        const [owner] = await ethers.getSigners();
+        const ownerAddress = await owner.getAddress();
+
+        let rewardTimer = 60 * 60 * 24;  //86400
+        // rewardTimer = 3600; // 60 * 60 
+
+        const stakeAmount = ethers.BigNumber.from(10).pow(18);
+        const withdrawAmount = ethers.BigNumber.from(10).pow(7);
+        const stakerInitialBalance = await kondux.balanceOf(ownerAddress);
+
+        console.log("Account balance 5:", await kondux.balanceOf(ownerAddress) + " KNDX");
+
+        const approve = await kondux.approve(staking.address, ethers.BigNumber.from(10).pow(28));
+        await approve.wait();
+
+        expect(await helix.balanceOf(ownerAddress)).to.equal(0);
+
+        const stake = await staking.deposit(stakeAmount, 4, kondux.address);
+        const stakeReceipt = await stake.wait();
+
+        expect(await staking.getTotalStaked(kondux.address)).to.equal(stakeAmount); 
+        expect(await staking.getUserTotalStakedByCoin(ownerAddress, kondux.address)).to.equal(stakeAmount);
+
+        const helixRatio = await staking.getRatioERC20(kondux.address);
+        expect(await helix.balanceOf(ownerAddress)).to.equal(stakeAmount.mul(helixRatio).mul(1e9));
+
+        const stakeEvent = stakeReceipt.events?.filter((e) => e.event === "Stake")[0];
+        const stakeId = stakeEvent?.args?.id;
+
+        console.log("Stake id:", stakeId);
+
+        const depositInfo = await staking.getDepositInfo(stakeId);
+        expect(depositInfo._stake).to.equal(stakeAmount);
+
+        console.log("Account balance 6:", await kondux.balanceOf(ownerAddress) + " KNDX");
+
+        // expect(await staking.compoundRewardsTimer(stakeId)).to.equal(rewardTimer); DEPRECATED
+        expect(await staking.calculateRewards(ownerAddress, stakeId)).to.equal(0); // 0 rewards
+        
+        await helpers.time.increase(timeIncrease);
+
+        // expect(await staking.compoundRewardsTimer(stakeId)).to.equal(60 * 60 * 23); // rewards DEPRECATED
+        console.log("+++++++++++++ REWARDS:", await staking.calculateRewards(ownerAddress, stakeId));
+        expect(await staking.calculateRewards(ownerAddress, stakeId)).to.be.closeTo(stakeAmount.div(4).div(12).div(30).div(24), ethers.BigNumber.from(10).pow(13)); // 1 reward per hour 
+        
+        // expect(staking.withdraw(withdrawAmount, stakeId)).to.be.revertedWith("Timelock not passed");
+
+        await helpers.time.increase(timeIncrease);
+
+        const helixBalance = await helix.balanceOf(ownerAddress);
+        // expect(helixBalance).to.equal();
+
+        const expectedRewards = (await staking.getDepositInfo(stakeId))._unclaimedRewards;
+
+        expect(await helix.balanceOf(ownerAddress)).to.equal(stakeAmount.mul(helixRatio).mul(1e9));
+
+        console.log("************* Helix balance 3:", await helix.balanceOf(ownerAddress));
+
+        const stakeRewards = await staking.stakeRewards(stakeId);
+        const stakeRewardsReceipt = await stakeRewards.wait();
+
+        const stakeRewardsEvent = stakeRewardsReceipt.events?.filter((e) => e.event === "Compound")[0];
+        const stakeRewardsAmount = stakeRewardsEvent?.args?.amount;
+
+        console.log("Stake rewards:", stakeRewardsAmount);
+        expect(stakeRewardsAmount).to.be.closeTo(expectedRewards, ethers.BigNumber.from(10).pow(10)); // 1 reward per hour
+
+        expect(await staking.getStakedAmount(stakeId)).to.equal(stakeAmount.add(stakeRewardsAmount)); 
+
+        expect(await staking.calculateRewards(ownerAddress, stakeId)).to.equal(0); // 0 rewards
+
+        expect(await helix.balanceOf(ownerAddress)).to.equal(helixBalance.add(stakeRewardsAmount.mul(helixRatio).mul(1e9)));
+        console.log("************* Helix balance 4:", await helix.balanceOf(ownerAddress));
+
+    });
+
 });
