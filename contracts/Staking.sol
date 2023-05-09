@@ -539,8 +539,8 @@ contract Staking is AccessControlled {
 
         // Calculate the decimal difference
         uint decimalDifference;
-        if (decimalsERC20[userDeposits[_depositId].token] > decimalsERC20[address(helixERC20)]) {
-            decimalDifference = decimalsERC20[userDeposits[_depositId].token] - decimalsERC20[address(helixERC20)];
+        if (decimalsERC20[userDeposits[_depositId].token] < decimalsERC20[address(helixERC20)]) {
+            decimalDifference = decimalsERC20[address(helixERC20)] - decimalsERC20[userDeposits[_depositId].token];
         } else {
             decimalDifference = 0;
         }

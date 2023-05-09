@@ -360,6 +360,8 @@ describe("Staking minting", async function () {
         const claimRewards = await staking.connect(staker).claimRewards(stakeId);
         const claimReceipt = await claimRewards.wait();
         const claimEvent = claimReceipt.events?.find((e) => e.event === "Reward");
+        expect(await staking.connect(staker).calculateRewards(stakerAddress, stakeId)).to.equal(0);
+        expect((await staking.connect(staker).getDepositInfo(stakeId))._unclaimedRewards).to.equal(0);
 
         expect(claimEvent?.args?.amount).to.be.closeTo(ethers.BigNumber.from(10).pow(18).div(4).div(12).div(30).div(24).mul(2), ethers.BigNumber.from(10).pow(13).mul(2)); // 1 reward per hour
 
@@ -374,9 +376,7 @@ describe("Staking minting", async function () {
         expect((await kondux.connect(staker).balanceOf(stakerAddress))).to.be.closeTo(ethers.BigNumber.from(10).pow(29).sub(ethers.BigNumber.from(10).pow(18)), ethers.BigNumber.from(10).pow(17));
         
         // expect to have 0 rewards to be claimed and pending
-        expect(await staking.connect(staker).calculateRewards(stakerAddress, stakeId)).to.equal(0);
         expect((await staking.connect(staker).getDepositInfo(stakeId))._stake).to.equal(ethers.BigNumber.from(10).pow(18));
-        expect((await staking.connect(staker).getDepositInfo(stakeId))._unclaimedRewards).to.equal(0);
         
     });
 
@@ -861,20 +861,23 @@ describe("Staking minting", async function () {
         const halfTimeIncrease = 60 * 60 * 24 * 365 / 2; // Half of the timelock period
 
         const toWithdraw = 10_000_000;
+        const stakeAmount = ethers.BigNumber.from(10).pow(18);
     
         const [owner] = await ethers.getSigners();
         const ownerAddress = await owner.getAddress();
+
+        expect(await helix.balanceOf(ownerAddress)).to.equal(0);
     
         console.log("Account balance 5:", await kondux.balanceOf(ownerAddress) + " KNDX");
     
         const approve = await kondux.approve(staking.address, ethers.BigNumber.from(10).pow(28));
         await approve.wait();
     
-        const stake = await staking.deposit(ethers.BigNumber.from(10).pow(18), 3, kondux.address);
+        const stake = await staking.deposit(stakeAmount, 3, kondux.address);
         const stakeReceipt = await stake.wait();
     
-        expect(await staking.getTotalStaked(kondux.address)).to.equal(ethers.BigNumber.from(10).pow(18)); 
-        expect(await staking.getUserTotalStakedByCoin(ownerAddress, kondux.address)).to.equal(ethers.BigNumber.from(10).pow(18));
+        expect(await staking.getTotalStaked(kondux.address)).to.equal(stakeAmount); 
+        expect(await staking.getUserTotalStakedByCoin(ownerAddress, kondux.address)).to.equal(stakeAmount);
     
         const stakeEvent = stakeReceipt.events?.filter((e) => e.event === "Stake")[0];
         const stakeId = stakeEvent?.args?.id;
@@ -882,7 +885,7 @@ describe("Staking minting", async function () {
         console.log("Stake id:", stakeId);
     
         const depositInfo = await staking.getDepositInfo(stakeId);
-        expect(depositInfo._stake).to.equal(ethers.BigNumber.from(10).pow(18));
+        expect(depositInfo._stake).to.equal(stakeAmount);
     
         console.log("Account balance 6:", await kondux.balanceOf(ownerAddress) + " KNDX");
 
@@ -890,11 +893,21 @@ describe("Staking minting", async function () {
         expect(staking.withdraw(10_000, stakeId)).to.be.reverted;
     
         await helpers.time.increase(halfTimeIncrease);
+
+        const helixBalanceBefore = await helix.balanceOf(ownerAddress);
+        const konduxERC20Ratio = await staking.getRatioERC20(kondux.address);
+
+        expect(helixBalanceBefore).to.equal(stakeAmount.mul(konduxERC20Ratio).mul(1e9));
+
         // Add a function for early withdrawal with penalty
         const earlyWithdraw = await staking.withdrawBeforeTimelock(toWithdraw, stakeId);
         const earlyWithdrawReceipt = await earlyWithdraw.wait();
         const earlyWithdrawEvent = earlyWithdrawReceipt.events?.find((e) => e.event === "Withdraw");
         expect(earlyWithdrawEvent?.args?.amount).to.be.closeTo(toWithdraw * 0.94, 100_000); // 5% penalty
+
+        const helixBalanceAfter = await helix.balanceOf(ownerAddress);
+
+        expect(helixBalanceAfter).to.equal(helixBalanceBefore.sub(ethers.BigNumber.from(toWithdraw).mul(konduxERC20Ratio).mul(1e9)));
     
         console.log("Account balance 7:", await kondux.balanceOf(ownerAddress) + " KNDX");
     
