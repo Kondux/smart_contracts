@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.17;
 
 
 // Import OpenZeppelin contracts
@@ -225,6 +225,13 @@ contract Kondux is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC721Roy
         return int256(extractedValue);
     }
 
+    /**
+     * @dev Writes a range of bytes to the DNA value of a given token ID.
+     * @param _tokenID The ID of the token.
+     * @param inputValue The value to be written to the specified byte range.
+     * @param startIndex The starting index of the byte range.
+     * @param endIndex The ending index of the byte range.
+     */ 
     function writeGen(uint256 _tokenID, uint256 inputValue, uint8 startIndex, uint8 endIndex) public onlyDnaModifier {
         _writeGen(_tokenID, inputValue, startIndex, endIndex); 
     }

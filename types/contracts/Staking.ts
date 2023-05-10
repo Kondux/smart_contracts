@@ -48,6 +48,7 @@ export interface StakingInterface extends utils.Interface {
     "getDecimalsERC20(address)": FunctionFragment;
     "getDepositIds(address)": FunctionFragment;
     "getDepositInfo(uint256)": FunctionFragment;
+    "getDepositRatioERC20(uint256)": FunctionFragment;
     "getDepositTimestamp(uint256)": FunctionFragment;
     "getDivisorERC20(address)": FunctionFragment;
     "getEarlyWithdrawalPenalty(address)": FunctionFragment;
@@ -127,6 +128,7 @@ export interface StakingInterface extends utils.Interface {
       | "getDecimalsERC20"
       | "getDepositIds"
       | "getDepositInfo"
+      | "getDepositRatioERC20"
       | "getDepositTimestamp"
       | "getDivisorERC20"
       | "getEarlyWithdrawalPenalty"
@@ -269,6 +271,10 @@ export interface StakingInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "getDepositInfo",
+    values: [PromiseOrValue<BigNumberish>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getDepositRatioERC20",
     values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
@@ -555,6 +561,10 @@ export interface StakingInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "getDepositInfo",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getDepositRatioERC20",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -1152,6 +1162,11 @@ export interface Staking extends BaseContract {
       }
     >;
 
+    getDepositRatioERC20(
+      _depositId: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
     getDepositTimestamp(
       _depositId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
@@ -1408,7 +1423,8 @@ export interface Staking extends BaseContract {
         BigNumber,
         BigNumber,
         BigNumber,
-        number
+        number,
+        BigNumber
       ] & {
         token: string;
         staker: string;
@@ -1419,6 +1435,7 @@ export interface Staking extends BaseContract {
         unclaimedRewards: BigNumber;
         timelock: BigNumber;
         timelockCategory: number;
+        ratioERC20: BigNumber;
       }
     >;
 
@@ -1567,6 +1584,11 @@ export interface Staking extends BaseContract {
   ): Promise<
     [BigNumber, BigNumber] & { _stake: BigNumber; _unclaimedRewards: BigNumber }
   >;
+
+  getDepositRatioERC20(
+    _depositId: PromiseOrValue<BigNumberish>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
 
   getDepositTimestamp(
     _depositId: PromiseOrValue<BigNumberish>,
@@ -1824,7 +1846,8 @@ export interface Staking extends BaseContract {
       BigNumber,
       BigNumber,
       BigNumber,
-      number
+      number,
+      BigNumber
     ] & {
       token: string;
       staker: string;
@@ -1835,6 +1858,7 @@ export interface Staking extends BaseContract {
       unclaimedRewards: BigNumber;
       timelock: BigNumber;
       timelockCategory: number;
+      ratioERC20: BigNumber;
     }
   >;
 
@@ -1986,6 +2010,11 @@ export interface Staking extends BaseContract {
         _unclaimedRewards: BigNumber;
       }
     >;
+
+    getDepositRatioERC20(
+      _depositId: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
     getDepositTimestamp(
       _depositId: PromiseOrValue<BigNumberish>,
@@ -2243,7 +2272,8 @@ export interface Staking extends BaseContract {
         BigNumber,
         BigNumber,
         BigNumber,
-        number
+        number,
+        BigNumber
       ] & {
         token: string;
         staker: string;
@@ -2254,6 +2284,7 @@ export interface Staking extends BaseContract {
         unclaimedRewards: BigNumber;
         timelock: BigNumber;
         timelockCategory: number;
+        ratioERC20: BigNumber;
       }
     >;
 
@@ -2570,6 +2601,11 @@ export interface Staking extends BaseContract {
     ): Promise<BigNumber>;
 
     getDepositInfo(
+      _depositId: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getDepositRatioERC20(
       _depositId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -2963,6 +2999,11 @@ export interface Staking extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     getDepositInfo(
+      _depositId: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getDepositRatioERC20(
       _depositId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;

@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.17;
 
 import "./interfaces/IKonduxERC20.sol";
 import "./types/AccessControlled.sol";
 
-import "hardhat/console.sol";
-
+/**
+ * @title Treasury
+ * @dev This contract handles deposits and withdrawals of tokens and Ether.
+ */
 contract Treasury is AccessControlled {
 
     /* ========== EVENTS ========== */
@@ -38,31 +40,30 @@ contract Treasury is AccessControlled {
 
     address public stakingContract;
 
-    /* ========== CONSTRUCTOR ========== */
-
+    /**
+     * @dev Initializes the Treasury contract.
+     * @param _authority The address of the authority contract.
+     */
     constructor(address _authority) AccessControlled(IAuthority(_authority)) {
         approvedTokensCount = 0;
     }
 
     /**
-     * @notice allow approved address to deposit an asset for Kondux
-     * @param _amount uint256
-     * @param _token address
+     * @notice Allow approved address to deposit an asset for Kondux.
+     * @dev Deposits a specified amount of the specified token.
+     * @param _amount The amount of tokens to deposit.
+     * @param _token The address of the token contract.
      */
     function deposit(
         uint256 _amount,
         address _token
     ) external {
         if (permissions[STATUS.RESERVETOKEN][_token]) {
-            console.log("Deposit Token: %s", _token);
             require(permissions[STATUS.RESERVEDEPOSITOR][msg.sender], notApproved);
         } else {
-            console.log("Deposit Token Invalid: %s", _token);
             revert(invalidToken);
         }
 
-        console.log(msg.sender);
-        console.log(tx.origin);
         IKonduxERC20(_token).transferFrom(tx.origin, address(this), _amount);
         // get allowance and increase it
         uint256 allowance = IKonduxERC20(_token).allowance(stakingContract, _token);
@@ -71,37 +72,50 @@ contract Treasury is AccessControlled {
         emit Deposit(_token, _amount);
     }
 
+    /**
+     * @notice Allow approved address to deposit Ether.
+     * @dev Deposits Ether to the contract.
+     */
     function depositEther () external payable {
         require(permissions[STATUS.RESERVEDEPOSITOR][msg.sender], notApproved);  
-        // console.log("Deposit Ether: %s", msg.value);              
                 
         emit DepositEther(msg.value);
     }
 
     /**
-     * @notice allow approved address to withdraw Kondux from reserves
-     * @param _amount uint256
-     * @param _token address
+     * @notice Allow approved address to withdraw Kondux from reserves.
+     * @dev Withdraws a specified amount of the specified token.
+     * @param _amount The amount of tokens to withdraw.
+     * @param _token The address of the token contract.
      */
     function withdraw(uint256 _amount, address _token) external {
         require(permissions[STATUS.RESERVETOKEN][_token], notAccepted); // Only reserves can be used for redemptions
         require(permissions[STATUS.RESERVESPENDER][msg.sender], notApproved);
 
-        IKonduxERC20(_token).transfer(msg.sender, _amount);
+        IKonduxERC20(_token).transfer(msg.sender,         _amount);
 
         emit Withdrawal(_token, _amount);
     }
 
+    /**
+     * @dev Receives Ether.
+     */
     receive() external payable {
-        // console.log("Received Ether: %s", msg.value);
         emit EtherDeposit(msg.value);
     }
 
+    /**
+     * @dev Fallback function for receiving Ether.
+     */
     fallback() external payable { 
-        // console.log("Fallback Ether: %s", msg.value);
         emit EtherDeposit(msg.value); 
     }
     
+    /**
+     * @notice Allow approved address to withdraw Ether.
+     * @dev Withdraws a specified amount of Ether.
+     * @param _amount The amount of Ether to withdraw.
+     */
     function withdrawEther(uint _amount) external {
         require(permissions[STATUS.RESERVESPENDER][msg.sender], notApproved);
         require(payable(msg.sender).send(_amount));
@@ -109,6 +123,12 @@ contract Treasury is AccessControlled {
         emit EtherWithdrawal(msg.sender, _amount);
     }
 
+    /**
+     * @dev Sets permissions for the specified address.
+     * @param _status The status to set the permission for.
+     * @param _address The address to set the permission for.
+     * @param _permission The permission value to set.
+     */
     function setPermission(
         STATUS _status,
         address _address,
@@ -124,59 +144,110 @@ contract Treasury is AccessControlled {
         }
     }
 
+    /**
+     * @dev Sets the staking contract address.
+     * @param _stakingContract The address of the staking contract.
+     */
     function setStakingContract(address _stakingContract) public onlyGovernor {
         stakingContract = _stakingContract;
     }
 
+    /**
+     * @dev Sets up the ERC20 token approval.
+     * @param _token The address of the token contract.
+     * @param _amount The amount to approve.
+     */
     function erc20ApprovalSetup(address _token, uint256 _amount) public onlyGovernor {
-        // console.log("[TREASURY] Allowance (setup): %s", _amount);
-        // console.log("[TREASURY] Token: %s", _token);
-        // console.log("[TREASURY] Address: %s", address(this));
         IKonduxERC20(_token).approve(stakingContract, _amount);
-        // console.log("[TREASURY] Allowed: %s", getApprovedTokenAllowance(_token));
-
     }
 
     // Getters
 
+    /**
+     * @dev Returns the list of approved tokens.
+     * @return An array of approved token addresses.
+     */
     function getApprovedTokensList() public view returns (address[] memory) {
         return approvedTokensList;
     }
 
+    /**
+     * @dev Returns the count of approved tokens.
+     * @return The number of approved tokens.
+     */
     function getApprovedTokensCount() public view returns (uint256) {
         return approvedTokensCount;
     }
 
+    /**
+     * @dev Returns the approved token at the specified index.
+     * @param _index The index of the approved token.
+     * @return The address of the approved token at the given index.
+     */
     function getApprovedToken(uint256 _index) public view returns (address) {
         return approvedTokensList[_index];
     }
 
+    /**
+     * @dev Returns the allowance of the approved token for the staking contract.
+     * @param _token The address of the approved token.
+     * @return The allowance of the approved token for the staking contract.
+     */
     function getApprovedTokenAllowance(address _token) public view returns (uint256) {
         return IKonduxERC20(_token).allowance(stakingContract, _token);
     }
 
+    /**
+     * @dev Returns the balance of the approved token in the treasury.
+     * @param _token The address of the approved token.
+     * @return The balance of the approved token in the treasury.
+     */
     function getApprovedTokenBalance(address _token) public view returns (uint256) {
         return IKonduxERC20(_token).balanceOf(address(this));
     }
 
+    /**
+     * @dev Returns the Ether balance of the treasury.
+     * @return The Ether balance of the treasury.
+     */
     function getEtherBalance() public view returns (uint256) {
         return address(this).balance;
     }
 
+    /**
+     * @dev Returns the address of the staking contract.
+     * @return The address of the staking contract.
+     */
     function getStakingContract() public view returns (address) {
         return stakingContract;
     }
 
+    /**
+     * @dev Returns the allowance of the token for the staking contract.
+     * @param _token The address of the token.
+     * @return The allowance of the token for the staking contract.
+     */
     function getStakingContractAllowance(address _token) public view returns (uint256) {
         return IKonduxERC20(_token).allowance(address(this), stakingContract);
     }
 
+    /**
+     * @dev Returns the balance of the token in the staking contract.
+     * @param _token The address of the token.
+     * @return The balance of the token in the staking contract.
+     */
     function getStakingContractBalance(address _token) public view returns (uint256) {
         return IKonduxERC20(_token).balanceOf(stakingContract);
     }
 
+    /**
+     * @dev Returns the Ether balance of the staking contract.
+     * @return The Ether balance of the staking contract.
+     */
     function getStakingContractEtherBalance() public view returns (uint256) {
         return stakingContract.balance;
     }
 
 }
+
+

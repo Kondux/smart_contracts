@@ -11,7 +11,6 @@ import "./interfaces/IHelix.sol";
 import "./interfaces/IKondux.sol";
 import "./interfaces/IKonduxERC20.sol";
 import "./types/AccessControlled.sol";
-import "hardhat/console.sol";
 
 contract Staking is AccessControlled {
     using Counters for Counters.Counter;
@@ -41,7 +40,9 @@ contract Staking is AccessControlled {
         uint256 timelock;
         // The category of the timelock applied to the staker's deposit
         uint8 timelockCategory;
-    }
+        // ERC20 Ratio at the time of staking
+        uint256 ratioERC20;
+    } 
 
     enum LockingTimes {        
         OneMonth, // 0
@@ -226,9 +227,7 @@ contract Staking is AccessControlled {
         setTimelockCategoryBoost(3, 900); // 9% boost for 365 days timelock
         setAllowedDnaVersion(1, true); // allow DNA version 1
         setDecimalsERC20(helixERC20.decimals(), _helixERC20); // set decimals for Helix ERC20 token 
-        // console.log("Helix decimals: %s", helixERC20.decimals());
         setDecimalsERC20(IKonduxERC20(_konduxERC20).decimals(), _konduxERC20); // set decimals for Kondux ERC20 token
-        // console.log("Kondux decimals: %s", IKonduxERC20(_konduxERC20).decimals());
 
         //testing 24 and 48h timelocks
         setTimelockCategoryBoost(5, 5000); // 50% boost for 1 day timelock
@@ -274,7 +273,8 @@ contract Staking is AccessControlled {
             timelockCategory: _timelock,
             timeOfLastUpdate: block.timestamp,
             lastDepositTime: block.timestamp,
-            redeemed: 0
+            redeemed: 0,
+            ratioERC20: ratioERC20[_token]
         });
 
         // Set the timelock period based on the selected category
@@ -342,7 +342,6 @@ contract Staking is AccessControlled {
 
         // Calculate the rewards and add any unclaimed rewards
         uint256 rewards = calculateRewards(msg.sender, _depositId) + userDeposits[_depositId].unclaimedRewards;
-        // console.log("Rewards: %s", rewards);
         // Reset the unclaimed rewards to zero
         userDeposits[_depositId].unclaimedRewards = 0;
         // Update the deposited amount with the compounded rewards
@@ -367,7 +366,7 @@ contract Staking is AccessControlled {
         }
 
         // Mint the calculated rewards for the user, adjusted based on the decimal difference
-        helixERC20.mint(msg.sender, rewards * ratioERC20[userDeposits[_depositId].token] * (10 ** decimalDifference));
+        helixERC20.mint(msg.sender, rewards * userDeposits[_depositId].ratioERC20 * (10 ** decimalDifference));
 
         // Emit a Compound event
         emit Compound(msg.sender, rewards);
@@ -421,7 +420,7 @@ contract Staking is AccessControlled {
         // Verify that the withdrawal amount is within the available limits
         require(userDeposits[_depositId].deposited >= _amount, "Can't withdraw more than you have");
         // Verify that the withdrawal amount is less than or equal to the collateral tokens the user has
-        require(_amount * ratioERC20[userDeposits[_depositId].token] <= helixERC20.balanceOf(msg.sender), "Can't withdraw more tokens than the collateral you have");
+        require(_amount * userDeposits[_depositId].ratioERC20 <= helixERC20.balanceOf(msg.sender), "Can't withdraw more tokens than the collateral you have");
 
         // Calculate the rewards
         uint256 _rewards = calculateRewards(msg.sender, _depositId);
@@ -444,9 +443,7 @@ contract Staking is AccessControlled {
 
         // Get the decimals of the original staked token and Helix
         uint8 originalTokenDecimals = decimalsERC20[userDeposits[_depositId].token];
-        // console.log("originalTokenDecimals:", originalTokenDecimals);
         uint8 helixDecimals = decimalsERC20[address(helixERC20)];
-        // console.log("helixDecimals:", helixDecimals);
 
         // Calculate the decimal difference
         uint decimalDifference;
@@ -456,10 +453,8 @@ contract Staking is AccessControlled {
             decimalDifference = 0;
         }
 
-        // console.log("decimalDifference:", decimalDifference);
-
         // Burn the equivalent amount of collateral tokens, adjusted based on the decimal difference
-        helixERC20.burn(msg.sender, _amount * ratioERC20[userDeposits[_depositId].token] * (10 ** decimalDifference));
+        helixERC20.burn(msg.sender, _amount * userDeposits[_depositId].ratioERC20 * (10 ** decimalDifference));
 
         
         // Transfer the liquid amount to the user
@@ -491,16 +486,13 @@ contract Staking is AccessControlled {
         // Verify that the withdrawal amount is within the available limits
         require(userDeposits[_depositId].deposited >= _amount, "Can't withdraw more than you have");
         // Verify that the withdrawal amount is less than or equal to the collateral tokens the user has
-        require(_amount * ratioERC20[userDeposits[_depositId].token] <= helixERC20.balanceOf(msg.sender), "Can't withdraw more tokens than the collateral you have");
+        require(_amount * userDeposits[_depositId].ratioERC20 <= helixERC20.balanceOf(msg.sender), "Can't withdraw more tokens than the collateral you have");
         // Verify if the timelock has passed
         require(block.timestamp < userDeposits[_depositId].timelock, "Timelock has passed");
-        // console.log("_amount: %s", _amount);
 
         // Calculate the extra fee proportional to the time left until the lock (the closer to the end of the locking time, the smaller the fee)
         uint256 timeLeft = userDeposits[_depositId].timelock - block.timestamp;
         uint256 lockDuration = userDeposits[_depositId].timelock - userDeposits[_depositId].lastDepositTime;
-        // console.log("timeleft: %s", timeLeft);
-        // console.log("lockDuration: %s", lockDuration);
         uint256 extraFee = (_amount * earlyWithdrawalPenalty[userDeposits[_depositId].token] * timeLeft) / (lockDuration * 100);
 
         // If extra fee is more than the amount, set it to the amount
@@ -516,11 +508,6 @@ contract Staking is AccessControlled {
         // Calculate the total fee percentage
         uint256 totalFeePercentage = extraFee + withdrawalFeeERC20[userDeposits[_depositId].token];
 
-        // console.log("extraFee: %s", extraFee);
-        // console.log("totalFeePercentage: %s", totalFeePercentage);
-        // console.log("divisorERC20[userDeposits[_depositId].token]: %s", divisorERC20[userDeposits[_depositId].token]);
-
-        // console.log("(_amount - totalFeePercentage)): %s", (_amount - totalFeePercentage)); 
         // Calculate the liquid amount to transfer after applying the total fee
         uint256 _liquid = (_amount - totalFeePercentage);
 
@@ -546,7 +533,7 @@ contract Staking is AccessControlled {
         }
 
         // Burn the equivalent amount of collateral tokens, adjusted based on the decimal difference
-        helixERC20.burn(msg.sender, _amount * ratioERC20[userDeposits[_depositId].token] * (10 ** decimalDifference));
+        helixERC20.burn(msg.sender, _amount * userDeposits[_depositId].ratioERC20 * (10 ** decimalDifference));
         
         // Transfer the liquid amount to the user
         konduxERC20.transferFrom(authority.vault(), msg.sender, _liquid);
@@ -630,14 +617,9 @@ contract Staking is AccessControlled {
          * Using 1e18 maintains precision in the calculation, avoiding truncation errors due to integer division in Solidity.
          * By scaling up the result and performing the divisions afterward, the calculation maintains precision without truncating intermediate results to zero.
          */
-        // console.log("depositedAmount: %s", depositedAmount);
-        // console.log("tokenApr: %s", tokenApr);
-        // console.log("elapsedTime: %s", elapsedTime);
-        // console.log("rewardPerSecond: %s", (depositedAmount * tokenApr * 1e18) / (365 * 24 * 3600 * 100));
         uint256 rewardPerSecond = (depositedAmount * tokenApr * 1e18) / (365 * 24 * 3600 * 100);
         
         // Calculate the base reward based on elapsed time
-        // console.log("reward: %s", elapsedTime * rewardPerSecond / 1e18);
         uint256 _reward = elapsedTime * rewardPerSecond / 1e18;
 
         // Initialize the boost percentage with the base boost percentage for the token
@@ -1221,5 +1203,14 @@ contract Staking is AccessControlled {
      */
     function getRatioERC20(address _token) public view returns (uint256) {
         return ratioERC20[_token];
+    }
+
+    /**
+     * @dev This function returns the ratio for the specified deposit.
+     * @param _depositId The ID of the deposit for which to retrieve the information.
+     * @return The ratio for the specified deposit.
+     */
+    function getDepositRatioERC20(uint256 _depositId) public view returns (uint256) {
+        return userDeposits[_depositId].ratioERC20;
     }
 }
