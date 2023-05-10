@@ -363,7 +363,7 @@ describe("Staking minting", async function () {
         expect(await staking.connect(staker).calculateRewards(stakerAddress, stakeId)).to.equal(0);
         expect((await staking.connect(staker).getDepositInfo(stakeId))._unclaimedRewards).to.equal(0);
 
-        expect(claimEvent?.args?.amount).to.be.closeTo(ethers.BigNumber.from(10).pow(18).div(4).div(12).div(30).div(24).mul(2), ethers.BigNumber.from(10).pow(13).mul(2)); // 1 reward per hour
+        expect(claimEvent?.args?.netRewards).to.be.closeTo(ethers.BigNumber.from(10).pow(18).div(4).div(12).div(30).div(24).mul(2), ethers.BigNumber.from(10).pow(13).mul(2)); // 1 reward per hour
 
         await console.log("Rewarded token 6:", await staking.getTotalRewards(kondux.address) + " KNDX");
         await console.log("Rewarded  user 6:", await staking.getUserTotalRewardsByCoin(stakerAddress, kondux.address) + " KNDX");
@@ -440,7 +440,7 @@ describe("Staking minting", async function () {
         const withdraw = await staking.withdraw(withdrawAmount, stakeId);
         const withdrawReceipt = await withdraw.wait();
         const withdrawEvent = withdrawReceipt.events?.find((e) => e.event === "Withdraw");
-        expect(withdrawEvent?.args?.amount).to.equal(withdrawAmount.mul(99).div(100)); // 1 reward per hour
+        expect(withdrawEvent?.args?.liquidAmount).to.equal(withdrawAmount.mul(99).div(100)); // 1 reward per hour
 
         console.log("Account balance 7:", await kondux.balanceOf(ownerAddress) + " KNDX");
 
@@ -508,7 +508,7 @@ describe("Staking minting", async function () {
         const withdraw = await staking.withdraw(10_000, stakeId);
         const withdrawReceipt = await withdraw.wait();
         const withdrawEvent = withdrawReceipt.events?.find((e) => e.event === "Withdraw");
-        expect(withdrawEvent?.args?.amount).to.equal(9900); // 1 reward per hour
+        expect(withdrawEvent?.args?.liquidAmount).to.equal(9900); // 1 reward per hour
         // check totalstaked
         expect(await staking.getTotalStaked(kondux.address)).to.equal(ethers.BigNumber.from(10).pow(18).sub(10_000));
         expect(await staking.getTotalStaked(kondux2.address)).to.equal(0);
@@ -568,7 +568,7 @@ describe("Staking minting", async function () {
         const withdraw2 = await staking.withdraw(10_000, stakeId2);
         const withdrawReceipt2 = await withdraw2.wait();
         const withdrawEvent2 = withdrawReceipt2.events?.find((e) => e.event === "Withdraw");
-        expect(withdrawEvent2?.args?.amount).to.equal(9900); // 1 reward per hour
+        expect(withdrawEvent2?.args?.liquidAmount).to.equal(9900); // 1 reward per hour
 
         expect(await staking.getTotalStaked(kondux.address)).to.equal(ethers.BigNumber.from(10).pow(18).sub(10_000));
         expect(await staking.getTotalStaked(kondux2.address)).to.equal(ethers.BigNumber.from(10).pow(18).sub(10_000));
@@ -654,7 +654,7 @@ describe("Staking minting", async function () {
         const claimRewards = await staking.connect(staker).claimRewards(stakeId);
         const claimReceipt = await claimRewards.wait();
         const claimEvent = claimReceipt.events?.find((e) => e.event === "Reward");
-        expect(claimEvent?.args?.amount).to.be.closeTo(ethers.BigNumber.from(10).pow(18).div(4).div(12).mul(2), ethers.BigNumber.from(10).pow(16)); // 1 reward per hour
+        expect(claimEvent?.args?.netRewards).to.be.closeTo(ethers.BigNumber.from(10).pow(18).div(4).div(12).mul(2), ethers.BigNumber.from(10).pow(16)); // 1 reward per hour
 
         await console.log("Rewarded token 6:", await staking.getTotalRewards(kondux.address) + " KNDX");
         await console.log("Rewarded  user 6:", await staking.getUserTotalRewardsByCoin(stakerAddress, kondux.address) + " KNDX");
@@ -719,7 +719,7 @@ describe("Staking minting", async function () {
         const withdraw = await staking.withdraw(10_000, stakeId);
         const withdrawReceipt = await withdraw.wait();
         const withdrawEvent = withdrawReceipt.events?.find((e) => e.event === "Withdraw");
-        expect(withdrawEvent?.args?.amount).to.equal(9900); // 1 reward per hour
+        expect(withdrawEvent?.args?.liquidAmount).to.equal(9900); // 1 reward per hour
 
         console.log("Account balance 7:", await kondux.balanceOf(ownerAddress) + " KNDX");
 
@@ -786,7 +786,7 @@ describe("Staking minting", async function () {
         const withdraw = await staking.withdraw(10_000, stakeId);
         const withdrawReceipt = await withdraw.wait();
         const withdrawEvent = withdrawReceipt.events?.find((e) => e.event === "Withdraw");
-        expect(withdrawEvent?.args?.amount).to.equal(9900); // 1 reward per hour
+        expect(withdrawEvent?.args?.liquidAmount).to.equal(9900); // 1 reward per hour
         // check totalstaked
         expect(await staking.getTotalStaked(kondux.address)).to.equal(ethers.BigNumber.from(10).pow(18).sub(10_000));
         expect(await staking.getTotalStaked(kondux2.address)).to.equal(0);
@@ -847,7 +847,7 @@ describe("Staking minting", async function () {
         const withdraw2 = await staking.withdraw(10_000, stakeId2);
         const withdrawReceipt2 = await withdraw2.wait();
         const withdrawEvent2 = withdrawReceipt2.events?.find((e) => e.event === "Withdraw");
-        expect(withdrawEvent2?.args?.amount).to.equal(9900); // 1 reward per hour
+        expect(withdrawEvent2?.args?.liquidAmount).to.equal(9900); // 1 reward per hour
 
         expect(await staking.getTotalStaked(kondux.address)).to.equal(ethers.BigNumber.from(10).pow(18).sub(10_000));
         expect(await staking.getTotalStaked(kondux2.address)).to.equal(ethers.BigNumber.from(10).pow(18).sub(10_000));
@@ -903,7 +903,7 @@ describe("Staking minting", async function () {
         const earlyWithdraw = await staking.withdrawBeforeTimelock(toWithdraw, stakeId);
         const earlyWithdrawReceipt = await earlyWithdraw.wait();
         const earlyWithdrawEvent = earlyWithdrawReceipt.events?.find((e) => e.event === "Withdraw");
-        expect(earlyWithdrawEvent?.args?.amount).to.be.closeTo(toWithdraw * 0.94, 100_000); // 5% penalty
+        expect(earlyWithdrawEvent?.args?.liquidAmount).to.be.closeTo(toWithdraw * 0.94, 100_000); // 5% penalty
 
         const helixBalanceAfter = await helix.balanceOf(ownerAddress);
 

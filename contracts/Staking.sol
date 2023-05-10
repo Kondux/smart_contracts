@@ -114,6 +114,9 @@ contract Staking is AccessControlled {
     // The allowed dnaVersion for reward boost
     mapping (uint256 => bool) public allowedDnaVersions;
 
+    // Map of timelock durartions
+    mapping(uint8 => uint256) public timelockDurations;
+
     IHelix public helixERC20; // Helix ERC20 Token
     IERC721 public konduxERC721Founders; // Kondux ERC721 Founders Token
     address public konduxERC721kNFT; // Kondux ERC721 kNFT Token
@@ -121,7 +124,7 @@ contract Staking is AccessControlled {
 
     // Events
     // Emitted when a staker withdraws their rewards
-    event Withdraw(address indexed staker, uint256 amount);
+    event Withdraw(address indexed user, uint256 liquidAmount, uint256 fees);
 
     // Emitted when a staker withdraws all their rewards
     event WithdrawAll(address indexed staker, uint256 amount);
@@ -136,7 +139,7 @@ contract Staking is AccessControlled {
     event Unstake(address indexed staker, uint256 amount);
 
     // Emitted when a staker receives a reward
-    event Reward(address indexed staker, uint256 amount);
+    event Reward(address indexed user, uint256 netRewards, uint256 fees);
 
     // Emitted when the rewards per hour is updated for a token
     event NewAPR(uint256 indexed amount, address indexed token);
@@ -212,6 +215,14 @@ contract Staking is AccessControlled {
         helixERC20 = IHelix(_helixERC20);
         treasury = ITreasury(_treasury);
 
+        timelockDurations[0] = 30 days;         // 1 month
+        timelockDurations[1] = 90 days;         // 3 months
+        timelockDurations[2] = 180 days;        // 6 months
+        timelockDurations[3] = 365 days;        // 1 year
+        timelockDurations[4] = 2 minutes;       // 2 minutes (TEST)
+        timelockDurations[5] = 1 days;          // 1 day (TEST)
+        timelockDurations[6] = 2 days;          // 2 days (TEST)
+
         // Set up default staking token parameters
         setDivisorERC20(10_000, _konduxERC20); // 10,000 basis points
         setWithdrawalFee(100, _konduxERC20); // 1% fee on withdrawal or 100 / 10_000
@@ -258,7 +269,7 @@ contract Staking is AccessControlled {
         // Check if the user has approved the staking contract to spend the specified amount
         require(konduxERC20.allowance(msg.sender, address(this)) >= _amount, "Allowance not set");
         // Check if the selected timelock category is valid (between 0 and 3)
-        require(_timelock >= 0 && _timelock <= 6, "Invalid timelock");
+        require(_timelock <= 6, "Invalid timelock");
 
         // Get the current deposit ID
         uint _id = _depositIds.current();
@@ -278,30 +289,14 @@ contract Staking is AccessControlled {
         });
 
         // Set the timelock period based on the selected category
-        if (_timelock == uint8(LockingTimes.OneMonth)) {
-            userDeposits[_id].timelock = block.timestamp + 30 days; // 1 month
-        } else if (_timelock == uint8(LockingTimes.ThreeMonths)) {
-            userDeposits[_id].timelock = block.timestamp + 90 days; // 3 months
-        } else if (_timelock == uint8(LockingTimes.SixMonths)) {
-            userDeposits[_id].timelock = block.timestamp + 180 days; // 6 months
-        } else if (_timelock == uint8(LockingTimes.OneYear)) {
-            userDeposits[_id].timelock = block.timestamp + 365 days; // 1 year 
-        } else if (_timelock == uint8(LockingTimes.Test)) {
-            userDeposits[_id].timelock = block.timestamp + 2 minutes; // 2 minutes // TEST
-        } else if (_timelock == uint8(LockingTimes.Test24h)) { 
-            userDeposits[_id].timelock = block.timestamp + 1 days; // 1 day // TEST
-        } else if (_timelock == uint8(LockingTimes.Test48h)) {
-            userDeposits[_id].timelock = block.timestamp + 2 days; // 2 days // TEST
-        } 
+        userDeposits[_id].timelock = block.timestamp + timelockDurations[_timelock];
 
         // Add the deposit ID to the user's deposit list
         userDepositsIds[msg.sender].push(_id);
 
         // Update the user's total staked amount
         _addTotalStakedAmount(_amount, _token, msg.sender);
-
-        // Transfer the deposited tokens from the user to the vault
-        konduxERC20.transferFrom(msg.sender, authority.vault(), _amount);
+        
         // Mint an equivalent amount of reward tokens for the user
         // Get the decimals of the original staked token and Helix
         uint8 originalTokenDecimals = decimalsERC20[_token];
@@ -314,6 +309,9 @@ contract Staking is AccessControlled {
         } else {
             decimalDifference = 0;
         }
+
+        // Transfer the deposited tokens from the user to the vault
+        konduxERC20.transferFrom(msg.sender, authority.vault(), _amount);
 
         // Mint an equivalent amount of reward tokens for the user, adjusted based on the decimal difference
         helixERC20.mint(msg.sender, _amount * ratioERC20[_token] * (10 ** decimalDifference));
@@ -342,6 +340,10 @@ contract Staking is AccessControlled {
 
         // Calculate the rewards and add any unclaimed rewards
         uint256 rewards = calculateRewards(msg.sender, _depositId) + userDeposits[_depositId].unclaimedRewards;
+
+        // Check if the rewards are non-zero
+        require(rewards > 0, "No rewards available");
+
         // Reset the unclaimed rewards to zero
         userDeposits[_depositId].unclaimedRewards = 0;
         // Update the deposited amount with the compounded rewards
@@ -394,13 +396,14 @@ contract Staking is AccessControlled {
         IERC20 konduxERC20 = IERC20(userDeposits[_depositId].token);
 
         uint256 netRewards = (rewards * (10_000 - withdrawalFeeERC20[userDeposits[_depositId].token])) / divisorERC20[userDeposits[_depositId].token];
+        uint256 fees = rewards - netRewards;
 
         konduxERC20.transferFrom(authority.vault(), msg.sender, netRewards); 
 
         _addTotalRewardedAmount(netRewards, userDeposits[_depositId].token, userDeposits[_depositId].staker);
         _addTotalWithdrawalFees(rewards - netRewards, userDeposits[_depositId].token);
 
-        emit Reward(msg.sender, netRewards);
+        emit Reward(msg.sender, netRewards, fees);
     }
 
     /**
@@ -431,6 +434,7 @@ contract Staking is AccessControlled {
 
         // Calculate the liquid amount to transfer after applying the withdrawal fee
         uint256 _liquid = (_amount * (divisorERC20[userDeposits[_depositId].token] - withdrawalFeeERC20[userDeposits[_depositId].token])) / divisorERC20[userDeposits[_depositId].token];
+        uint256 fees = _amount - _liquid;
 
         // Get the token contract
         IERC20 konduxERC20 = IERC20(userDeposits[_depositId].token);
@@ -465,7 +469,7 @@ contract Staking is AccessControlled {
         _addTotalWithdrawalFees(_amount - _liquid, userDeposits[_depositId].token); 
 
         // Emit a Withdraw event
-        emit Withdraw(msg.sender, _liquid);
+        emit Withdraw(msg.sender, _liquid, fees);
     }
 
     /**
@@ -510,6 +514,7 @@ contract Staking is AccessControlled {
 
         // Calculate the liquid amount to transfer after applying the total fee
         uint256 _liquid = (_amount - totalFeePercentage);
+        uint256 fees = _amount - _liquid;
 
         // Update the deposit record
         userDeposits[_depositId].deposited -= _amount;
@@ -543,7 +548,7 @@ contract Staking is AccessControlled {
         _addTotalWithdrawalFees(_amount - _liquid, userDeposits[_depositId].token); 
 
         // Emit a Withdraw event
-        emit Withdraw(msg.sender, _liquid);
+        emit Withdraw(msg.sender, _liquid, fees);
     }
 
     /**

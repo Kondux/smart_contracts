@@ -93,6 +93,7 @@ export interface StakingInterface extends utils.Interface {
     "setkNFTRewardBoost(uint256,address)": FunctionFragment;
     "stakeRewards(uint256)": FunctionFragment;
     "timelockCategoryBoost(uint256)": FunctionFragment;
+    "timelockDurations(uint8)": FunctionFragment;
     "totalRewarded(address)": FunctionFragment;
     "totalStaked(address)": FunctionFragment;
     "totalWithdrawalFees(address)": FunctionFragment;
@@ -173,6 +174,7 @@ export interface StakingInterface extends utils.Interface {
       | "setkNFTRewardBoost"
       | "stakeRewards"
       | "timelockCategoryBoost"
+      | "timelockDurations"
       | "totalRewarded"
       | "totalStaked"
       | "totalWithdrawalFees"
@@ -454,6 +456,10 @@ export interface StakingInterface extends utils.Interface {
     values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
+    functionFragment: "timelockDurations",
+    values: [PromiseOrValue<BigNumberish>]
+  ): string;
+  encodeFunctionData(
     functionFragment: "totalRewarded",
     values: [PromiseOrValue<string>]
   ): string;
@@ -732,6 +738,10 @@ export interface StakingInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "timelockDurations",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "totalRewarded",
     data: BytesLike
   ): Result;
@@ -790,10 +800,10 @@ export interface StakingInterface extends utils.Interface {
     "NewRatio(uint256,address)": EventFragment;
     "NewTreasury(address)": EventFragment;
     "NewWithdrawalFee(uint256,address)": EventFragment;
-    "Reward(address,uint256)": EventFragment;
+    "Reward(address,uint256,uint256)": EventFragment;
     "Stake(uint256,address,address,uint256)": EventFragment;
     "Unstake(address,uint256)": EventFragment;
-    "Withdraw(address,uint256)": EventFragment;
+    "Withdraw(address,uint256,uint256)": EventFragment;
     "WithdrawAll(address,uint256)": EventFragment;
   };
 
@@ -978,10 +988,14 @@ export type NewWithdrawalFeeEventFilter =
   TypedEventFilter<NewWithdrawalFeeEvent>;
 
 export interface RewardEventObject {
-  staker: string;
-  amount: BigNumber;
+  user: string;
+  netRewards: BigNumber;
+  fees: BigNumber;
 }
-export type RewardEvent = TypedEvent<[string, BigNumber], RewardEventObject>;
+export type RewardEvent = TypedEvent<
+  [string, BigNumber, BigNumber],
+  RewardEventObject
+>;
 
 export type RewardEventFilter = TypedEventFilter<RewardEvent>;
 
@@ -1007,11 +1021,12 @@ export type UnstakeEvent = TypedEvent<[string, BigNumber], UnstakeEventObject>;
 export type UnstakeEventFilter = TypedEventFilter<UnstakeEvent>;
 
 export interface WithdrawEventObject {
-  staker: string;
-  amount: BigNumber;
+  user: string;
+  liquidAmount: BigNumber;
+  fees: BigNumber;
 }
 export type WithdrawEvent = TypedEvent<
-  [string, BigNumber],
+  [string, BigNumber, BigNumber],
   WithdrawEventObject
 >;
 
@@ -1389,6 +1404,11 @@ export interface Staking extends BaseContract {
     ): Promise<ContractTransaction>;
 
     timelockCategoryBoost(
+      arg0: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
+    timelockDurations(
       arg0: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
@@ -1812,6 +1832,11 @@ export interface Staking extends BaseContract {
   ): Promise<ContractTransaction>;
 
   timelockCategoryBoost(
+    arg0: PromiseOrValue<BigNumberish>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  timelockDurations(
     arg0: PromiseOrValue<BigNumberish>,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
@@ -2242,6 +2267,11 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    timelockDurations(
+      arg0: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     totalRewarded(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -2452,13 +2482,15 @@ export interface Staking extends BaseContract {
       token?: PromiseOrValue<string> | null
     ): NewWithdrawalFeeEventFilter;
 
-    "Reward(address,uint256)"(
-      staker?: PromiseOrValue<string> | null,
-      amount?: null
+    "Reward(address,uint256,uint256)"(
+      user?: PromiseOrValue<string> | null,
+      netRewards?: null,
+      fees?: null
     ): RewardEventFilter;
     Reward(
-      staker?: PromiseOrValue<string> | null,
-      amount?: null
+      user?: PromiseOrValue<string> | null,
+      netRewards?: null,
+      fees?: null
     ): RewardEventFilter;
 
     "Stake(uint256,address,address,uint256)"(
@@ -2483,13 +2515,15 @@ export interface Staking extends BaseContract {
       amount?: null
     ): UnstakeEventFilter;
 
-    "Withdraw(address,uint256)"(
-      staker?: PromiseOrValue<string> | null,
-      amount?: null
+    "Withdraw(address,uint256,uint256)"(
+      user?: PromiseOrValue<string> | null,
+      liquidAmount?: null,
+      fees?: null
     ): WithdrawEventFilter;
     Withdraw(
-      staker?: PromiseOrValue<string> | null,
-      amount?: null
+      user?: PromiseOrValue<string> | null,
+      liquidAmount?: null,
+      fees?: null
     ): WithdrawEventFilter;
 
     "WithdrawAll(address,uint256)"(
@@ -2832,6 +2866,11 @@ export interface Staking extends BaseContract {
     ): Promise<BigNumber>;
 
     timelockCategoryBoost(
+      arg0: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    timelockDurations(
       arg0: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -3232,6 +3271,11 @@ export interface Staking extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     timelockCategoryBoost(
+      arg0: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    timelockDurations(
       arg0: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
