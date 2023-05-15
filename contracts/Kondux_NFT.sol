@@ -32,7 +32,10 @@ contract Kondux is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC721Roy
     // Contract state variables
     string public baseURI;
     uint96 public denominator;
-    mapping (uint256 => uint256) public indexDna;
+
+    mapping (uint256 => uint256) public indexDna; // Maps token IDs to DNA values
+    
+    mapping (uint256 => uint256) public transferDates; // Maps token IDs to the timestamp of receiving the token
 
     /**
      * @dev Initializes the Kondux contract with the given name and symbol.
@@ -290,6 +293,18 @@ contract Kondux is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC721Roy
         }
         emit RoleChanged(addr, role, enabled);
     }
+
+    /**
+     * @dev Returns the timestamp of the last transfer for a given token ID.
+     * Reverts if the token ID does not exist.
+     *
+     * @param tokenId The ID of the token.
+     * @return The timestamp of the last transfer.
+     */
+    function getTransferDate(uint256 tokenId) public view returns (uint256) {
+        require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
+        return transferDates[tokenId];
+    }
   
     // Internal functions //
 
@@ -297,7 +312,7 @@ contract Kondux is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC721Roy
      * @dev Returns the base URI for constructing token URIs.
      * @return The base URI.
      */
-    function _baseURI() internal view override returns (string memory) {
+    function _baseURI() internal view override returns (string memory) { 
         return baseURI;
     }
 
@@ -325,6 +340,24 @@ contract Kondux is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC721Roy
         override(ERC721, ERC721Enumerable)
     {
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
+    }
+
+    /**
+     * @dev Hook that is called after any token transfer.
+     * This includes minting and burning.
+     * @param from The address tokens are being transferred from.
+     * @param to The address tokens are being transferred to.
+     * @param tokenId The ID of the token being transferred.
+     * @param batchSize The number of tokens being transferred in a single batch.
+     */
+    function _afterTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize)
+        internal
+        whenNotPaused
+        override(ERC721)
+    {
+        transferDates[tokenId] = block.timestamp;        
+
+        super._afterTokenTransfer(from, to, tokenId, batchSize);
     }
 
     /**

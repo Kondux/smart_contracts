@@ -484,7 +484,7 @@ contract Staking is AccessControlled {
      * @param _amount The amount of tokens to withdraw.
      * @param _depositId The ID of the deposit from which to withdraw the tokens.
      */
-    function withdrawBeforeTimelock(uint256 _amount, uint _depositId) public {
+    function earlyUnstake(uint256 _amount, uint _depositId) public {
         // Verify that the caller is the owner of the deposit
         require(msg.sender == userDeposits[_depositId].staker, "You are not the owner of this deposit");
         // Verify that the withdrawal amount is within the available limits
@@ -627,59 +627,8 @@ contract Staking is AccessControlled {
         // Calculate the base reward based on elapsed time
         uint256 _reward = elapsedTime * rewardPerSecond / 1e18;
 
-        // Initialize the boost percentage with the base boost percentage for the token
-        uint256 boostPercentage = divisorERC20[deposit_.token];
-
-        // Check if the staker has Founder's NFTs and add the boost percentage
-        if (IERC721(konduxERC721Founders).balanceOf(_staker) > 0) {
-            boostPercentage += foundersRewardBoostERC20[deposit_.token];
-        }
-
-        // Check if the staker has any kNFTs and calculate the top 5 boosts
-        if (IERC721(konduxERC721kNFT).balanceOf(_staker) > 0) {
-            uint256 kNFTBalance = IERC721(konduxERC721kNFT).balanceOf(_staker);
-            // Initialize an array to store the top 5 bonuses
-            uint256[] memory top5Bonuses = new uint256[](5);
-
-            // Iterate through the staker's kNFTs
-            for (uint256 i = 0; i < kNFTBalance; i++) {
-                uint256 tokenId = IERC721Enumerable(konduxERC721kNFT).tokenOfOwnerByIndex(_staker, i);
-
-                // Get the kNFT's DNA version and check if it's allowed
-                int256 dnaVersion = IKondux(konduxERC721kNFT).readGen(tokenId, 0, 1);
-                if (!allowedDnaVersions[uint256(dnaVersion)]) { 
-                    continue;
-                }
-
-                // Get the kNFT's boost value and multiply it by 100 to get a percentage
-                int256 dnaBoost = IKondux(konduxERC721kNFT).readGen(tokenId, 1, 2) * 100;
-                // Clamp the boost value between 0 and the token's divisor
-                if (dnaBoost < 0) {
-                    dnaBoost = 0;
-                } else if (uint256(dnaBoost) > divisorERC20[deposit_.token]) { 
-                    dnaBoost = int256(divisorERC20[deposit_.token]); 
-                }
-
-                // Update the top 5 bonuses array with the current kNFT boost
-                for (uint256 j = 0; j < 5; j++) {
-                    if (uint256(dnaBoost) > top5Bonuses[j]) {
-                        uint256 temp = top5Bonuses[j];
-                        top5Bonuses[j] = uint256(dnaBoost);
-                        dnaBoost = int256(temp);
-                    }
-                }
-            }
-
-            // Add the top 5 bonuses to the boost percentage
-            for (uint256 i = 0; i < 5; i++) {
-                boostPercentage += top5Bonuses[i];
-            }
-        }
-
-        // If the deposit has a timelock category, add the corresponding boost
-        if (deposit_.timelockCategory > 0) {
-            boostPercentage += timelockCategoryBoost[deposit_.timelockCategory];
-        }
+        // Calculate the boost percentage
+        uint256 boostPercentage = calculateBoostPercentage(_staker, _depositId);
 
         // Calculate the final reward by applying the boost percentage
         _reward = (_reward * boostPercentage) / divisorERC20[deposit_.token];
@@ -687,8 +636,6 @@ contract Staking is AccessControlled {
         // Return the calculated reward
         return _reward;
     }      
-
-
 
     // Internal functions:
 
@@ -1217,5 +1164,174 @@ contract Staking is AccessControlled {
      */
     function getDepositRatioERC20(uint256 _depositId) public view returns (uint256) {
         return userDeposits[_depositId].ratioERC20;
+    }   
+
+    /**
+     * @dev This function returns the top 5 bonuses and their corresponding kNFT IDs.
+     * @param _staker The address of the staker.
+     * @param _stakeId The ID of the deposit for which to calculate the boost percentage.
+     * @return top5Bonuses An array of the top 5 bonuses.
+     * @return top5Ids An array of the corresponding kNFT IDs.
+     */
+    function getTop5BonusesAndIds(address _staker, uint256 _stakeId) public view returns (uint256[] memory top5Bonuses, uint256[] memory top5Ids) {
+        uint256 kNFTBalance = IERC721(konduxERC721kNFT).balanceOf(_staker);
+
+        // Initialize arrays to store the top 5 bonuses and their corresponding kNFT IDs
+        top5Bonuses = new uint256[](5);
+        top5Ids = new uint256[](5);
+
+        // Iterate through the staker's kNFTs
+        for (uint256 i = 0; i < kNFTBalance; i++) {
+            uint256 tokenId = IERC721Enumerable(konduxERC721kNFT).tokenOfOwnerByIndex(_staker, i);
+
+            // if the user's kNFT was received after the deposit date, continue
+            if (IKondux(konduxERC721kNFT).getTransferDate(tokenId) > userDeposits[_stakeId].lastDepositTime) {
+                continue;
+            }
+
+            // Get the kNFT's DNA version and check if it's allowed
+            int256 dnaVersion = IKondux(konduxERC721kNFT).readGen(tokenId, 0, 1);
+            if (!allowedDnaVersions[uint256(dnaVersion)]) { 
+                continue;
+            }
+
+            // Get the kNFT's boost value and multiply it by 100 to get a percentage
+            int256 dnaBoost = IKondux(konduxERC721kNFT).readGen(tokenId, 1, 2) * 100;
+
+            // Clamp the boost value to 0 if it's negative
+            if (dnaBoost < 0) {
+                dnaBoost = 0;
+            }
+
+            // Update the top 5 bonuses array with the current kNFT boost
+            for (uint256 j = 0; j < 5; j++) {
+                if (uint256(dnaBoost) > top5Bonuses[j]) {
+                    uint256 temp = top5Bonuses[j];
+                    top5Bonuses[j] = uint256(dnaBoost);
+                    dnaBoost = int256(temp);
+
+                    uint256 tempId = top5Ids[j];
+                    top5Ids[j] = tokenId;
+                    tokenId = tempId;
+                }
+            }
+        }
+
+        return (top5Bonuses, top5Ids);
     }
+
+    /**
+     * @dev This function returns the top 5 bonuses and their corresponding kNFT IDs.
+     * @param _staker The address of the staker.
+     * @return top5Bonuses An array of the top 5 bonuses.
+     * @return top5Ids An array of the corresponding kNFT IDs.
+     */
+    function getMaxTop5BonusesAndIds(address _staker) public view returns (uint256[] memory top5Bonuses, uint256[] memory top5Ids) {
+        uint256 kNFTBalance = IERC721(konduxERC721kNFT).balanceOf(_staker);
+
+        // Initialize arrays to store the top 5 bonuses and their corresponding kNFT IDs
+        top5Bonuses = new uint256[](5);
+        top5Ids = new uint256[](5);
+
+        // Iterate through the staker's kNFTs
+        for (uint256 i = 0; i < kNFTBalance; i++) {
+            uint256 tokenId = IERC721Enumerable(konduxERC721kNFT).tokenOfOwnerByIndex(_staker, i);
+
+            // Get the kNFT's DNA version and check if it's allowed
+            int256 dnaVersion = IKondux(konduxERC721kNFT).readGen(tokenId, 0, 1);
+            if (!allowedDnaVersions[uint256(dnaVersion)]) { 
+                continue;
+            }
+
+            // Get the kNFT's boost value and multiply it by 100 to get a percentage
+            int256 dnaBoost = IKondux(konduxERC721kNFT).readGen(tokenId, 1, 2) * 100;
+
+            // Clamp the boost value to 0 if it's negative
+            if (dnaBoost < 0) {
+                dnaBoost = 0;
+            }
+
+            // Update the top 5 bonuses array with the current kNFT boost
+            for (uint256 j = 0; j < 5; j++) {
+                if (uint256(dnaBoost) > top5Bonuses[j]) {
+                    uint256 temp = top5Bonuses[j];
+                    top5Bonuses[j] = uint256(dnaBoost);
+                    dnaBoost = int256(temp);
+
+                    uint256 tempId = top5Ids[j];
+                    top5Ids[j] = tokenId;
+                    tokenId = tempId;
+                }
+            }
+        }
+
+        return (top5Bonuses, top5Ids);
+    }
+
+    /**
+     * @dev This function calculates the boost percentage for a staker's deposit.
+     * @param _staker The address of the staker.
+     * @param _stakeId The ID of the deposit for which to calculate the boost percentage.
+     * @return boostPercentage The boost percentage for the staker's deposit.
+     */
+    function calculateKNFTBoostPercentage(address _staker, uint256 _stakeId) public view returns (uint256 boostPercentage) {
+        // Get the top 5 bonuses and their corresponding kNFT IDs
+        (uint256[] memory top5Bonuses, ) = getTop5BonusesAndIds(_staker, _stakeId);
+
+        // Add the top 5 bonuses to the boost percentage
+        for (uint256 i = 0; i < 5; i++) {
+            boostPercentage += top5Bonuses[i];
+        }
+
+        return boostPercentage;
+    }
+
+    /**
+     * @dev This function calculates the boost percentage for a staker.
+     * @param _staker The address of the staker.
+     * @return boostPercentage The boost percentage for the staker's deposit.
+     */
+    function calculateMaxKNFTBoostPercentage(address _staker) public view returns (uint256 boostPercentage) {
+        // Get the top 5 bonuses and their corresponding kNFT IDs
+        (uint256[] memory top5Bonuses, ) = getMaxTop5BonusesAndIds(_staker);
+
+        // Add the top 5 bonuses to the boost percentage
+        for (uint256 i = 0; i < 5; i++) {
+            boostPercentage += top5Bonuses[i];
+        }
+
+        return boostPercentage;
+    }
+
+    /**
+     * @dev This function calculates the boost percentage for a specified staker and deposit ID.
+     * @param _staker The address of the staker for which to calculate the boost.
+     * @param _stakeId The ID of the stake for which to calculate the boost.
+     * @return boostPercentage The calculated boost percentage for the specified staker and deposit ID.
+     */
+    function calculateBoostPercentage(address _staker, uint _stakeId) public view returns (uint256 boostPercentage) {
+        // Retrieve deposit details by _depositId
+        Staker memory deposit_ = userDeposits[_stakeId];
+
+        // Initialize the boost percentage with the base boost percentage for the token
+        boostPercentage = divisorERC20[deposit_.token];
+
+        // Check if the staker has Founder's NFTs and add the boost percentage
+        if (IERC721(konduxERC721Founders).balanceOf(_staker) > 0) {
+            boostPercentage += foundersRewardBoostERC20[deposit_.token];
+        }
+
+        // Check if the staker has any kNFTs and calculate the top 5 boosts
+        if (IERC721(konduxERC721kNFT).balanceOf(_staker) > 0) {
+            boostPercentage += calculateKNFTBoostPercentage(_staker, _stakeId); 
+        }
+
+        // If the deposit has a timelock category, add the corresponding boost
+        if (deposit_.timelockCategory > 0) {
+            boostPercentage += timelockCategoryBoost[deposit_.timelockCategory];
+        }
+
+        return boostPercentage;
+    }
+
 }

@@ -27,6 +27,7 @@ export interface IKonduxInterface extends utils.Interface {
   functions: {
     "changeDenominator(uint96)": FunctionFragment;
     "getDna(uint256)": FunctionFragment;
+    "getTransferDate(uint256)": FunctionFragment;
     "pause()": FunctionFragment;
     "readGen(uint256,uint8,uint8)": FunctionFragment;
     "safeMint(address,uint256)": FunctionFragment;
@@ -43,6 +44,7 @@ export interface IKonduxInterface extends utils.Interface {
     nameOrSignatureOrTopic:
       | "changeDenominator"
       | "getDna"
+      | "getTransferDate"
       | "pause"
       | "readGen"
       | "safeMint"
@@ -61,6 +63,10 @@ export interface IKonduxInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "getDna",
+    values: [PromiseOrValue<BigNumberish>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getTransferDate",
     values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(functionFragment: "pause", values?: undefined): string;
@@ -116,6 +122,10 @@ export interface IKonduxInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "getDna", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "getTransferDate",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "pause", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "readGen", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "safeMint", data: BytesLike): Result;
@@ -169,6 +179,11 @@ export interface IKondux extends BaseContract {
     ): Promise<ContractTransaction>;
 
     getDna(
+      _tokenID: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
+    getTransferDate(
       _tokenID: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
@@ -242,6 +257,11 @@ export interface IKondux extends BaseContract {
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
+  getTransferDate(
+    _tokenID: PromiseOrValue<BigNumberish>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
   pause(
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
@@ -307,6 +327,11 @@ export interface IKondux extends BaseContract {
     ): Promise<BigNumber>;
 
     getDna(
+      _tokenID: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getTransferDate(
       _tokenID: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -379,6 +404,11 @@ export interface IKondux extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    getTransferDate(
+      _tokenID: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     pause(
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
@@ -445,6 +475,11 @@ export interface IKondux extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     getDna(
+      _tokenID: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getTransferDate(
       _tokenID: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;

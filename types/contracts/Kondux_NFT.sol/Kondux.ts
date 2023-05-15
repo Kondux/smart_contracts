@@ -43,6 +43,7 @@ export interface KonduxInterface extends utils.Interface {
     "getApproved(uint256)": FunctionFragment;
     "getDna(uint256)": FunctionFragment;
     "getRoleAdmin(bytes32)": FunctionFragment;
+    "getTransferDate(uint256)": FunctionFragment;
     "grantRole(bytes32,address)": FunctionFragment;
     "hasRole(bytes32,address)": FunctionFragment;
     "indexDna(uint256)": FunctionFragment;
@@ -70,6 +71,7 @@ export interface KonduxInterface extends utils.Interface {
     "tokenOfOwnerByIndex(address,uint256)": FunctionFragment;
     "tokenURI(uint256)": FunctionFragment;
     "totalSupply()": FunctionFragment;
+    "transferDates(uint256)": FunctionFragment;
     "transferFrom(address,address,uint256)": FunctionFragment;
     "unpause()": FunctionFragment;
     "writeGen(uint256,uint256,uint8,uint8)": FunctionFragment;
@@ -91,6 +93,7 @@ export interface KonduxInterface extends utils.Interface {
       | "getApproved"
       | "getDna"
       | "getRoleAdmin"
+      | "getTransferDate"
       | "grantRole"
       | "hasRole"
       | "indexDna"
@@ -118,6 +121,7 @@ export interface KonduxInterface extends utils.Interface {
       | "tokenOfOwnerByIndex"
       | "tokenURI"
       | "totalSupply"
+      | "transferDates"
       | "transferFrom"
       | "unpause"
       | "writeGen"
@@ -172,6 +176,10 @@ export interface KonduxInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "getRoleAdmin",
     values: [PromiseOrValue<BytesLike>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getTransferDate",
+    values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "grantRole",
@@ -291,6 +299,10 @@ export interface KonduxInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "transferDates",
+    values: [PromiseOrValue<BigNumberish>]
+  ): string;
+  encodeFunctionData(
     functionFragment: "transferFrom",
     values: [
       PromiseOrValue<string>,
@@ -345,6 +357,10 @@ export interface KonduxInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "getDna", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "getRoleAdmin",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getTransferDate",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "grantRole", data: BytesLike): Result;
@@ -408,6 +424,10 @@ export interface KonduxInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "tokenURI", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "totalSupply",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "transferDates",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -675,6 +695,11 @@ export interface Kondux extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[string]>;
 
+    getTransferDate(
+      tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
     grantRole(
       role: PromiseOrValue<BytesLike>,
       account: PromiseOrValue<string>,
@@ -819,6 +844,11 @@ export interface Kondux extends BaseContract {
 
     totalSupply(overrides?: CallOverrides): Promise<[BigNumber]>;
 
+    transferDates(
+      arg0: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
     transferFrom(
       from: PromiseOrValue<string>,
       to: PromiseOrValue<string>,
@@ -893,6 +923,11 @@ export interface Kondux extends BaseContract {
     role: PromiseOrValue<BytesLike>,
     overrides?: CallOverrides
   ): Promise<string>;
+
+  getTransferDate(
+    tokenId: PromiseOrValue<BigNumberish>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
 
   grantRole(
     role: PromiseOrValue<BytesLike>,
@@ -1038,6 +1073,11 @@ export interface Kondux extends BaseContract {
 
   totalSupply(overrides?: CallOverrides): Promise<BigNumber>;
 
+  transferDates(
+    arg0: PromiseOrValue<BigNumberish>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
   transferFrom(
     from: PromiseOrValue<string>,
     to: PromiseOrValue<string>,
@@ -1110,6 +1150,11 @@ export interface Kondux extends BaseContract {
       role: PromiseOrValue<BytesLike>,
       overrides?: CallOverrides
     ): Promise<string>;
+
+    getTransferDate(
+      tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
     grantRole(
       role: PromiseOrValue<BytesLike>,
@@ -1252,6 +1297,11 @@ export interface Kondux extends BaseContract {
     ): Promise<string>;
 
     totalSupply(overrides?: CallOverrides): Promise<BigNumber>;
+
+    transferDates(
+      arg0: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
     transferFrom(
       from: PromiseOrValue<string>,
@@ -1444,6 +1494,11 @@ export interface Kondux extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    getTransferDate(
+      tokenId: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     grantRole(
       role: PromiseOrValue<BytesLike>,
       account: PromiseOrValue<string>,
@@ -1588,6 +1643,11 @@ export interface Kondux extends BaseContract {
 
     totalSupply(overrides?: CallOverrides): Promise<BigNumber>;
 
+    transferDates(
+      arg0: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     transferFrom(
       from: PromiseOrValue<string>,
       to: PromiseOrValue<string>,
@@ -1663,6 +1723,11 @@ export interface Kondux extends BaseContract {
 
     getRoleAdmin(
       role: PromiseOrValue<BytesLike>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getTransferDate(
+      tokenId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
@@ -1809,6 +1874,11 @@ export interface Kondux extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     totalSupply(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    transferDates(
+      arg0: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
 
     transferFrom(
       from: PromiseOrValue<string>,
