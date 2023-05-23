@@ -386,21 +386,4 @@ contract Kondux is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC721Roy
         return super.supportsInterface(interfaceId);
     }
 
-
-    // TEST FUNCTIONS //
-
-    function faucet() public {
-        uint256 tokenId = _tokenIdCounter.current();
-        _tokenIdCounter.increment();
-        _safeMint(msg.sender, tokenId);
-    }
-
-    function faucetBonus(uint256 _bonus) public {
-        uint256 tokenId = _tokenIdCounter.current();
-        _tokenIdCounter.increment();
-        _safeMint(msg.sender, tokenId);
-        _writeGen(tokenId, 1, 0, 1); // DNA Version 1
-        _writeGen(tokenId, _bonus, 1, 2); 
-    }  
-
 }
