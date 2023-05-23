@@ -1334,4 +1334,23 @@ contract Staking is AccessControlled {
         return boostPercentage;
     }
 
+    /**
+     * @dev A function that agreggates the returned values of getTimelock, getDepositTimestamp, getTimelockCategory, getDepositInfo and calculateKNFTBoostPercentage
+     * @param _staker The address of the staker for which to calculate the boost.
+     * @param _stakeId The ID of the stake for which to calculate the boost.
+     * @return _timelock The timelock for the specified deposit ID.
+     * @return _depositTimestamp The timestamp of the deposit
+     * @return _timelockCategory The timelock category for the specified deposit ID.
+     * @return _stake The staked amount for the specified deposit.
+     * @return _unclaimedRewards The earned rewards (including unclaimed rewards) for the specified deposit.
+     * @return _boostPercentage The calculated boost percentage for the specified staker and deposit ID.
+     */
+    function getDepositDetails(address _staker, uint _stakeId) public view returns (uint256 _timelock, uint256 _depositTimestamp, uint8 _timelockCategory, uint256 _stake, uint256 _unclaimedRewards, uint256 _boostPercentage) {
+        _timelock = getTimelock(_stakeId);
+        _depositTimestamp = getDepositTimestamp(_stakeId);
+        _timelockCategory = getTimelockCategory(_stakeId);
+        (_stake, _unclaimedRewards) = getDepositInfo(_stakeId);
+        _boostPercentage = calculateBoostPercentage(_staker, _stakeId);
+    }
+
 }

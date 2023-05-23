@@ -50,6 +50,7 @@ export interface StakingInterface extends utils.Interface {
     "getAPR(address)": FunctionFragment;
     "getAllowedDnaVersion(uint256)": FunctionFragment;
     "getDecimalsERC20(address)": FunctionFragment;
+    "getDepositDetails(address,uint256)": FunctionFragment;
     "getDepositIds(address)": FunctionFragment;
     "getDepositInfo(uint256)": FunctionFragment;
     "getDepositRatioERC20(uint256)": FunctionFragment;
@@ -136,6 +137,7 @@ export interface StakingInterface extends utils.Interface {
       | "getAPR"
       | "getAllowedDnaVersion"
       | "getDecimalsERC20"
+      | "getDepositDetails"
       | "getDepositIds"
       | "getDepositInfo"
       | "getDepositRatioERC20"
@@ -292,6 +294,10 @@ export interface StakingInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "getDecimalsERC20",
     values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getDepositDetails",
+    values: [PromiseOrValue<string>, PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "getDepositIds",
@@ -605,6 +611,10 @@ export interface StakingInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "getDecimalsERC20",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getDepositDetails",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -1235,6 +1245,21 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[number]>;
 
+    getDepositDetails(
+      _staker: PromiseOrValue<string>,
+      _stakeId: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<
+      [BigNumber, BigNumber, number, BigNumber, BigNumber, BigNumber] & {
+        _timelock: BigNumber;
+        _depositTimestamp: BigNumber;
+        _timelockCategory: number;
+        _stake: BigNumber;
+        _unclaimedRewards: BigNumber;
+        _boostPercentage: BigNumber;
+      }
+    >;
+
     getDepositIds(
       _user: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -1704,6 +1729,21 @@ export interface Staking extends BaseContract {
     overrides?: CallOverrides
   ): Promise<number>;
 
+  getDepositDetails(
+    _staker: PromiseOrValue<string>,
+    _stakeId: PromiseOrValue<BigNumberish>,
+    overrides?: CallOverrides
+  ): Promise<
+    [BigNumber, BigNumber, number, BigNumber, BigNumber, BigNumber] & {
+      _timelock: BigNumber;
+      _depositTimestamp: BigNumber;
+      _timelockCategory: number;
+      _stake: BigNumber;
+      _unclaimedRewards: BigNumber;
+      _boostPercentage: BigNumber;
+    }
+  >;
+
   getDepositIds(
     _user: PromiseOrValue<string>,
     overrides?: CallOverrides
@@ -2169,6 +2209,21 @@ export interface Staking extends BaseContract {
       _token: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<number>;
+
+    getDepositDetails(
+      _staker: PromiseOrValue<string>,
+      _stakeId: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<
+      [BigNumber, BigNumber, number, BigNumber, BigNumber, BigNumber] & {
+        _timelock: BigNumber;
+        _depositTimestamp: BigNumber;
+        _timelockCategory: number;
+        _stake: BigNumber;
+        _unclaimedRewards: BigNumber;
+        _boostPercentage: BigNumber;
+      }
+    >;
 
     getDepositIds(
       _user: PromiseOrValue<string>,
@@ -2816,6 +2871,12 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    getDepositDetails(
+      _staker: PromiseOrValue<string>,
+      _stakeId: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     getDepositIds(
       _user: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -3244,6 +3305,12 @@ export interface Staking extends BaseContract {
 
     getDecimalsERC20(
       _token: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getDepositDetails(
+      _staker: PromiseOrValue<string>,
+      _stakeId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
