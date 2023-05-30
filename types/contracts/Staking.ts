@@ -1456,7 +1456,7 @@ export interface Staking extends BaseContract {
     ): Promise<ContractTransaction>;
 
     setEarlyWithdrawalPenalty(
-      token: PromiseOrValue<string>,
+      _token: PromiseOrValue<string>,
       penaltyPercentage: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
@@ -1937,7 +1937,7 @@ export interface Staking extends BaseContract {
   ): Promise<ContractTransaction>;
 
   setEarlyWithdrawalPenalty(
-    token: PromiseOrValue<string>,
+    _token: PromiseOrValue<string>,
     penaltyPercentage: PromiseOrValue<BigNumberish>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
@@ -2421,7 +2421,7 @@ export interface Staking extends BaseContract {
     ): Promise<void>;
 
     setEarlyWithdrawalPenalty(
-      token: PromiseOrValue<string>,
+      _token: PromiseOrValue<string>,
       penaltyPercentage: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
@@ -3058,7 +3058,7 @@ export interface Staking extends BaseContract {
     ): Promise<BigNumber>;
 
     setEarlyWithdrawalPenalty(
-      token: PromiseOrValue<string>,
+      _token: PromiseOrValue<string>,
       penaltyPercentage: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
@@ -3497,7 +3497,7 @@ export interface Staking extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     setEarlyWithdrawalPenalty(
-      token: PromiseOrValue<string>,
+      _token: PromiseOrValue<string>,
       penaltyPercentage: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;

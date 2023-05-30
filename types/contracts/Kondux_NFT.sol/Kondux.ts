@@ -38,8 +38,6 @@ export interface KonduxInterface extends utils.Interface {
     "burn(uint256)": FunctionFragment;
     "changeDenominator(uint96)": FunctionFragment;
     "denominator()": FunctionFragment;
-    "faucet()": FunctionFragment;
-    "faucetBonus(uint256)": FunctionFragment;
     "getApproved(uint256)": FunctionFragment;
     "getDna(uint256)": FunctionFragment;
     "getRoleAdmin(bytes32)": FunctionFragment;
@@ -88,8 +86,6 @@ export interface KonduxInterface extends utils.Interface {
       | "burn"
       | "changeDenominator"
       | "denominator"
-      | "faucet"
-      | "faucetBonus"
       | "getApproved"
       | "getDna"
       | "getRoleAdmin"
@@ -159,11 +155,6 @@ export interface KonduxInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "denominator",
     values?: undefined
-  ): string;
-  encodeFunctionData(functionFragment: "faucet", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "faucetBonus",
-    values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "getApproved",
@@ -343,11 +334,6 @@ export interface KonduxInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "denominator",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(functionFragment: "faucet", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "faucetBonus",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -671,15 +657,6 @@ export interface Kondux extends BaseContract {
 
     denominator(overrides?: CallOverrides): Promise<[BigNumber]>;
 
-    faucet(
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
-    faucetBonus(
-      _bonus: PromiseOrValue<BigNumberish>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
     getApproved(
       tokenId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
@@ -900,15 +877,6 @@ export interface Kondux extends BaseContract {
 
   denominator(overrides?: CallOverrides): Promise<BigNumber>;
 
-  faucet(
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
-
-  faucetBonus(
-    _bonus: PromiseOrValue<BigNumberish>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
-
   getApproved(
     tokenId: PromiseOrValue<BigNumberish>,
     overrides?: CallOverrides
@@ -1128,13 +1096,6 @@ export interface Kondux extends BaseContract {
     ): Promise<BigNumber>;
 
     denominator(overrides?: CallOverrides): Promise<BigNumber>;
-
-    faucet(overrides?: CallOverrides): Promise<void>;
-
-    faucetBonus(
-      _bonus: PromiseOrValue<BigNumberish>,
-      overrides?: CallOverrides
-    ): Promise<void>;
 
     getApproved(
       tokenId: PromiseOrValue<BigNumberish>,
@@ -1470,15 +1431,6 @@ export interface Kondux extends BaseContract {
 
     denominator(overrides?: CallOverrides): Promise<BigNumber>;
 
-    faucet(
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
-    faucetBonus(
-      _bonus: PromiseOrValue<BigNumberish>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
     getApproved(
       tokenId: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
@@ -1701,15 +1653,6 @@ export interface Kondux extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     denominator(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    faucet(
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
-    faucetBonus(
-      _bonus: PromiseOrValue<BigNumberish>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
 
     getApproved(
       tokenId: PromiseOrValue<BigNumberish>,

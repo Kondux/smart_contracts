@@ -134,6 +134,8 @@ contract Treasury is AccessControlled {
         address _address,
         bool _permission
     ) public onlyGovernor {
+        // Check if the address is non-zero
+        require(_address != address(0), "Treasury Permission: zero address");
         permissions[_status][_address] = _permission;
         if (_status == STATUS.RESERVETOKEN) {
             isTokenApprooved[_address] = _permission;
@@ -149,6 +151,10 @@ contract Treasury is AccessControlled {
      * @param _stakingContract The address of the staking contract.
      */
     function setStakingContract(address _stakingContract) public onlyGovernor {
+        // Check if the address is non-zero
+        require(_stakingContract != address(0), "Treasury SetStakingContract: zero address");
+        require(_stakingContract != stakingContract, "Treasury SetStakingContract: same address");
+        
         stakingContract = _stakingContract;
     }
 

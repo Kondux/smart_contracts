@@ -259,6 +259,8 @@ contract Staking is AccessControlled {
      * @return _id The deposit ID assigned to this deposit.
      */
     function deposit(uint256 _amount, uint8 _timelock, address _token) public returns (uint) {
+        // Check if the token address is set
+        require(_token != address(0), "Token address is not set");
         // Check if the token is authorized for staking
         require(authorizedERC20[_token], "Token not authorized");
         // Check if the deposit amount is greater than or equal to the minimum required stake
@@ -280,16 +282,13 @@ contract Staking is AccessControlled {
             staker: msg.sender,
             deposited: _amount,
             unclaimedRewards: 0,
-            timelock: 0,
+            timelock: block.timestamp + timelockDurations[_timelock], // Set the timelock period based on the selected category
             timelockCategory: _timelock,
             timeOfLastUpdate: block.timestamp,
             lastDepositTime: block.timestamp,
             redeemed: 0,
             ratioERC20: ratioERC20[_token]
         });
-
-        // Set the timelock period based on the selected category
-        userDeposits[_id].timelock = block.timestamp + timelockDurations[_timelock];
 
         // Add the deposit ID to the user's deposit list
         userDepositsIds[msg.sender].push(_id);
@@ -719,6 +718,8 @@ contract Staking is AccessControlled {
      * @param _tokenId The address of the token for which to set the rewards per hour.
      */
     function setAPR(uint256 _apr, address _tokenId) public onlyGovernor {
+        // Check if the token address is set
+        require(_tokenId != address(0), "Token address is not set"); 
         aprERC20[_tokenId] = _apr; 
         emit NewAPR(_apr, _tokenId);
     }
@@ -729,6 +730,8 @@ contract Staking is AccessControlled {
      * @param _tokenId The address of the token for which to set the minimum staking amount.
      */
     function setMinStake(uint256 _minStake, address _tokenId) public onlyGovernor {
+        // Check if the token address is set
+        require(_tokenId != address(0), "Token address is not set"); 
         minStakeERC20[_tokenId] = _minStake;
         emit NewMinStake(_minStake, _tokenId);
     }
@@ -739,6 +742,8 @@ contract Staking is AccessControlled {
      * @param _tokenId The address of the token for which to set the ratio.
      */
     function setRatio(uint256 _ratio, address _tokenId) public onlyGovernor {
+        // Check if the token address is set
+        require(_tokenId != address(0), "Token address is not set"); 
         ratioERC20[_tokenId] = _ratio;
         emit NewRatio(_ratio, _tokenId);
     }
@@ -789,6 +794,8 @@ contract Staking is AccessControlled {
      * @param _tokenId The address of the token for which to set the withdrawal fee.
      */
     function setWithdrawalFee(uint256 _withdrawalFee, address _tokenId) public onlyGovernor {
+        // Check if the token address is set
+        require(_tokenId != address(0), "Token address is not set"); 
         require(_withdrawalFee <= divisorERC20[_tokenId], "Withdrawal fee cannot be more than 100%");
         withdrawalFeeERC20[_tokenId] = _withdrawalFee;
         emit NewWithdrawalFee(_withdrawalFee, _tokenId); 
@@ -800,6 +807,8 @@ contract Staking is AccessControlled {
      * @param _tokenId The address of the token for which to set the founders reward boost.
      */
     function setFoundersRewardBoost(uint256 _foundersRewardBoost, address _tokenId) public onlyGovernor {
+        // Check if the token address is set
+        require(_tokenId != address(0), "Token address is not set"); 
         foundersRewardBoostERC20[_tokenId] = _foundersRewardBoost;
         emit NewFoundersRewardBoost(_foundersRewardBoost, _tokenId);
     }
@@ -810,6 +819,8 @@ contract Staking is AccessControlled {
      * @param _tokenId The address of the token for which to set the kNFT reward boost.
      */
     function setkNFTRewardBoost(uint256 _kNFTRewardBoost, address _tokenId) public onlyGovernor {
+        // Check if the token address is set
+        require(_tokenId != address(0), "Token address is not set"); 
         kNFTRewardBoostERC20[_tokenId] = _kNFTRewardBoost;
         emit NewKNFTRewardBoost(_kNFTRewardBoost, _tokenId); 
     }
@@ -820,19 +831,23 @@ contract Staking is AccessControlled {
     * @param _tokenId The address of the token for which to set the compound frequency.
     */
     function setCompoundFreq(uint256 _compoundFreq, address _tokenId) public onlyGovernor {
+        // Check if the token address is set
+        require(_tokenId != address(0), "Token address is not set"); 
         compoundFreqERC20[_tokenId] = _compoundFreq;
         emit NewCompoundFreq(_compoundFreq, _tokenId);
     }
 
     /**
      * @dev This function sets the penalty percentage for early withdrawal of a specified token.
-     * @param token The address of the token for which to set the penalty percentage.
+     * @param _token The address of the token for which to set the penalty percentage.
      * @param penaltyPercentage The penalty percentage value to be set. Must be between 0 and 100. 
      */
-    function setEarlyWithdrawalPenalty(address token, uint256 penaltyPercentage) public onlyGovernor {
+    function setEarlyWithdrawalPenalty(address _token, uint256 penaltyPercentage) public onlyGovernor {
+        // Check if the token address is set
+        require(_token != address(0), "Token address is not set"); 
         require(penaltyPercentage <= 100, "Penalty percentage must be between 0 and 100");
-        earlyWithdrawalPenalty[token] = penaltyPercentage;
-    } 
+        earlyWithdrawalPenalty[_token] = penaltyPercentage;
+    }  
 
     /**
      * @dev This function sets the timelock category boost for a specified category.
@@ -849,6 +864,8 @@ contract Staking is AccessControlled {
      * @param _tokenId The address of the token for which to set the divisor.
      */
     function setDivisorERC20(uint256 _divisor, address _tokenId) public onlyGovernor {
+        // Check if the token address is set
+        require(_tokenId != address(0), "Token address is not set"); 
         divisorERC20[_tokenId] = _divisor;
         emit NewDivisorERC20(_divisor, _tokenId);
     }
@@ -883,6 +900,8 @@ contract Staking is AccessControlled {
      * @param _authorized True to authorize the token, false to deauthorize.
      */
     function setAuthorizedERC20(address _token, bool _authorized) public onlyGovernor {
+        // Check if the token address is set
+        require(_token != address(0), "Token address is not set"); 
         _setAuthorizedERC20(_token, _authorized);
     }
 
@@ -901,6 +920,8 @@ contract Staking is AccessControlled {
      * @param _tokenId The address of the token for which to set the decimals.
      */
     function setDecimalsERC20(uint8 _decimals, address _tokenId) public onlyGovernor {
+        // Check if the token address is set
+        require(_tokenId != address(0), "Token address is not set"); 
         decimalsERC20[_tokenId] = _decimals;
     }
 
@@ -1352,5 +1373,5 @@ contract Staking is AccessControlled {
         (_stake, _unclaimedRewards) = getDepositInfo(_stakeId);
         _boostPercentage = calculateBoostPercentage(_staker, _stakeId);
     }
-
+ 
 }
