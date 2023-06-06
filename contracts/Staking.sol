@@ -219,9 +219,6 @@ contract Staking is AccessControlled {
         timelockDurations[1] = 90 days;         // 3 months
         timelockDurations[2] = 180 days;        // 6 months
         timelockDurations[3] = 365 days;        // 1 year
-        timelockDurations[4] = 2 minutes;       // 2 minutes (TEST)
-        timelockDurations[5] = 1 days;          // 1 day (TEST)
-        timelockDurations[6] = 2 days;          // 2 days (TEST)
 
         // Set up default staking token parameters
         setDivisorERC20(10_000, _konduxERC20); // 10,000 basis points
@@ -239,10 +236,6 @@ contract Staking is AccessControlled {
         setAllowedDnaVersion(1, true); // allow DNA version 1
         setDecimalsERC20(helixERC20.decimals(), _helixERC20); // set decimals for Helix ERC20 token 
         setDecimalsERC20(IKonduxERC20(_konduxERC20).decimals(), _konduxERC20); // set decimals for Kondux ERC20 token
-
-        //testing 24 and 48h timelocks
-        setTimelockCategoryBoost(5, 5000); // 50% boost for 1 day timelock
-        setTimelockCategoryBoost(6, 10000); // 100% boost for 2 days timelock
 
         _setAuthorizedERC20(_konduxERC20, true);
     }
@@ -271,7 +264,7 @@ contract Staking is AccessControlled {
         // Check if the user has approved the staking contract to spend the specified amount
         require(konduxERC20.allowance(msg.sender, address(this)) >= _amount, "Allowance not set");
         // Check if the selected timelock category is valid (between 0 and 3)
-        require(_timelock <= 6, "Invalid timelock");
+        require(_timelock <= 3, "Invalid timelock");
 
         // Get the current deposit ID
         uint _id = _depositIds.current();
