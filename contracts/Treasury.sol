@@ -33,7 +33,7 @@ contract Treasury is AccessControlled {
     string internal invalidToken = "Treasury: invalid token";
 
     mapping(STATUS => mapping(address => bool)) public permissions;
-    mapping(address => bool) public isTokenApprooved;
+    mapping(address => bool) public isTokenApproved;
     
     address[] public approvedTokensList;
     uint256 public approvedTokensCount;
@@ -138,7 +138,7 @@ contract Treasury is AccessControlled {
         require(_address != address(0), "Treasury Permission: zero address");
         permissions[_status][_address] = _permission;
         if (_status == STATUS.RESERVETOKEN) {
-            isTokenApprooved[_address] = _permission;
+            isTokenApproved[_address] = _permission;
             if (_permission) {
                 approvedTokensList.push(_address);
                 approvedTokensCount++;                
