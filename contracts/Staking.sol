@@ -48,10 +48,7 @@ contract Staking is AccessControlled {
         OneMonth, // 0
         ThreeMonths, // 1
         SixMonths, // 2
-        OneYear, // 3
-        Test, // 4
-        Test24h, // 5
-        Test48h // 6
+        OneYear // 3
     }
 
     // The deposit IDs associated with a user's address
