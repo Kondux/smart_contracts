@@ -7,20 +7,17 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const { deploy } = deployments;
     const { deployer } = await getNamedAccounts();
 
-    const authorityDeployment = await deployments.get(CONTRACTS.authority);
-
-
      await deploy(CONTRACTS.helix, {
          from: deployer,
          args: [
              CONFIGURATION.helixName,
              CONFIGURATION.helixTicker         ],
          log: true,
-         skipIfAlreadyDeployed: false,
+         skipIfAlreadyDeployed: true,
      });
 };
 
 func.tags = [CONTRACTS.helix, "Helix", "production"];
-func.dependencies = [CONTRACTS.authority];
+func.dependencies = [];
 
 export default func;

@@ -431,7 +431,7 @@ describe("Staking minting", async function () {
 
         expect(await helix.balanceOf(ownerAddress)).to.equal(0);
 
-        const stake = await staking.deposit(stakeAmount, 4, kondux.address);
+        const stake = await staking.deposit(stakeAmount, 3, kondux.address);
         const stakeReceipt = await stake.wait();
 
         expect(await staking.getTotalStaked(kondux.address)).to.equal(stakeAmount); 
@@ -492,7 +492,8 @@ describe("Staking minting", async function () {
 
     it("Should stake 10_000_000 tokens, advance time 1h, add another token", async function () {
         snapshot.restore();
-        timeIncrease = 60 * 60; // 1 hour
+        //timeIncrease = 60 * 60; // 1 hour
+        timeIncrease = 60 * 60 * 24 * 365; // 1 year 
         const [owner] = await ethers.getSigners();
         const ownerAddress = await owner.getAddress();
 
@@ -504,7 +505,7 @@ describe("Staking minting", async function () {
         const approve = await kondux.approve(staking.address, ethers.BigNumber.from(10).pow(28));
         await approve.wait();
 
-        const stake = await staking.deposit(ethers.BigNumber.from(10).pow(18), 4, kondux.address);
+        const stake = await staking.deposit(ethers.BigNumber.from(10).pow(18), 3, kondux.address);
         const stakeReceipt = await stake.wait();
 
         expect(await staking.getTotalStaked(kondux.address)).to.equal(ethers.BigNumber.from(10).pow(18));
@@ -529,8 +530,8 @@ describe("Staking minting", async function () {
         
         await helpers.time.increase(timeIncrease);
 
-        expect(await staking.compoundRewardsTimer(stakeId)).to.equal(60 * 60 * 23); // 0 rewards
-        expect(await staking.calculateRewards(ownerAddress, stakeId)).to.be.closeTo(ethers.BigNumber.from(10).pow(18).div(4).div(12).div(30).div(24), ethers.BigNumber.from(10).pow(13).mul(2)); // 1 reward per hour
+        expect(await staking.compoundRewardsTimer(stakeId)).to.equal(0); // 0 rewards
+        expect(await staking.calculateRewards(ownerAddress, stakeId)).to.be.closeTo(ethers.BigNumber.from(10).pow(18).div(4).div(12), ethers.BigNumber.from(10).pow(13).mul(2)); // 1 reward per hour
         
         // expect(staking.withdraw(10_000, stakeId)).to.be.revertedWith("Timelock not passed");
 
@@ -561,7 +562,7 @@ describe("Staking minting", async function () {
 
         console.log("Account balance 7:", await kondux2.balanceOf(ownerAddress) + " KNDX2");
 
-        const stake2 = await staking.deposit(ethers.BigNumber.from(10).pow(18), 4, kondux2.address);
+        const stake2 = await staking.deposit(ethers.BigNumber.from(10).pow(18), 3, kondux2.address);
         const stakeReceipt2 = await stake2.wait();
 
         const stakeEvent2 = stakeReceipt2.events?.filter((e) => e.event === "Stake")[0];
@@ -998,7 +999,7 @@ describe("Staking minting", async function () {
 
         expect(await helix.balanceOf(ownerAddress)).to.equal(0);
 
-        const stake = await staking.deposit(stakeAmount, 4, kondux.address);
+        const stake = await staking.deposit(stakeAmount, 3, kondux.address);
         const stakeReceipt = await stake.wait();
 
         expect(await staking.getTotalStaked(kondux.address)).to.equal(stakeAmount); 

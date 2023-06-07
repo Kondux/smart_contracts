@@ -46,7 +46,7 @@ export interface TreasuryInterface extends utils.Interface {
     "getStakingContractAllowance(address)": FunctionFragment;
     "getStakingContractBalance(address)": FunctionFragment;
     "getStakingContractEtherBalance()": FunctionFragment;
-    "isTokenApprooved(address)": FunctionFragment;
+    "isTokenApproved(address)": FunctionFragment;
     "permissions(uint8,address)": FunctionFragment;
     "setAuthority(address)": FunctionFragment;
     "setPermission(uint8,address,bool)": FunctionFragment;
@@ -74,7 +74,7 @@ export interface TreasuryInterface extends utils.Interface {
       | "getStakingContractAllowance"
       | "getStakingContractBalance"
       | "getStakingContractEtherBalance"
-      | "isTokenApprooved"
+      | "isTokenApproved"
       | "permissions"
       | "setAuthority"
       | "setPermission"
@@ -146,7 +146,7 @@ export interface TreasuryInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "isTokenApprooved",
+    functionFragment: "isTokenApproved",
     values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
@@ -241,7 +241,7 @@ export interface TreasuryInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "isTokenApprooved",
+    functionFragment: "isTokenApproved",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -437,7 +437,7 @@ export interface Treasury extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
-    isTokenApprooved(
+    isTokenApproved(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<[boolean]>;
@@ -539,7 +539,7 @@ export interface Treasury extends BaseContract {
 
   getStakingContractEtherBalance(overrides?: CallOverrides): Promise<BigNumber>;
 
-  isTokenApprooved(
+  isTokenApproved(
     arg0: PromiseOrValue<string>,
     overrides?: CallOverrides
   ): Promise<boolean>;
@@ -641,7 +641,7 @@ export interface Treasury extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    isTokenApprooved(
+    isTokenApproved(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<boolean>;
@@ -781,7 +781,7 @@ export interface Treasury extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    isTokenApprooved(
+    isTokenApproved(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -894,7 +894,7 @@ export interface Treasury extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    isTokenApprooved(
+    isTokenApproved(
       arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
