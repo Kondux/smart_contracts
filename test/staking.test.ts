@@ -1058,4 +1058,83 @@ describe("Staking minting", async function () {
 
     });
 
+    it("Should stake 10_000_000 tokens, advance time and get multiple rewards", async function () {
+        snapshot.restore();
+        timeIncrease = 60 * 60; // 1 hour
+
+        console.log("%%%% TIME 1: ", await helpers.time.latest());
+
+        const [owner, staker] = await ethers.getSigners();
+        const stakerAddress = await staker.getAddress();
+
+        await console.log("Rewarded token 1:", await staking.getTotalRewards(kondux.address) + " KNDX");
+        await console.log("Rewarded  user 1:", await staking.getUserTotalRewardsByCoin( stakerAddress, kondux.address) + " KNDX");
+
+        expect(await kondux.balanceOf(stakerAddress)).to.equal(0);
+
+        const mint = await kondux.connect(staker).faucet();
+        await mint.wait();
+
+        expect(await kondux.balanceOf(stakerAddress)).to.equal(ethers.BigNumber.from(10).pow(29));
+
+        console.log("Account balance 5:", await kondux.balanceOf(stakerAddress) + " KNDX");
+
+        const approve = await kondux.connect(staker).approve(staking.address, ethers.BigNumber.from(10).pow(28));
+        await approve.wait();
+        
+        const stake = await staking.connect(staker).deposit(ethers.BigNumber.from(10).pow(18), 4, kondux.address);
+        const stakeReceipt = await stake.wait();
+
+        await console.log("Rewarded token 2:", await staking.getTotalRewards(kondux.address) + " KNDX");
+        await console.log("Rewarded  user 2:", await staking.getUserTotalRewardsByCoin(stakerAddress, kondux.address) + " KNDX");
+
+        expect(await staking.getTotalStaked(kondux.address)).to.equal(ethers.BigNumber.from(10).pow(18)); 
+        expect(await staking.getUserTotalStakedByCoin(stakerAddress, kondux.address)).to.equal(ethers.BigNumber.from(10).pow(18));
+
+        const stakeEvent = stakeReceipt.events?.filter((e) => e.event === "Stake")[0];
+        const stakeId = stakeEvent?.args?.id;
+
+        console.log("Stake id:", stakeId);
+    
+        const numberOfClaims = 3; // Number of times to claim rewards
+    
+        for (let i = 1; i <= numberOfClaims; i++) {
+            console.log(`%%%% TIME BEFORE CLAIM ${i}: `, await helpers.time.latest());
+            await helpers.time.increase(timeIncrease);
+            console.log(`%%%% TIME AFTER CLAIM ${i}: `, await helpers.time.latest());
+    
+            const claimRewards = await staking.connect(staker).claimRewards(stakeId);
+            const claimReceipt = await claimRewards.wait();
+            const claimEvent = claimReceipt.events?.find((e) => e.event === "Reward");
+    
+            // Check the rewards after each claim
+            expect(claimEvent?.args?.netRewards).to.be.closeTo(
+                ethers.BigNumber.from(10).pow(18).div(4).div(12).div(30).div(24).mul(i),
+                ethers.BigNumber.from(10).pow(13).mul(i)
+            );
+    
+            // Check the total user and system rewards after each claim
+            expect(await staking.connect(staker).getUserTotalRewardsByCoin(stakerAddress, kondux.address)).to.be.closeTo(
+                ethers.BigNumber.from(10).pow(18).div(4).div(12).div(30).div(24).mul(i),
+                ethers.BigNumber.from(10).pow(13).mul(i)
+            );
+            expect(await staking.connect(staker).getTotalRewards(kondux.address)).to.be.closeTo(
+                ethers.BigNumber.from(10).pow(18).div(4).div(12).div(30).div(24).mul(i),
+                ethers.BigNumber.from(10).pow(13).mul(i)
+            );
+    
+            console.log(`Rewarded token after claim ${i}:`, await staking.getTotalRewards(kondux.address) + " KNDX");
+            console.log(`Rewarded user after claim ${i}:`, await staking.getUserTotalRewardsByCoin(stakerAddress, kondux.address) + " KNDX");
+        }
+    
+        // Check the final account balance
+        expect((await kondux.connect(staker).balanceOf(stakerAddress))).to.be.closeTo(
+            ethers.BigNumber.from(10).pow(29).sub(ethers.BigNumber.from(10).pow(18).mul(numberOfClaims)),
+            ethers.BigNumber.from(10).pow(17)
+        );
+    
+    });
+    
+
+
 });

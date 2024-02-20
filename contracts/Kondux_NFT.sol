@@ -1,22 +1,18 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
-
+pragma solidity ^0.8.23;
 
 // Import OpenZeppelin contracts
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Royalty.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
 // Kondux contract inherits from various OpenZeppelin contracts
 contract Kondux is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC721Royalty, AccessControl {
-    // Use Counters library for managing token IDs
-    using Counters for Counters.Counter;
-    Counters.Counter private _tokenIdCounter;
+    uint256 private _tokenIdCounter;
 
     // Events emitted by the contract
     event BaseURIChanged(string baseURI);
@@ -47,9 +43,9 @@ contract Kondux is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC721Roy
      */
     constructor(string memory _name, string memory _symbol) 
         ERC721(_name, _symbol) {
-            _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-            _setupRole(MINTER_ROLE, msg.sender);
-            _setupRole(DNA_MODIFIER_ROLE, msg.sender);
+            _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+            _grantRole(MINTER_ROLE, msg.sender);
+            _grantRole(DNA_MODIFIER_ROLE, msg.sender);
     }
 
 
@@ -136,7 +132,7 @@ contract Kondux is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC721Roy
      * @return The token URI.
      */
     function tokenURI(uint256 tokenId) public view override(ERC721) returns (string memory) {
-        require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
+        require(_ownerOf(tokenId) != address(0), "ERC721Metadata: URI query for nonexistent token");
         return bytes(baseURI).length > 0 ? string(abi.encodePacked(baseURI, Strings.toString(tokenId))) : "";
     }
 
@@ -164,8 +160,7 @@ contract Kondux is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC721Roy
      * @return The new token ID.
      */
     function safeMint(address to, uint256 dna) public onlyMinter returns (uint256) {
-        uint256 tokenId = _tokenIdCounter.current();
-        _tokenIdCounter.increment();
+        uint256 tokenId = _tokenIdCounter++;
         _setDna(tokenId, dna);
         _safeMint(to, tokenId);
         return tokenId;
@@ -189,7 +184,7 @@ contract Kondux is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC721Roy
      * @return The DNA value of the token.
      */
     function getDna (uint256 _tokenID) public view returns (uint256) {
-        require(_exists(_tokenID), "ERC721Metadata: URI query for nonexistent token");
+        require(_ownerOf(_tokenID) != address(0), "ERC721Metadata: URI query for nonexistent token");
         return indexDna[_tokenID];
     }
 
@@ -302,7 +297,7 @@ contract Kondux is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC721Roy
      * @return The timestamp of the last transfer.
      */
     function getTransferDate(uint256 tokenId) public view returns (uint256) {
-        require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
+        require(_ownerOf(tokenId) != address(0), "ERC721Metadata: URI query for nonexistent token");
         return transferDates[tokenId];
     }
   
@@ -327,50 +322,6 @@ contract Kondux is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC721Roy
     }
 
     /**
-     * @dev Hook that is called before any token transfer.
-     * This includes minting and burning.
-     * @param from The address tokens are being transferred from.
-     * @param to The address tokens are being transferred to.
-     * @param tokenId The ID of the token being transferred.
-     * @param batchSize The number of tokens being transferred in a single batch.
-     */
-    function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize)
-        internal
-        whenNotPaused
-        override(ERC721, ERC721Enumerable)
-    {
-        super._beforeTokenTransfer(from, to, tokenId, batchSize);
-    }
-
-    /**
-     * @dev Hook that is called after any token transfer.
-     * This includes minting and burning.
-     * @param from The address tokens are being transferred from.
-     * @param to The address tokens are being transferred to.
-     * @param tokenId The ID of the token being transferred.
-     * @param batchSize The number of tokens being transferred in a single batch.
-     */
-    function _afterTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize)
-        internal
-        whenNotPaused
-        override(ERC721)
-    {
-        transferDates[tokenId] = block.timestamp;        
-
-        super._afterTokenTransfer(from, to, tokenId, batchSize);
-    }
-
-    /**
-     * @dev Internal function to burn a specific token.
-     * Reverts if the token does not exist.
-     * @param tokenId The ID of the token being burned.
-     */
-    function _burn(uint256 tokenId) internal override (ERC721Royalty, ERC721) {
-        super._burn(tokenId);
-        _resetTokenRoyalty(tokenId);
-    }
-
-    /**
      * @dev Returns true if this contract implements the interface defined by
      * `interfaceId`. See the corresponding Solidity interface to learn more
      * about how these IDs are created.
@@ -384,6 +335,19 @@ contract Kondux is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC721Roy
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
+    }
+
+    function _update(address to, uint256 tokenId, address auth) internal
+        whenNotPaused
+        override(ERC721, ERC721Enumerable) 
+        returns (address prevOwner) {
+        return super._update(to, tokenId, auth);
+    }
+
+    function _increaseBalance(address account, uint128 value) internal
+        whenNotPaused
+        override(ERC721, ERC721Enumerable) {
+        super._increaseBalance(account, value);
     }
 
 }

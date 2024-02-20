@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.23;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Royalty.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
@@ -16,13 +15,11 @@ contract KonduxFounders is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, E
     event BaseURIChanged(string baseURI);
     event Received(address sender, uint value);
 
-    using Counters for Counters.Counter;
-
     bytes32 public MINTER_ROLE = keccak256("MINTER_ROLE");
 
     string public baseURI;
     
-    Counters.Counter private _tokenIdCounter;
+    uint256 private _tokenIdCounter;
 
     constructor(string memory _name, string memory _ticker, address _authority) 
         ERC721(_name, _ticker) 
@@ -44,7 +41,7 @@ contract KonduxFounders is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, E
     }
 
     function tokenURI(uint256 tokenId) public view override(ERC721) returns (string memory) {
-        require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
+        require(_ownerOf(tokenId) != address(0), "ERC721Metadata: URI query for nonexistent token");
         return bytes(baseURI).length > 0 ? string(abi.encodePacked(baseURI, Strings.toString(tokenId))) : "";
     }
 
@@ -57,8 +54,7 @@ contract KonduxFounders is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, E
     }
 
     function safeMint(address to) public onlyGlobalRole(MINTER_ROLE) returns (uint256) {
-        uint256 tokenId = _tokenIdCounter.current();
-        _tokenIdCounter.increment();
+        uint256 tokenId = _tokenIdCounter++;
         _safeMint(to, tokenId);
 
         return tokenId;
@@ -70,20 +66,6 @@ contract KonduxFounders is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, E
         return baseURI;
     }
 
-
-    function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize)
-        internal
-        whenNotPaused
-        override(ERC721, ERC721Enumerable)
-    {
-        super._beforeTokenTransfer(from, to, tokenId, batchSize);
-    }
-
-    function _burn(uint256 tokenId) internal override (ERC721Royalty, ERC721) {
-        super._burn(tokenId);
-        _resetTokenRoyalty(tokenId);
-    }
-
     function supportsInterface(bytes4 interfaceId)
         public
         view
@@ -91,5 +73,18 @@ contract KonduxFounders is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, E
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
+    }
+
+    function _update(address to, uint256 tokenId, address auth) internal
+        whenNotPaused
+        override(ERC721, ERC721Enumerable) 
+        returns (address prevOwner) {
+        return super._update(to, tokenId, auth);
+    }
+
+    function _increaseBalance(address account, uint128 value) internal
+        whenNotPaused
+        override(ERC721, ERC721Enumerable) {
+        super._increaseBalance(account, value);
     }
 }

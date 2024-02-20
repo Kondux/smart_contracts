@@ -1,17 +1,20 @@
-import "@nomicfoundation/hardhat-toolbox";
+// import "hardhat";
 import "@nomicfoundation/hardhat-chai-matchers";
-import "@openzeppelin/hardhat-upgrades";
+// import "@openzeppelin/hardhat-upgrades";
 import "@nomiclabs/hardhat-solhint";
+import "@nomicfoundation/hardhat-verify";
 import "hardhat-abi-exporter";
-import "hardhat-deploy";
-require('@typechain/hardhat')
-require('@nomiclabs/hardhat-ethers')
-// require('@nomiclabs/hardhat-waffle')
+// import "hardhat-deploy";
+// import "hardhat-gas-reporter";
+// import '@typechain/hardhat'
+import '@nomicfoundation/hardhat-ethers'
+// import '@nomicfoundation/hardhat-chai-matchers'
+import "@nomicfoundation/hardhat-ignition-ethers";
 import { resolve } from "path";
 import { config as dotenvConfig } from "dotenv";
 import { HardhatUserConfig } from "hardhat/config";
 import { NetworkUserConfig } from "hardhat/types";
-import "@ericxstone/hardhat-blockscout-verify";
+// import "@ericxstone/hardhat-blockscout-verify";
 
 
 dotenvConfig({ path: resolve(__dirname, "./.env") });
@@ -23,7 +26,8 @@ const COINMARKETCAP_API_KEY = process.env.COINMARKETCAP_API_KEY || "";
 const MATICVIGIL_API_KEY = process.env.MATICVIGIL_API_KEY || "";
 const POLYGONSCAN_API_KEY = process.env.POLYGONSCAN_API_KEY || "";
 const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY || "";
-const INFURA_API_KEY = process.env.INFURA_API_KEY || "";
+const INFURA_API_KEY = process.env.INFURA_API_KEY || ""; 
+const BUILDBEAR_SERVER = process.env.BUILDBEAR_SERVER || "";
 
 const chainIds = {
   goerli: 5,
@@ -37,28 +41,26 @@ const chainIds = {
   fuji: 43113,
   avalanche: 43114,
   sepolia: 11155111,
+  buildbear: 14075
 };
 
 // Ensure that we have all the environment variables we need.
 const deployerPK = process.env.DEPLOYER_PK ?? "NO_DEPLOYER_PK"; 
 const prodDeployerPK = process.env.PROD_DEPLOYER_PK ?? "NO_PROD_DEPLOYER_PK";
 
-// Accounts
-const accounts = {
-  // special accounts
-};
-
-
 function getChainConfig(network: keyof typeof chainIds): NetworkUserConfig {
   const url = getChainRPC(network);
   let deployer = deployerPK;
 
-  if ((network === "mainnet" || network === "polygon" || network === "avalanche") && prodDeployerPK !== "NO_PROD_DEPLOYER_PK") {
+  if ((network === "mainnet" || network === "polygon" || network === "avalanche" || network == "buildbear") && prodDeployerPK !== "NO_PROD_DEPLOYER_PK") {
     deployer = prodDeployerPK;
   }
 
+  // Accounts
+  const accounts = [deployer];
+
   return {
-      accounts: [deployer],
+      accounts: accounts,
       chainId: chainIds[network],
       url,
   };
@@ -81,6 +83,8 @@ function getChainRPC(network: keyof typeof chainIds): string {
       return `https://avalanche--${network}--rpc.datahub.figment.io/apikey/${DATAHUB_API_KEY}/ext/bc/C/rpc`;
     case "avalanche":
       return `https://avalanche--mainnet--rpc.datahub.figment.io/apikey/${DATAHUB_API_KEY}/ext/bc/C/rpc`;
+    case "buildbear":
+      return `https://rpc.buildbear.io/${BUILDBEAR_SERVER}`;
     default:
       return "";
   }
@@ -102,9 +106,10 @@ const config: HardhatUserConfig = {
         },
         chainId: chainIds.hardhat,          
         loggingEnabled: process.env.EVM_LOGGING === "true",
-        // forking: {
-        //   url: getChainRPC("mainnet")
-        // },
+        forking: {
+          url: getChainRPC("mainnet"),
+          blockNumber: 19069705
+        },
         
     },   
     mainnet: getChainConfig("mainnet"),
@@ -115,18 +120,19 @@ const config: HardhatUserConfig = {
     polygon: getChainConfig("polygon"),
     polygonMumbai: getChainConfig("polygonMumbai"),
     avalanche: getChainConfig("avalanche"),
-    fuji: getChainConfig("fuji"),        
+    fuji: getChainConfig("fuji"),
+    buildbear: getChainConfig("buildbear"),       
   },
-  gasReporter: {
-    currency: 'USD',
-    token: 'ETH',
-    showMethodSig: true,
-    showTimeSpent: true,
-    enabled: process.env.REPORT_GAS ? true : false,
-    excludeContracts: [],
-    src: "./contracts",
-    coinmarketcap: COINMARKETCAP_API_KEY,
-  },
+  // gasReporter: {
+  //   currency: 'USD',
+  //   token: 'ETH',
+  //   showMethodSig: true,
+  //   showTimeSpent: true,
+  //   enabled: process.env.REPORT_GAS ? true : false,
+  //   excludeContracts: [],
+  //   src: "./contracts",
+  //   coinmarketcap: COINMARKETCAP_API_KEY,
+  // },
 
   etherscan: {
     apiKey: {
@@ -136,19 +142,19 @@ const config: HardhatUserConfig = {
       rinkeby: ETHERSCAN_API_KEY,
       goerli: ETHERSCAN_API_KEY,
       sepolia: ETHERSCAN_API_KEY,
+      buildbear: "verifyContrats",     
     },
+    customChains: [
+      {
+        network: "buildbear",
+        chainId: chainIds["buildbear"],
+        urls: {
+          apiURL:`https://rpc.buildbear.io/verify/etherscan/${BUILDBEAR_SERVER}`,
+          browserURL: `https://explorer.buildbear.io/node/${BUILDBEAR_SERVER}`,
+        },
+      },
+    ],
   },
-//   blockscoutVerify: {
-//     blockscoutURL: "https://explorer.songchain.ens.re/",
-//     contracts: {
-//       "<CONTRACT_NAME>": {
-//         compilerVersion: SOLIDITY_VERSION.SOLIDITY_V_8_11, // checkout enum SOLIDITY_VERSION
-//         optimization: true,
-//         evmVersion: EVM_VERSION.<EVM_VERSION>, // checkout enum SOLIDITY_VERSION
-//         optimizationRuns: 999999,
-//       },
-//     },
-//   },
   solidity: {
     compilers: [
       {
@@ -186,6 +192,30 @@ const config: HardhatUserConfig = {
             runs: 800,
           },
         },
+      },      
+      {
+        version: "0.8.20",
+        settings: {
+          metadata: {
+            bytecodeHash: "none",
+          },
+          optimizer: {
+            enabled: true,
+            runs: 800,
+          },
+        },
+      },
+      {
+        version: "0.8.23",
+        settings: {
+          metadata: {
+            bytecodeHash: "none",
+          },
+          optimizer: {
+            enabled: true,
+            runs: 800,
+          },
+        },
       }
     ],
     settings: {
@@ -196,22 +226,20 @@ const config: HardhatUserConfig = {
         },
     },
   },
-  namedAccounts: {
-    deployer: {
-        default: 0,
-    }
-},
-  typechain: {
-    outDir: "types",
-    target: "ethers-v5",
-  },
+//   namedAccounts: {
+//     deployer: {
+//         default: 0,
+//     }
+// },
+  // typechain: {
+  //   outDir: "types",
+  //   target: "ethers-v5",
+  // },
   paths: {
     artifacts: "./artifacts",
     cache: "./cache",
     sources: "./contracts",
     tests: "./test",
-    deploy: "./scripts/deploy",
-    deployments: "./deployments",
 },
   mocha: {
     timeout: 40000
@@ -223,7 +251,7 @@ const config: HardhatUserConfig = {
     // only: [':ERC20$'],
     spacing: 2,
     // pretty: true,
-  }
+  },
 };
 
 export default config;

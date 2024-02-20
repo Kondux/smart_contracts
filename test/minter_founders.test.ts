@@ -1,7 +1,7 @@
 import { impersonateAccount } from "@nomicfoundation/hardhat-network-helpers";
 import axios from 'axios';
 // import { Treasury, KonduxERC20 } from '../types';
-const { expect } = require("chai");
+// const { expect } = require("chai");
 const { ethers, waffle } = require("hardhat");
 
 import {
@@ -14,7 +14,8 @@ import {
   Treasury,
   Treasury__factory,
 } from "../types";
-import { keccak256 } from 'ethers/lib/utils';
+// import { keccak256 } from 'ethers/lib/utils';
+import { keccak256 } from 'ethers';
  
 const BASE_URL = "https://h7af1y611a.execute-api.us-east-1.amazonaws.com/";
 

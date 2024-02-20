@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.23;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract KonduxERC721kNFT is Ownable, ERC721Enumerable {
     uint256 private counter = 0;
 
-    constructor() ERC721("KonduxERC721kNFT", "KonduxERC721kNFT") {
+    constructor() ERC721("KonduxERC721kNFT", "KonduxERC721kNFT") Ownable(msg.sender) {
         faucet();
     }
 

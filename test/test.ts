@@ -17,7 +17,8 @@ import {
   Treasury,
   Treasury__factory,
 } from "../types";
-import { keccak256 } from 'ethers/lib/utils';
+// import { keccak256 } from 'ethers/lib/utils';
+import { keccak256 } from 'ethers';
 import { KonduxFounders } from '../types/contracts/Kondux_Founders.sol/KonduxFounders';
  
 describe("Token contract", function () {

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.23;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
 /**
@@ -36,10 +36,10 @@ contract Helix is ERC20, AccessControl, Pausable {
      */
     constructor(string memory _name, string memory _ticker) ERC20(_name, _ticker) {
         enableUnrestrictedTransfers = false;
-        _setupRole(ADMIN_ROLE, msg.sender);
-        _setupRole(MINTER_ROLE, msg.sender);
-        _setupRole(BURNER_ROLE, msg.sender);
-        _setupRole(WHITELIST_MANAGER_ROLE, msg.sender);        
+        _grantRole(ADMIN_ROLE, msg.sender);
+        _grantRole(MINTER_ROLE, msg.sender);
+        _grantRole(BURNER_ROLE, msg.sender);
+        _grantRole(WHITELIST_MANAGER_ROLE, msg.sender);        
     }
 
     // Modifiers for checking roles
@@ -107,16 +107,16 @@ contract Helix is ERC20, AccessControl, Pausable {
      * @param to The address receiving the tokens.
      * @param amount The amount of tokens to transfer.
      */
-    function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
+    function _update(address from, address to, uint256 amount) internal virtual override {
         // Allow minting and burning
         if (from == address(0) || to == address(0)) {
-            super._beforeTokenTransfer(from, to, amount);
+            super._update(from, to, amount);
             return;
         }
 
         // Allow transfers initiated by whitelisted contracts on behalf of users or when unrestricted transfers are enabled
         if (isWhitelistedContract(msg.sender) || enableUnrestrictedTransfers) {
-            super._beforeTokenTransfer(from, to, amount);
+            super._update(from, to, amount);
             return;
         }
 

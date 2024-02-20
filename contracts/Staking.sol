@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.17;
+pragma solidity 0.8.23;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
 import "./interfaces/ITreasury.sol";
 import "./interfaces/IHelix.sol";
 import "./interfaces/IKondux.sol";
@@ -13,9 +12,8 @@ import "./interfaces/IKonduxERC20.sol";
 import "./types/AccessControlled.sol";
 
 contract Staking is AccessControlled {
-    using Counters for Counters.Counter;
 
-    Counters.Counter private _depositIds;
+    uint256 private _depositIds;
 
     /**
      * @dev Struct representing a staker's information.
@@ -264,7 +262,7 @@ contract Staking is AccessControlled {
         require(_timelock <= 3, "Invalid timelock");
 
         // Get the current deposit ID
-        uint _id = _depositIds.current();
+        uint _id = _depositIds;
 
         // Create a new deposit record for the user
         userDeposits[_id] = Staker({
@@ -306,7 +304,7 @@ contract Staking is AccessControlled {
         helixERC20.mint(msg.sender, _amount * ratioERC20[_token] * (10 ** decimalDifference));
 
         // Increment the deposit ID counter
-        _depositIds.increment();
+        _depositIds++;
 
         // Emit a Stake event
         emit Stake(_id, msg.sender, _token, _amount);

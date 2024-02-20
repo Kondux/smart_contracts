@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.23;
 import "./interfaces/IKonduxFounders.sol";
 import "./interfaces/ITreasury.sol";
 import "./types/AccessControlled.sol";
