@@ -1,10 +1,11 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
+import AuthorityModule from "./AuthorityModule";
 
 export default buildModule("KBox", (m) => {
 
-  const kBox = m.contract("KonduxERC721kNFT");
+  const authority = m.useModule(AuthorityModule);
 
-  // m.call(apollo, "launch", []);
+  const kBox = m.contract("KBox", ["KBox", "KBOX", authority.authority]);
 
   return { kBox }; 
 });
