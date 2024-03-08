@@ -1,4 +1,5 @@
 // import "hardhat";
+import '@nomicfoundation/hardhat-ignition';
 import "@nomicfoundation/hardhat-chai-matchers";
 // import "@openzeppelin/hardhat-upgrades";
 import "@nomiclabs/hardhat-solhint";
@@ -102,14 +103,14 @@ const config: HardhatUserConfig = {
     hardhat: {
         mining: {
           auto: true,
-          interval: 2000 // milliseconds
+          // interval: 2000 // milliseconds
         },
         chainId: chainIds.hardhat,          
         loggingEnabled: process.env.EVM_LOGGING === "true",
-        forking: {
-          url: getChainRPC("mainnet"),
-          blockNumber: 19069705
-        },
+        // forking: {
+        //   url: getChainRPC("mainnet"),
+        //   blockNumber: 19069705
+        // },
         
     },   
     mainnet: getChainConfig("mainnet"),
