@@ -21,4 +21,5 @@ interface IKondux {
     function burn(uint256 tokenId) external;
     function ownerOf(uint256 tokenId) external view returns (address);
     function getApproved(uint256 tokenId) external view returns (address);
+    function faucet() external;
 }
