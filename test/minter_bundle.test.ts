@@ -16,6 +16,9 @@ describe("MinterBundle", () => {
     
     const setKNFT = await minter.minterBundle.setKNFT(knft.kondux);
     await setKNFT.wait();
+
+    const setKBox = await minter.minterBundle.setKBox(kbox.kBox);
+    await setKBox.wait();
     
     const grantRole = await knft.kondux.grantRole(MINTER_ROLE, minter.minterBundle);
     await grantRole.wait();
@@ -57,18 +60,33 @@ describe("MinterBundle", () => {
     }
   });
 
-  // it("should buy KNFT with kBox", async () => {    
-  //   const { minter, knft, ownerAddress } = await loadFixture(deployModuleFixture);
+  it("should buy KNFT with kBox", async () => {    
+    const { minter, knft, kbox, ownerAddress } = await loadFixture(deployModuleFixture);
 
-  //   const mint = await minter.minterBundle.publicMint({value: ethers.parseEther("0.25")});
-  //   await mint.wait();
+    const mintBox = await kbox.kBox.faucet();
+    await mintBox.wait();
 
-  //   // console.log(mint);
-  //   expect(await knft.kondux.balanceOf(ownerAddress)).to.equal(5);
-  //   for (let index = 0; index < 5; index++) {
-  //     expect(await knft.kondux.ownerOf(index)).to.equal(ownerAddress);
-  //   }
+    expect(await kbox.kBox.balanceOf(ownerAddress)).to.equal(1);
+    expect(await kbox.kBox.totalSupply()).to.equal(1);
+    expect(await kbox.kBox.ownerOf(1)).to.equal(ownerAddress);
+
+    await expect(minter.minterBundle.publicMintWithBox(0)).to.be.reverted;
+
+    const approve = await kbox.kBox.approve(minter.minterBundle, 1);
+    await approve.wait();
+
+    const mint = await minter.minterBundle.publicMintWithBox(1);
+    await mint.wait();
+
+    expect(await kbox.kBox.balanceOf(ownerAddress)).to.equal(0);
+    expect(await kbox.kBox.totalSupply()).to.equal(0);
+
+    // console.log(mint);
+    expect(await knft.kondux.balanceOf(ownerAddress)).to.equal(5);
+    for (let index = 0; index < 5; index++) {
+      expect(await knft.kondux.ownerOf(index)).to.equal(ownerAddress);
+    }
       
-  // });
+  });
 
 });
