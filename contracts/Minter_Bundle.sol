@@ -3,8 +3,7 @@ pragma solidity 0.8.23;
 import "./interfaces/IKondux.sol";
 import "./interfaces/ITreasury.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
-
-// import "hardhat/console.sol";
+import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 /// @title MinterBundle
 /// @notice A smart contract for managing the minting of NFT bundles, setting prices, and interacting with the treasury.
@@ -78,8 +77,12 @@ contract MinterBundle is AccessControl {
     function publicMintWithBox(uint256 _kBoxId) public isActive returns (uint256[] memory){
         require(kBox.ownerOf(_kBoxId) == msg.sender, "You are not the owner of this kBox");
         require(kBox.getApproved(_kBoxId) == address(this), "This contract is not approved to burn this kBox");
+
         kBox.burn(_kBoxId);
+
+        // Mint a bundle of NFTs
         uint256[] memory tokenIds = _mintBundle();
+
         emit BundleMinted(msg.sender, tokenIds);
         return tokenIds;
     }
