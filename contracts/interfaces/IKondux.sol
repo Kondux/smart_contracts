@@ -18,4 +18,7 @@ interface IKondux {
     function readGen(uint256 _tokenID, uint8 startIndex, uint8 endIndex) external view returns (int256);
     function writeGen(uint256 _tokenID, uint256 inputValue, uint8 startIndex, uint8 endIndex) external;
     function getTransferDate(uint256 _tokenID) external view returns (uint256);
+    function burn(uint256 tokenId) external;
+    function ownerOf(uint256 tokenId) external view returns (address);
+    function getApproved(uint256 tokenId) external view returns (address);
 }
