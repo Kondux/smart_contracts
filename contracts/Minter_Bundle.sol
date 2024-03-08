@@ -4,6 +4,8 @@ import "./interfaces/IKondux.sol";
 import "./interfaces/ITreasury.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
+// import "hardhat/console.sol";
+
 /// @title MinterBundle
 /// @notice A smart contract for managing the minting of NFT bundles, setting prices, and interacting with the treasury.
 /// @dev Inherits from OpenZeppelin's AccessControl for role management.
@@ -21,6 +23,9 @@ contract MinterBundle is AccessControl {
     /// @notice Interface to interact with Kondux NFT contract.
     IKondux public kNFT;
 
+    /// @notice Iterface to interact with the kBOX NFT contract.
+    IKondux public kBox;
+
     /// @notice Interface to interact with the treasury contract.
     ITreasury public treasury;
 
@@ -35,15 +40,17 @@ contract MinterBundle is AccessControl {
     /// @notice Constructor to initialize the MinterBundle contract.
     /// @param _kNFT The address of the Kondux NFT contract.
     /// @param _treasury The address of the treasury contract.
-    constructor(address _kNFT, address _treasury) {  
-        setKNFT(_kNFT);
-        setTreasury(_treasury);
-        setPrice(0.25 ether);
-        setBundleSize(5);
-        setPaused(false);
-
+    constructor(address _kNFT, address _kBox, address _treasury) {
+        kNFT = IKondux(_kNFT);
+        kBox = IKondux(_kBox);
+        treasury = ITreasury(_treasury);
+        price = 0.25 ether;
+        bundleSize = 5;
+        paused = false;
+        // console.log(address(kNFT));  
+        
         // Grant admin role to the message sender
-        grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     /// @notice Sets the paused state of the contract.
@@ -63,6 +70,27 @@ contract MinterBundle is AccessControl {
         uint256[] memory tokenIds = _mintBundle();
         emit BundleMinted(msg.sender, tokenIds);
         return tokenIds;
+    }
+
+    /// @notice Function to burn a kBox and mint a bundle of NFTs if the contract is active. 
+    /// @dev Requires a kBox sent and calls the internal mint function. It burns a kBox and mints a bundle of NFTs.
+    /// @return tokenIds The array of minted token IDs.
+    function publicMintWithBox(uint256 _kBoxId) public isActive returns (uint256[] memory){
+        require(kBox.ownerOf(_kBoxId) == msg.sender, "You are not the owner of this kBox");
+        require(kBox.getApproved(_kBoxId) == address(this), "This contract is not approved to burn this kBox");
+        kBox.burn(_kBoxId);
+        uint256[] memory tokenIds = _mintBundle();
+        emit BundleMinted(msg.sender, tokenIds);
+        return tokenIds;
+    }
+
+    /// @notice Sets the kBox NFT contract address.
+    /// @dev Can only be called by an admin, requires non-zero address.
+    /// @param _kBox The new kBox address.
+    function setKBox(address _kBox) public onlyAdmin {
+        require(_kBox != address(0), "kBox address is not set");
+        kBox = IKondux(_kBox);
+        emit KNFTChanged(_kBox);
     }
 
     /// @notice Sets the treasury contract address.
@@ -109,6 +137,26 @@ contract MinterBundle is AccessControl {
         require(_admin != address(0), "Admin address is not set");
         require(!hasRole(DEFAULT_ADMIN_ROLE, _admin), "Address already has admin role");
         grantRole(DEFAULT_ADMIN_ROLE, _admin);
+    }
+
+    // ** GETTERS ** //
+
+    /// @notice Get the address of the Kondux NFT contract.
+    /// @return The address of the Kondux NFT contract.
+    function getKNFT() public view returns (address) {
+        return address(kNFT);
+    }
+
+    /// @notice Get the address of the kBox NFT contract.
+    /// @return The address of the kBox NFT contract.
+    function getKBox() public view returns (address) {
+        return address(kBox);
+    }
+
+    /// @notice Get the address of the treasury contract.
+    /// @return The address of the treasury contract.
+    function getTreasury() public view returns (address) {
+        return address(treasury);
     }
 
     // ** INTERNAL FUNCTIONS **
