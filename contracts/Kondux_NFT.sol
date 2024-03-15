@@ -76,7 +76,6 @@ contract Kondux is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC721Roy
         _;
     }
 
-
     /**
      * @dev Changes the denominator value.
      * Emits a DenominatorChanged event with the new denominator value.
@@ -183,7 +182,7 @@ contract Kondux is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC721Roy
      * @param _tokenID The ID of the token.
      * @return The DNA value of the token.
      */
-    function getDna (uint256 _tokenID) public view returns (uint256) {
+    function getDna(uint256 _tokenID) public view returns (uint256) {
         require(_ownerOf(_tokenID) != address(0), "ERC721Metadata: URI query for nonexistent token");
         return indexDna[_tokenID];
     }
@@ -197,7 +196,7 @@ contract Kondux is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC721Roy
      * @param endIndex The ending index of the byte range.
      * @return The extracted value from the specified byte range.
      */
-    function readGen(uint256 _tokenID, uint8 startIndex, uint8 endIndex) public view returns (int256) {
+    function readGene(uint256 _tokenID, uint8 startIndex, uint8 endIndex) public view returns (int256) {
         require(startIndex < endIndex && endIndex <= 32, "Invalid range");
 
         uint256 originalValue = indexDna[_tokenID];
@@ -230,8 +229,8 @@ contract Kondux is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC721Roy
      * @param startIndex The starting index of the byte range.
      * @param endIndex The ending index of the byte range.
      */ 
-    function writeGen(uint256 _tokenID, uint256 inputValue, uint8 startIndex, uint8 endIndex) public onlyDnaModifier {
-        _writeGen(_tokenID, inputValue, startIndex, endIndex); 
+    function writeGene(uint256 _tokenID, uint256 inputValue, uint8 startIndex, uint8 endIndex) public onlyDnaModifier {
+        _writeGene(_tokenID, inputValue, startIndex, endIndex); 
     }
 
     /**
@@ -243,7 +242,7 @@ contract Kondux is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC721Roy
      * @param startIndex The starting index of the byte range.
      * @param endIndex The ending index of the byte range.
      */
-    function _writeGen(uint256 _tokenID, uint256 inputValue, uint8 startIndex, uint8 endIndex) internal {
+    function _writeGene(uint256 _tokenID, uint256 inputValue, uint8 startIndex, uint8 endIndex) internal {
         require(startIndex < endIndex && endIndex <= 32, "Invalid range");
         require(inputValue >= 0, "Only positive values are supported");
 
