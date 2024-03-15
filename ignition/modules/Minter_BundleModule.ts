@@ -1,19 +1,16 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import TreasuryModule from "./TreasuryModule";
 import KNFTModule from "./KNFTModule";
-import KBoxModule from "./KBoxModule";
-
 
 export default buildModule("MinterBundle", (m) => {
-  const treasury = m.useModule(TreasuryModule);
+  const treasury = m.contractAt("Treasury", "0xaD2E62E90C63D5c2b905C3F709cC3045AecDAa1E");
   const knft = m.useModule(KNFTModule);
-  const kbox = m.useModule(KBoxModule);
+  const kbox = m.contractAt("KBox", "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419");
 
   const MINTER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("MINTER_ROLE"));
 
-  const minterBundle = m.contract("MinterBundle", [knft.kondux, kbox.kBox, treasury.treasury]);
+  const minterBundle = m.contract("MinterBundle", [knft.kondux, kbox.address, treasury.address]);
 
-  m.call(treasury.treasury, "setPermission", [0, minterBundle, true]);
+  m.call(treasury, "setPermission", [0, minterBundle, true]);
   m.call(knft.kondux, "grantRole", [MINTER_ROLE, minterBundle]);
 
   return { minterBundle }; 

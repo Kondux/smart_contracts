@@ -6,7 +6,7 @@ import "@nomiclabs/hardhat-solhint";
 import "@nomicfoundation/hardhat-verify";
 import "hardhat-abi-exporter";
 // import "hardhat-deploy";
-// import "hardhat-gas-reporter";
+import "hardhat-gas-reporter";
 // import '@typechain/hardhat'
 import '@nomicfoundation/hardhat-ethers'
 // import '@nomicfoundation/hardhat-chai-matchers'
@@ -64,6 +64,8 @@ function getChainConfig(network: keyof typeof chainIds): NetworkUserConfig {
       accounts: accounts,
       chainId: chainIds[network],
       url,
+      gasPrice: 50000000000,
+      gas: 5000000
   };
 }
 
@@ -124,16 +126,16 @@ const config: HardhatUserConfig = {
     fuji: getChainConfig("fuji"),
     buildbear: getChainConfig("buildbear"),       
   },
-  // gasReporter: {
-  //   currency: 'USD',
-  //   token: 'ETH',
-  //   showMethodSig: true,
-  //   showTimeSpent: true,
-  //   enabled: process.env.REPORT_GAS ? true : false,
-  //   excludeContracts: [],
-  //   src: "./contracts",
-  //   coinmarketcap: COINMARKETCAP_API_KEY,
-  // },
+  gasReporter: {
+    currency: 'USD',
+    token: 'ETH',
+    showMethodSig: true,
+    showTimeSpent: true,
+    enabled: process.env.REPORT_GAS ? true : false,
+    excludeContracts: [],
+    src: "./contracts",
+    coinmarketcap: COINMARKETCAP_API_KEY,
+  },
 
   etherscan: {
     apiKey: {

@@ -1,7 +1,6 @@
 {
-  "Authority#Authority": "0x05AeBD84F98E11Fdc89726E0a7a16aaf7D267190",
-  "KBox#KonduxERC721kNFT": "0xdcaFbad44dB77e12Fc4b9bfa4c0e330Fdf816093",
-  "Kondux#Kondux": "0x22a1035f519602BFEAC61A7Bd4C0Ff6D43BCEEA1",
-  "Treasury#Treasury": "0xfD24Fe1f5656649Ed7893E56361310c467AA0B8e",
-  "MinterBundle#MinterBundle": "0x7E90c6c4878Ff9F9EC4AaE1413B513199Cdf4755"
+  "MinterBundleTestnet#KBox": "0x71DE28127308b55f000CbDd3377Dc260Ce8C5d23",
+  "MinterBundleTestnet#Treasury": "0x7Ac1B87116Df992a961Be2ccdd92dd9659f834ae",
+  "Kondux#Kondux": "0xEc03283b718dB31af263377a6f132F7DF52E52B2",
+  "MinterBundleTestnet#MinterBundle": "0x91928fF91a53Ef2a7c81499Fed7D0A5E1bA1a175"
 }
