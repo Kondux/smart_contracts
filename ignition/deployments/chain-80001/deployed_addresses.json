@@ -2,5 +2,7 @@
   "MinterBundleTestnet#KBox": "0x71DE28127308b55f000CbDd3377Dc260Ce8C5d23",
   "MinterBundleTestnet#Treasury": "0x7Ac1B87116Df992a961Be2ccdd92dd9659f834ae",
   "Kondux#Kondux": "0xEc03283b718dB31af263377a6f132F7DF52E52B2",
-  "MinterBundleTestnet#MinterBundle": "0x91928fF91a53Ef2a7c81499Fed7D0A5E1bA1a175"
+  "MinterBundleTestnet#MinterBundle": "0x22768A41632122D16f16E70E497c10647cbFa743",
+  "KonduxERC721Founders#KonduxERC721Founders": "0xea44dBaDEAaAdE1E447bA828bF7949Ab485b9D33",
+  "Kondux1155#Kondux1155": "0xA7Dc4Dbd162555C6fccFfD95B7841D4aAb92Ce14"
 }
