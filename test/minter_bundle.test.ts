@@ -5,6 +5,7 @@ import KNFTModule from "../ignition/modules/KNFTModule";
 import Minter_BundleModule from "../ignition/modules/Minter_BundleModule";
 import KBoxModule from '../ignition/modules/KBoxModule';
 import Treasury from '../ignition/modules/TreasuryModule';
+import FoundersModule from '../ignition/modules/FoundersModule';
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
 
 describe("MinterBundle", () => {
@@ -13,6 +14,7 @@ describe("MinterBundle", () => {
     const knft = await ignition.deploy(KNFTModule);
     const kbox = await ignition.deploy(KBoxModule);
     const treasury = await ignition.deploy(Treasury);
+    const founders = await ignition.deploy(FoundersModule);
 
     const MINTER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("MINTER_ROLE"));
     
@@ -22,6 +24,9 @@ describe("MinterBundle", () => {
     const setKBox = await minter.minterBundle.setKBox(kbox.kBox);
     await setKBox.wait();
 
+    const setFounders = await minter.minterBundle.setFoundersPass(founders.founders);
+    await setFounders.wait();
+
     const setTreasury = await minter.minterBundle.setTreasury(treasury.treasury);
     await setTreasury.wait();
 
@@ -29,12 +34,12 @@ describe("MinterBundle", () => {
     await treasuryPermission.wait();
     
     const grantRole = await knft.kondux.grantRole(MINTER_ROLE, minter.minterBundle);
-    await grantRole.wait();
+    await grantRole.wait();    
     
     const [owner] = await ethers.getSigners();
     const ownerAddress = await owner.getAddress();
 
-    return { minter, knft, kbox, owner, ownerAddress, treasury };
+    return { minter, knft, kbox, owner, ownerAddress, treasury, founders };
   }
   
   beforeEach(async () => {
@@ -47,6 +52,9 @@ describe("MinterBundle", () => {
 
   it("should buy KNFT with Ether", async () => {    
     const { minter, knft, ownerAddress } = await loadFixture(deployModuleFixture);
+
+    const unpause = await minter.minterBundle.setPaused(false);
+    await unpause.wait();
 
     const mint = await minter.minterBundle.publicMint({value: ethers.parseEther("0.25")});
     const mintReceipt = await mint.wait();
@@ -72,6 +80,9 @@ describe("MinterBundle", () => {
 
   it("should buy KNFT with kBox", async () => {    
     const { minter, knft, kbox, ownerAddress } = await loadFixture(deployModuleFixture);
+
+    const unpause = await minter.minterBundle.setPaused(false);
+    await unpause.wait();
 
     const mintBox = await kbox.kBox.faucet();
     await mintBox.wait();
@@ -102,6 +113,9 @@ describe("MinterBundle", () => {
 
   it("Should set the price of KNFT", async () => {
     const { minter, knft, ownerAddress } = await loadFixture(deployModuleFixture);
+
+    const unpause = await minter.minterBundle.setPaused(false);
+    await unpause.wait();    
     
     expect(await minter.minterBundle.price()).to.equal(ethers.parseEther("0.25"));
 
@@ -131,6 +145,9 @@ describe("MinterBundle", () => {
 
   it("Should change the treasury address", async () => {
     const { minter, knft, treasury, ownerAddress } = await loadFixture(deployModuleFixture);
+
+    const unpause = await minter.minterBundle.setPaused(false);
+    await unpause.wait();
 
     const treasuryMinterAddress = await minter.minterBundle.getTreasury();
     const treasuryContractAddress = await treasury.treasury.target;
@@ -162,6 +179,9 @@ describe("MinterBundle", () => {
 
   it("Should change the kBox address", async () => {
     const { minter, knft, kbox, ownerAddress } = await loadFixture(deployModuleFixture);
+
+    const unpause = await minter.minterBundle.setPaused(false);
+    await unpause.wait();
 
     const kBoxAddress = await minter.minterBundle.getKBox();
     const kBoxContractAddress = await kbox.kBox.target;
@@ -224,6 +244,9 @@ describe("MinterBundle", () => {
   it("Should change the KNFT address", async () => {
     const { minter, knft, ownerAddress } = await loadFixture(deployModuleFixture);
 
+    const unpause = await minter.minterBundle.setPaused(false);
+    await unpause.wait();
+
     const konduxAddress = await minter.minterBundle.getKNFT();
     const konduxContractAddress = await knft.kondux.target;
 
@@ -258,6 +281,9 @@ describe("MinterBundle", () => {
   it("Should change the bundle size", async () => {
     const { minter, knft, ownerAddress } = await loadFixture(deployModuleFixture);
 
+    const unpause = await minter.minterBundle.setPaused(false);
+    await unpause.wait();
+
     const mint = await minter.minterBundle.publicMint({value: ethers.parseEther("0.25")});
     await mint.wait();
 
@@ -290,6 +316,9 @@ describe("MinterBundle", () => {
   it("Should set the DNA of the KNFT after minting", async () => {
     const { minter, knft } = await loadFixture(deployModuleFixture);
 
+    const unpause = await minter.minterBundle.setPaused(false);
+    await unpause.wait();
+
     const mint = await minter.minterBundle.publicMint({value: ethers.parseEther("0.25")});
     await mint.wait();
 
@@ -304,8 +333,11 @@ describe("MinterBundle", () => {
 
   });
 
-  it("Should set a Gene at a specific position", async () => {
+  it("Should set a Gene at a specific position", async () => {    
     const { minter, knft } = await loadFixture(deployModuleFixture);
+
+    const unpause = await minter.minterBundle.setPaused(false);
+    await unpause.wait();
 
     const mint = await minter.minterBundle.publicMint({value: ethers.parseEther("0.25")});
     await mint.wait();
@@ -338,6 +370,9 @@ describe("MinterBundle", () => {
   it("Should be able to transfer KNFT", async () => {
     const { minter, knft, ownerAddress } = await loadFixture(deployModuleFixture);
 
+    const unpause = await minter.minterBundle.setPaused(false);
+    await unpause.wait();
+
     const mint = await minter.minterBundle.publicMint({value: ethers.parseEther("0.25")});
     await mint.wait();
 
@@ -365,6 +400,89 @@ describe("MinterBundle", () => {
     // DNA should be the same
     expect(await knft.kondux.getDna(0)).to.equal(ethers.keccak256(ethers.toUtf8Bytes("NEW")));
 
+  });
+
+  it("Should be able to set a new pause state", async () => {
+    const { minter, knft } = await loadFixture(deployModuleFixture);
+
+    expect(await minter.minterBundle.paused()).to.equal(true);
+
+    const unpause = await minter.minterBundle.setPaused(false);
+    await unpause.wait();
+
+    expect(await minter.minterBundle.paused()).to.equal(false);
+
+    const pause = await minter.minterBundle.setPaused(true);
+    await pause.wait();
+
+    expect(await minter.minterBundle.paused()).to.equal(true);
+  });
+
+  it("Should pause public minting", async () => {
+    const { minter, knft, founders } = await loadFixture(deployModuleFixture);
+
+    const unpause = await minter.minterBundle.setPaused(false);
+    await unpause.wait();
+
+    const knftActive = await minter.minterBundle.setPublicMintActive(true);
+    await knftActive.wait();
+
+    const burnFP = await founders.founders.burn(1);
+    await burnFP.wait();
+
+    const mint = await minter.minterBundle.publicMint({value: ethers.parseEther("0.25")});
+    await mint.wait();
+
+    const pause = await minter.minterBundle.setPublicMintActive(false);
+    await pause.wait();
+
+    const faucetFP = await founders.founders.faucet();
+    await faucetFP.wait();
+
+    // Still mintable with Founders Pass
+    const mint2 = await minter.minterBundle.publicMint({value: ethers.parseEther("0.25")});
+    await mint2.wait();
+
+    const burnFoundersPass = await founders.founders.burn(2);
+    await burnFoundersPass.wait();
+
+    await expect(minter.minterBundle.publicMint({value: ethers.parseEther("0.25")})).to.be.revertedWith("kNFT minting is not active or you don't have a Founder's Pass");
+  });
+
+  it("Should pause minting with kBox", async () => {
+    const { minter, kbox } = await loadFixture(deployModuleFixture);
+
+    const unpause = await minter.minterBundle.setPaused(false);
+    await unpause.wait();
+
+    const mintBox = await kbox.kBox.faucet();
+    await mintBox.wait();
+
+    const approve = await kbox.kBox.approve(minter.minterBundle, 1);
+    await approve.wait();
+
+    const mint = await minter.minterBundle.publicMintWithBox(1);
+    await mint.wait();
+
+    const pause = await minter.minterBundle.setKBoxMintActive(false);
+    await pause.wait();
+
+    await expect(minter.minterBundle.publicMintWithBox(1)).to.be.revertedWith("kBox minting is not active");
+  });
+
+  it("Should pause with Founders Pass", async () => {
+    const { minter, founders } = await loadFixture(deployModuleFixture);
+
+    const unpause = await minter.minterBundle.setPaused(false);
+    await unpause.wait();
+
+    const mint = await minter.minterBundle.publicMintWithFoundersPass(1);
+    await mint.wait();
+
+    const pause = await minter.minterBundle.setFoundersPassMintActive(false);
+    await pause.wait();
+
+    await expect(minter.minterBundle.publicMintWithFoundersPass(1)).to.be.revertedWith("Founder's Pass minting is not active");
   });
 
 });
