@@ -69,7 +69,7 @@ npx hardhat compile
 
 ## Deploy locally: 
 # Dry deployment: 
-npx hardhat deploy
+npx hardhat ignition deploy [MODULE] --network [NETWORK] 
 
 # With node running:
 npx hardhat node
@@ -77,8 +77,8 @@ npx hardhat node
 # Connect with console:
 npx hardhat console --network localhost
 
-## Compile and Deploy to Rinkeby:
-npx hardhat deploy --network rinkeby
+## Compile and Deploy to Goerli:
+npx hardhat ignition deploy [MODULE] --network Goerli 
 
 ## Test: 
 npx hardhat test
