@@ -7,6 +7,9 @@ import KBoxModule from '../ignition/modules/KBoxModule';
 import Treasury from '../ignition/modules/TreasuryModule';
 import FoundersModule from '../ignition/modules/FoundersModule';
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
+import axios from 'axios';
+ 
+const BASE_URL = "https://h7af1y611a.execute-api.us-east-1.amazonaws.com/";
 
 describe("MinterBundle", () => {
   async function deployModuleFixture() {
@@ -483,6 +486,68 @@ describe("MinterBundle", () => {
     await pause.wait();
 
     await expect(minter.minterBundle.publicMintWithFoundersPass(1)).to.be.revertedWith("Founder's Pass minting is not active");
+  });
+
+  it("Should have a whitelist root", async () => {
+    const { minter } = await loadFixture(deployModuleFixture);
+
+    const rootWhitelistBundleRes = await axios.get(BASE_URL + "rootWhitelistBundle");
+    const rootWhitelistBundle = rootWhitelistBundleRes.data.root;
+
+    expect(await minter.minterBundle.rootWhitelist()).to.equal(rootWhitelistBundle);
+  });
+
+  it("Should set a new whitelist root", async () => {
+    const { minter } = await loadFixture(deployModuleFixture);
+
+    const rootWhitelistBundleRes = await axios.get(BASE_URL + "rootWhitelistBundle");
+    const rootWhitelistBundle = rootWhitelistBundleRes.data.root;
+
+    const setWhitelistRoot = await minter.minterBundle.setWhitelistRoot(rootWhitelistBundle);
+    await setWhitelistRoot.wait();
+
+    expect(await minter.minterBundle.rootWhitelist()).to.equal(rootWhitelistBundle);    
+
+    // should fail if not called by the owner
+    const [_, newOwner] = await ethers.getSigners();
+    const newOwnerAddress = await newOwner.getAddress();
+
+    await expect(minter.minterBundle.connect(newOwner).setWhitelistRoot(rootWhitelistBundle)).to.be.reverted;
+  });
+
+  it("Should buy KNFT with whitelist", async () => {
+    const { minter, knft, ownerAddress } = await loadFixture(deployModuleFixture);
+
+    const unpause = await minter.minterBundle.setPaused(false);
+    await unpause.wait();
+
+    const response = await axios.get(BASE_URL + ownerAddress + "/proofWhitelistBundle");
+
+    const data = response.data;
+    const proof = data.response;
+
+    await expect(minter.minterBundle.publicMintWhitelist(proof, {value: ethers.parseEther("0.1")})).to.be.reverted;
+
+    const mint = await minter.minterBundle.publicMintWhitelist(proof, {value: ethers.parseEther("0.25")});
+    await mint.wait();
+
+    expect(await knft.kondux.balanceOf(ownerAddress)).to.equal(5);
+    for (let index = 0; index < 5; index++) {
+      expect(await knft.kondux.ownerOf(index)).to.equal(ownerAddress);
+    }
+
+    // should fail if not called by the owner
+    const [_, newOwner] = await ethers.getSigners();
+    const newOwnerAddress = await newOwner.getAddress();
+
+    await expect(minter.minterBundle.connect(newOwner).publicMintWhitelist(proof, {value: ethers.parseEther("0.25")})).to.be.reverted;
+
+    // should fail if whitelist is not active
+    const pause = await minter.minterBundle.setWhitelistActive(false);
+    await pause.wait();
+
+    await expect(minter.minterBundle.publicMintWhitelist(proof, {value: ethers.parseEther("0.25")})).to.be.reverted;
+    
   });
 
 });

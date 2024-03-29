@@ -1,12 +1,12 @@
 {
-  "MinterBundle#KBox": "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
+  "MinterBundle#KBox": "0x7eD509A69F7FD93fD59A557369a9a5dCc1499685",
   "MinterBundle#Treasury": "0xaD2E62E90C63D5c2b905C3F709cC3045AecDAa1E",
   "Kondux#Kondux": "0x0846E583817FD8C467DED225d33182567fcFDEed",
-  "MinterBundle#MinterBundle": "0x2DC4051918bdb4F14C45BaFedDc23ca2a68C23c3",
+  "MinterBundle#MinterBundle": "0xc635aAC0F24CF7a98Eb49C086ca1cDD0DD6813D8",
   "MinterBundle#KonduxFounders": "0xD3f011f1768B38CcC0faA7B00E59B0E29920194b",
   "MinterBundleDemo#KBox": "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
   "MinterBundleDemo#KonduxFounders": "0xD3f011f1768B38CcC0faA7B00E59B0E29920194b",
   "MinterBundleDemo#Treasury": "0xaD2E62E90C63D5c2b905C3F709cC3045AecDAa1E",
   "KonduxDemo#KonduxDemo": "0x148F68D1028e8B45d1f810d229e259dD5d836B5A",
-  "MinterBundleDemo#MinterBundleDemo": "0x63E1754A264d64ec76109486DF898391550bC26C"
+  "MinterBundleDemo#MinterBundleDemo": "0x6d04f469Ea1823c2f829Ffb4b7Eaa1c0984AD9e7"
 }

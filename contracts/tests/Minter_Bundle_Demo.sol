@@ -4,6 +4,8 @@ import "../interfaces/IKondux.sol";
 import "../interfaces/ITreasury.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+
 
 /**
  * @title MinterBundle
@@ -16,8 +18,10 @@ contract MinterBundleDemo is AccessControl {
     bool public foundersPassActive; // Controls whether founders pass can be used for minting.
     bool public kBoxActive; // Controls whether kBox can be used for minting.
     bool public kNFTActive; // Controls whether kNFT can be used for minting.
+    bool public whitelistActive; // Controls whether the whitelist is active.
     uint16 public bundleSize; // The number of NFTs in each minted bundle.
     uint256 public price; // The ETH price for minting a bundle.
+    bytes32 public rootWhitelist; // The Merkle root for the whitelist.
 
     IKondux public kNFT; // Interface to interact with the Kondux NFT contract for NFT operations.
     IKondux public kBox; // Interface for the kBOX NFT contract, allowing for special minting conditions.
@@ -39,6 +43,8 @@ contract MinterBundleDemo is AccessControl {
     event PublicMintActive(bool active);
     event KBoxMintActive(bool active);
     event FoundersPassMintActive(bool active);
+    event WhitelistActive(bool active);
+    event WhitelistRootChanged(bytes32 root);
 
     /**
      * @dev Sets initial contract state, including addresses of related contracts, default price, and bundle size. Grants admin role to the deployer for further administrative actions.
@@ -51,11 +57,12 @@ contract MinterBundleDemo is AccessControl {
         kBox = IKondux(_kBox);
         foundersPass = IKondux(_foundersPass);
         treasury = ITreasury(_treasury);
-        price = 0.0000001 ether;
+        price = 0.000001 ether;
         bundleSize = 5;
         paused = false;
         foundersPassActive = true;
         kBoxActive = true;
+        whitelistActive = true;
         kNFTActive = true;
         
         // Grant admin role to the message sender
@@ -79,6 +86,22 @@ contract MinterBundleDemo is AccessControl {
      */
     function publicMint() public payable isActive isPublicMintActive returns (uint256[] memory) {
         require(msg.value >= price, "Not enough ETH sent");
+        treasury.depositEther{ value: msg.value }();
+        uint256[] memory tokenIds = _mintBundle(bundleSize);
+        emit BundleMinted(msg.sender, tokenIds);
+        return tokenIds;
+    }
+
+    /**
+     * @notice Mints a bundle of NFTs if minting is active and sufficient ETH is sent. Requires the sender to be on the whitelist.
+     * @dev Validates the sent ETH amount against the current price, deposits the ETH to the treasury, and mints the NFT bundle. Requires the contract to not be paused and the whitelist to be active.
+     * @param _merkleProof The Merkle proof for the sender's address.
+     * @return tokenIds Array of minted token IDs.
+     */     
+    function publicMintWhitelist(bytes32[] calldata _merkleProof) public payable isActive isWhitelistActive returns (uint256[] memory) {
+        require(msg.value >= price, "Not enough ETH sent");        
+        bytes32 leaf = keccak256(abi.encodePacked(msg.sender));
+        require(MerkleProof.verify(_merkleProof, rootWhitelist, leaf), "Incorrect proof");
         treasury.depositEther{ value: msg.value }();
         uint256[] memory tokenIds = _mintBundle(bundleSize);
         emit BundleMinted(msg.sender, tokenIds);
@@ -243,6 +266,27 @@ contract MinterBundleDemo is AccessControl {
         emit FoundersPassMintActive(_active);
     }
 
+    /**
+     * @notice Sets the active state for the whitelist.
+     * @dev Admin-only function to toggle the active state of the whitelist. Emits a `WhitelistActive` event reflecting the new state.
+     * @param _active Boolean indicating the desired active state.
+     */
+    function setWhitelistActive(bool _active) public onlyAdmin {
+        whitelistActive = _active;
+        emit WhitelistActive(_active);
+    }
+
+    /**
+     * @notice Updates the Merkle root for the whitelist.
+     * @dev Admin-only function to set a new Merkle root for the whitelist. Emits a `WhitelistRootChanged` event reflecting the new root.
+     * @param _root The new Merkle root for the whitelist.
+     */
+    function setWhitelistRoot(bytes32 _root) public onlyAdmin {
+        rootWhitelist = _root;
+
+        emit WhitelistRootChanged(_root);
+    }
+
     // Getter functions provide external visibility into the contract's state without modifying it.
 
     /**
@@ -315,6 +359,14 @@ contract MinterBundleDemo is AccessControl {
      */
     modifier isFoundersPassMintActive() {
         require(foundersPassActive, "Founder's Pass minting is not active");
+        _;
+    }
+
+    /**
+     * @dev Ensures a function is only callable when the whitelist is active.
+     */
+    modifier isWhitelistActive() {
+        require(whitelistActive, "Whitelist is not active");
         _;
     }
 
