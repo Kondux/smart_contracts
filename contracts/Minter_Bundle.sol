@@ -182,9 +182,11 @@ contract MinterBundle is AccessControl {
         emit TreasuryChanged(_treasury);
     }
 
-    /// @notice Sets the Kondux NFT contract address.
-    /// @dev Can only be called by an admin, requires non-zero address.
-    /// @param _kNFT The new KNFT address.
+    /**
+     * @notice Updates the address of the Kondux NFT contract.
+     * @dev Admin-only function to change the contract address for managing Kondux NFT operations. Validates the new address before updating and emits a `KNFTChanged` event on success.
+     * @param _kNFT The new Kondux NFT contract address.
+     */
     function setKNFT(address _kNFT) public onlyAdmin {
         require(_kNFT != address(0), "KNFT address is not set");
         kNFT = IKondux(_kNFT);
@@ -332,6 +334,7 @@ contract MinterBundle is AccessControl {
 
     /**
      * @dev Ensures a function is only callable when the contract is not paused.
+     * @notice Requires the contract to not be paused for the function to execute.
      */
     modifier isActive() {
         require(!paused, "Contract is paused");
@@ -340,6 +343,7 @@ contract MinterBundle is AccessControl {
 
     /**
      * @dev Ensures a function is only callable when kNFT minting is active.
+     * @notice Requires the kNFT minting to be active for the function to execute.
      */
     modifier isPublicMintActive() {
         require(kNFTActive || (foundersPassActive && foundersPass.balanceOf(msg.sender) > 0), "kNFT minting is not active or you don't have a Founder's Pass");
@@ -348,6 +352,7 @@ contract MinterBundle is AccessControl {
 
     /**
      * @dev Ensures a function is only callable when kBox minting is active.
+     * @notice Requires the kBox minting to be active for the function to execute.
      */
     modifier isKBoxMintActive() {
         require(kBoxActive, "kBox minting is not active");
@@ -356,6 +361,7 @@ contract MinterBundle is AccessControl {
 
     /**
      * @dev Ensures a function is only callable when founders pass minting is active.
+     * @notice Requires the founders pass minting to be active for the function to execute.
      */
     modifier isFoundersPassMintActive() {
         require(foundersPassActive, "Founder's Pass minting is not active");
@@ -364,6 +370,7 @@ contract MinterBundle is AccessControl {
 
     /**
      * @dev Ensures a function is only callable when the whitelist is active.
+     * @notice Requires the whitelist to be active for the function to execute.
      */
     modifier isWhitelistActive() {
         require(whitelistActive, "Whitelist is not active");
@@ -372,6 +379,7 @@ contract MinterBundle is AccessControl {
 
     /**
      * @dev Restricts a function's access to users with the admin role.
+     * @notice Only callable by users with the admin role.
      */
     modifier onlyAdmin() {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Caller is not an admin");

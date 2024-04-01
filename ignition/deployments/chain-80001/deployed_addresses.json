@@ -1,8 +1,14 @@
 {
   "MinterBundleTestnet#KBox": "0x71DE28127308b55f000CbDd3377Dc260Ce8C5d23",
   "MinterBundleTestnet#Treasury": "0x7Ac1B87116Df992a961Be2ccdd92dd9659f834ae",
-  "Kondux#Kondux": "0xEc03283b718dB31af263377a6f132F7DF52E52B2",
-  "MinterBundleTestnet#MinterBundle": "0x22768A41632122D16f16E70E497c10647cbFa743",
-  "KonduxERC721Founders#KonduxERC721Founders": "0xea44dBaDEAaAdE1E447bA828bF7949Ab485b9D33",
-  "Kondux1155#Kondux1155": "0xA7Dc4Dbd162555C6fccFfD95B7841D4aAb92Ce14"
+  "Kondux#Kondux": "0x002a4F0aA6D2Ae840Ba2B9FfC0288F6FceCE0bFc",
+  "MinterBundleTestnet#MinterBundle": "0x004EDA33a9F3b3045b78D4b1c022B8054621828e",
+  "KonduxERC721Founders#KonduxERC721Founders": "0x2C9d9a71703abFc404DF4bae35A159f2a4d1E081",
+  "Kondux1155#Kondux1155": "0xA7Dc4Dbd162555C6fccFfD95B7841D4aAb92Ce14",
+  "Authority#Authority": "0x2347392360c5961efC4a92285506689fCce3f37A",
+  "KBox#KBox": "0x64840Edd5bb3a08F0Ec6c742B9f6d9bd7583a2Fe",
+  "Treasury#Treasury": "0x7F393C4c4DbBd1F3594dEdeA0333E02f76b779e7",
+  "Kondux_kNFT#MinterBundle": "0xd81C688adDb82794c40611a2382bDE65F679c3D8",
+  "Kondux_kNFT#Staking": "0x07e6f2239d6fbe2ce00747fcfb8344ebbf973bcc",
+  "Kondux_kNFT#Kondux": "0x520e83709a48CD48e60917DDE9BA455996718327"
 }

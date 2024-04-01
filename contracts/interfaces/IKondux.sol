@@ -10,8 +10,6 @@ interface IKondux {
     function setTokenRoyalty(uint256 tokenId, address receiver, uint96 feeNumerator) external;
     function setBaseURI(string memory _newURI) external returns (string memory);
     function tokenURI(uint256 tokenId) external view returns (string memory);
-    function pause() external;
-    function unpause() external;
     function safeMint(address to, uint256 dna) external returns (uint256);
     function setDna(uint256 _tokenID, uint256 _dna) external;
     function getDna(uint256 _tokenID) external view returns (uint256);

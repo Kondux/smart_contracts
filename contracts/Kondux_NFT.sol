@@ -4,14 +4,13 @@ pragma solidity ^0.8.23;
 // Import OpenZeppelin contracts
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Royalty.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
 // Kondux contract inherits from various OpenZeppelin contracts
-contract Kondux is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC721Royalty, AccessControl {
+contract Kondux is ERC721, ERC721Enumerable, ERC721Burnable, ERC721Royalty, AccessControl {
     uint256 private _tokenIdCounter;
 
     // Events emitted by the contract
@@ -136,21 +135,6 @@ contract Kondux is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC721Roy
     }
 
     /**
-     * @dev Pauses the contract, preventing further token transfers.
-     */
-    function pause() public onlyAdmin {
-        _pause();
-    }
-
-    /**
-     * @dev Unpauses the contract, allowing token transfers.
-     */
-    function unpause() public onlyAdmin {
-        _unpause();
-    }
-
-
-    /**
      * @dev Safely mints a new token with a specified DNA value for the recipient.
      * Increments the token ID counter.
      *
@@ -196,7 +180,7 @@ contract Kondux is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC721Roy
      * @param endIndex The ending index of the byte range.
      * @return The extracted value from the specified byte range.
      */
-    function readGene(uint256 _tokenID, uint8 startIndex, uint8 endIndex) public view returns (int256) {
+    function readGen(uint256 _tokenID, uint8 startIndex, uint8 endIndex) public view returns (int256) {
         require(startIndex < endIndex && endIndex <= 32, "Invalid range");
 
         uint256 originalValue = indexDna[_tokenID];
@@ -229,8 +213,8 @@ contract Kondux is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC721Roy
      * @param startIndex The starting index of the byte range.
      * @param endIndex The ending index of the byte range.
      */ 
-    function writeGene(uint256 _tokenID, uint256 inputValue, uint8 startIndex, uint8 endIndex) public onlyDnaModifier {
-        _writeGene(_tokenID, inputValue, startIndex, endIndex); 
+    function writeGen(uint256 _tokenID, uint256 inputValue, uint8 startIndex, uint8 endIndex) public onlyDnaModifier {
+        _writeGen(_tokenID, inputValue, startIndex, endIndex); 
     }
 
     /**
@@ -242,7 +226,7 @@ contract Kondux is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC721Roy
      * @param startIndex The starting index of the byte range.
      * @param endIndex The ending index of the byte range.
      */
-    function _writeGene(uint256 _tokenID, uint256 inputValue, uint8 startIndex, uint8 endIndex) internal {
+    function _writeGen(uint256 _tokenID, uint256 inputValue, uint8 startIndex, uint8 endIndex) internal {
         require(startIndex < endIndex && endIndex <= 32, "Invalid range");
         require(inputValue >= 0, "Only positive values are supported");
 
@@ -336,15 +320,24 @@ contract Kondux is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC721Roy
         return super.supportsInterface(interfaceId);
     }
 
+    /**
+     * @dev Internal function to update the balance of a given account.
+     * @param to The address of the account.
+     * @param tokenId The ID of the token.
+     * @param auth The address of the authorizer.
+     */
     function _update(address to, uint256 tokenId, address auth) internal
-        whenNotPaused
         override(ERC721, ERC721Enumerable) 
         returns (address prevOwner) {
         return super._update(to, tokenId, auth);
     }
 
+    /**
+     * @dev Internal function to increase the balance of a given account.
+     * @param account The address of the account.
+     * @param value The amount by which to increase the balance.
+     */
     function _increaseBalance(address account, uint128 value) internal
-        whenNotPaused
         override(ERC721, ERC721Enumerable) {
         super._increaseBalance(account, value);
     }
