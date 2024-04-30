@@ -1,6 +1,9 @@
 const { ethers } = require("ethers");
-import { config as dotenvConfig } from "dotenv";
-dotenvConfig({ path: resolve(__dirname, "../.env") });
+const { config } = require("dotenv");
+const path = require('path');
+const fs = require('fs').promises;
+
+config({ path: path.resolve(__dirname, "../.env") });
 
 const KBOX_ADDRESS = "0x7ed509a69f7fd93fd59a557369a9a5dcc1499685";
 const MY_ALCHEMY_RPC_ENDPOINT='https://eth-mainnet.g.alchemy.com/v2/';
@@ -16,7 +19,8 @@ const prodDeployerPK = process.env.PROD_DEPLOYER_PK ?? "NO_PROD_DEPLOYER_PK";
 async function main() {
     // Configuration: Set up your provider and wallet
     const provider = new ethers.JsonRpcProvider(MY_ALCHEMY_RPC_ENDPOINT + ALCHEMY_API_KEY);
-    const privateKey = deployerPK;
+    // const privateKey = deployerPK;
+    const privateKey = prodDeployerPK;
     const wallet = new ethers.Wallet(privateKey, provider);
 
     // Contract details
@@ -25,7 +29,7 @@ async function main() {
     const contract = new ethers.Contract(contractAddress, contractABI, wallet);
 
     // Read addresses from JSON file
-    const data = await fs.readFile(resolve(__dirname, "./addresses.json"), "utf8");
+    const data = await fs.readFile(path.resolve(__dirname, "./addresses.json"), "utf8");
     const addresses = JSON.parse(data);
 
     // Sending transactions with a 1 second pause between each
