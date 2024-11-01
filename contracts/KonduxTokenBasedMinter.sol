@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.27;
 
 // Import Interfaces
 import "./interfaces/IKondux.sol";
@@ -9,10 +9,16 @@ import "./interfaces/IKonduxERC20.sol";
 
 // Import OpenZeppelin Contracts
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
+
+
+import "hardhat/console.sol";
 
 contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
+    using Math for uint256;
+
     // State Variables
     bool public paused; // Controls whether minting is currently allowed.
     uint16 public bundleSize; // The number of NFTs in each minted bundle.
@@ -23,6 +29,8 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
     ITreasury public treasury; // Interface to interact with the treasury contract for financial transactions.
     IKonduxERC20 public paymentToken; // Interface for the ERC20 token used for minting payments.
     IUniswapV2Pair public uniswapPair; // Interface for the Uniswap V2 pair contract for token swaps.
+
+    // solhint-disable-next-line var-name-mixedcase
     address public WETH; // The address of the WETH token contract.
 
     uint8 private tokenDecimalsCached; // Cached decimals of the ERC20 token.
@@ -121,7 +129,12 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
      * @return tokenIds Array of minted token IDs.
      */
     function publicMint() public nonReentrant notPaused returns (uint256[] memory) {
-        uint256 tokensRequired = _calculateTokenAmount(price);
+        // Fetch current reserves
+        (uint112 reserveETH, uint112 reserveToken) = _getReserves();
+
+        // Calculate the number of tokens required
+        uint256 tokensRequired = _calculateTokenAmount(price, reserveETH, reserveToken, tokenDecimalsCached);
+
         require(
             paymentToken.allowance(msg.sender, address(this)) >= tokensRequired,
             "Insufficient token allowance"
@@ -209,16 +222,6 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
         emit AdminGranted(_admin);
     }
 
-    /**
-     * @notice Sets the active state for founders pass minting.
-     * @dev Admin-only function to toggle the active state of minting NFTs with founders passes. Emits a `FoundersPassMintActive` event reflecting the new state.
-     * @param _active Boolean indicating the desired active state.
-     */
-    function setFoundersPassMintActive(bool _active) public onlyAdmin {
-        foundersPassActive = _active;
-        emit FoundersPassMintActive(_active);
-    }
-
     // Getter functions provide external visibility into the contract's state without modifying it.
 
     /**
@@ -239,12 +242,12 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
 
     /**
      * @notice Calculates the number of ERC20 tokens required for a given ETH amount based on Uniswap V2 pair reserves.
-     * @param ethAmount The amount of ETH to convert to ERC20 tokens (in wei).
+     * @param _ethAmount The amount of ETH to convert to ERC20 tokens (in wei).
      * @return tokenAmount The equivalent amount of ERC20 tokens.
      */
-    function getTokenAmountForETH(uint256 ethAmount) public view returns (uint256 tokenAmount) {
+    function getTokenAmountForETH(uint256 _ethAmount) public view returns (uint256 tokenAmount) {
         (uint112 reserveETH, uint112 reserveToken) = _getReserves();
-        tokenAmount = _calculateTokenAmount(ethAmount, reserveETH, reserveToken, tokenDecimalsCached);
+        tokenAmount = _calculateTokenAmount(_ethAmount, reserveETH, reserveToken, tokenDecimalsCached);
     }
 
     /**
@@ -266,7 +269,6 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
     function _getReserves() internal view returns (uint112 reserveETH, uint112 reserveToken) {
         (uint112 reserve0, uint112 reserve1, ) = uniswapPair.getReserves();
         address token0 = uniswapPair.token0();
-        address token1 = uniswapPair.token1();
 
         if (token0 == WETH) {
             reserveETH = reserve0;
@@ -293,24 +295,23 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
         uint112 reserveToken,
         uint8 tokenDecimals
     ) internal pure returns (uint256 tokenAmount) {
-        // Formula: tokenAmount = (ethAmount * reserveToken * 10**tokenDecimals) / (reserveETH * 1e18)
-        // To maintain precision, we rearrange the calculation to avoid loss of precision.
+        // Base calculation: (ethAmount * reserveToken) / reserveETH
+        uint256 baseAmount = Math.mulDiv(ethAmount, reserveToken, reserveETH);
 
-        // Convert reserveETH to wei if not already (assuming it's in wei)
-        // Assuming ethAmount is in wei.
-
-        // Calculate the number of tokens: (ethAmount * reserveToken) / reserveETH
-        // Adjust for token decimals
         if (tokenDecimals < 18) {
-            tokenAmount = (ethAmount * reserveToken * (10 ** tokenDecimals)) / (reserveETH * 1e18);
+            // Adjust for tokens with fewer decimals
+            uint256 scalingFactor = 10**(18 - tokenDecimals);
+            tokenAmount = baseAmount / scalingFactor;
         } else if (tokenDecimals > 18) {
-            uint256 decimalDifference = tokenDecimals - 18;
-            tokenAmount = (ethAmount * reserveToken * (10 ** decimalDifference)) / reserveETH;
+            // Adjust for tokens with more decimals
+            uint256 scalingFactor = 10**(tokenDecimals - 18);
+            tokenAmount = baseAmount * scalingFactor;
         } else {
-            // tokenDecimals == 18
-            tokenAmount = (ethAmount * reserveToken) / reserveETH;
+            // Token has 18 decimals
+            tokenAmount = baseAmount;
         }
     }
+
 
     /**
      * @notice Calculates the price of one ERC20 token in ETH based on reserves and token decimals.
@@ -349,6 +350,27 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
             tokenIds[i] = kNFT.safeMint(msg.sender, 0); // The second parameter could be a metadata identifier or similar.
         }
         return tokenIds;
+    }
+
+    /**
+     * @dev Attempts to retrieve the decimals of the given ERC20 token.
+     * If the token does not implement decimals(), it defaults to 18.
+     * @param token The address of the ERC20 token.
+     * @return decimals The number of decimals for the token.
+     */
+    function _getTokenDecimals(address token) internal view returns (uint8 decimals) {
+        // Attempt to call decimals() using a low-level static call
+        (bool success, bytes memory data) = token.staticcall(
+            abi.encodeWithSignature("decimals()")
+        );
+
+        if (success && data.length >= 32) {
+            // Decode the returned data to uint8
+            decimals = abi.decode(data, (uint8));
+        } else {
+            // Fallback to 18 decimals if the call fails
+            decimals = 18;
+        }
     }
 
     // Additional functions to manage contract state (e.g., pause, activate) can be added here
@@ -422,8 +444,8 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
         uniswapPair = IUniswapV2Pair(_uniswapPair);
         WETH = _WETH;
 
-        // Update cached token decimals
-        tokenDecimalsCached = paymentToken.decimals();
+        // Update cached token decimals with fallback mechanism
+        tokenDecimalsCached = _getTokenDecimals(_paymentTokenAddr);
 
         emit ConfigurationsUpdated(
             _price,
@@ -436,6 +458,7 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
             _WETH
         );
     }
+
 
     /**
      * @notice Assigns a specific role to an address.
