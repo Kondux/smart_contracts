@@ -2,6 +2,8 @@ const { expect } = require("chai");
 const { ethers, network } = require("hardhat");
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 
+const uniswapPairABI = require("../abi/remote/uniswapPairABI.json");
+
 describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
     // Deployed contract addresses as provided
     const ADMIN_ADDRESS = "0x41BC231d1e2eB583C24cee022A6CBCE5168c9FD2";
@@ -123,21 +125,21 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
             const ethAmount = ethers.parseEther("1.0"); // 1 ETH in wei
 
             // Fetch reserves from Uniswap pair
-            const uniswapPair = await ethers.getContractAt("IUniswapV2Pair", UNISWAP_PAIR_ADDRESS);
+            const uniswapPair = await ethers.getContractAt(uniswapPairABI, UNISWAP_PAIR_ADDRESS);
             const reserves = await uniswapPair.getReserves();
             const token0 = await uniswapPair.token0();
             let reserveETH, reserveToken;
 
             if (token0.toLowerCase() === WETH_ADDRESS.toLowerCase()) {
-                reserveETH = reserves.reserve0;
-                reserveToken = reserves.reserve1;
+                reserveETH = reserves[0];
+                reserveToken = reserves[1];
             } else {
-                reserveETH = reserves.reserve1;
-                reserveToken = reserves.reserve0;
+                reserveETH = reserves[1];
+                reserveToken = reserves[0];
             }
 
             // Fetch token decimals from paymentToken
-            const paymentToken = await ethers.getContractAt("IKonduxERC20", PAYMENT_TOKEN_ADDRESS);
+            const paymentToken = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS);
             const tokenDecimals = await paymentToken.decimals();
 
             // Calculate expected token amount off-chain
@@ -165,21 +167,21 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
             const { konduxTokenBasedMinter } = await loadFixture(deployFixture);
 
             // Fetch reserves from Uniswap pair
-            const uniswapPair = await ethers.getContractAt("IUniswapV2Pair", UNISWAP_PAIR_ADDRESS);
+            const uniswapPair = await ethers.getContractAt(uniswapPairABI, UNISWAP_PAIR_ADDRESS);
             const reserves = await uniswapPair.getReserves();
             const token0 = await uniswapPair.token0();
             let reserveETH, reserveToken;
 
             if (token0.toLowerCase() === WETH_ADDRESS.toLowerCase()) {
-                reserveETH = reserves.reserve0;
-                reserveToken = reserves.reserve1;
+                reserveETH = reserves[0];
+                reserveToken = reserves[1];
             } else {
-                reserveETH = reserves.reserve1;
-                reserveToken = reserves.reserve0;
+                reserveETH = reserves[1];
+                reserveToken = reserves[0];
             }
 
             // Fetch token decimals from paymentToken
-            const paymentToken = await ethers.getContractAt("IKonduxERC20", PAYMENT_TOKEN_ADDRESS);
+            const paymentToken = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS);
             const tokenDecimals = await paymentToken.decimals();
 
             // Calculate expected price off-chain
@@ -381,7 +383,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
                 const { adminSigner, konduxTokenBasedMinter } = await loadFixture(deployFixture);
 
                 // Connect to the payment token contract
-                const paymentToken = await ethers.getContractAt("IKonduxERC20", PAYMENT_TOKEN_ADDRESS);
+                const paymentToken = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS);
 
                 const konduxTokenBasedMinterAddress = await konduxTokenBasedMinter.getAddress();
                 const adminSignerAddress = await adminSigner.getAddress();
@@ -424,7 +426,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
                 const { adminSigner, konduxTokenBasedMinter } = await loadFixture(deployFixture);
 
                 // Connect to the payment token contract
-                const paymentToken = await ethers.getContractAt("IKonduxERC20", PAYMENT_TOKEN_ADDRESS);
+                const paymentToken = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS);
 
                 // Define a withdrawal amount greater than the minter's balance (e.g., 2000 tokens)
                 const withdrawAmount = ethers.parseUnits("2000", KNDX_DECIMALS); // Minter has only 1000 tokens
@@ -567,6 +569,676 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
                     konduxTokenBasedMinter.connect(adminSigner).setPrice(invalidPrice)
                 ).to.be.revertedWith("Price must be greater than 0");
             });
+        });
+    });
+
+    describe("publicMint", function () {
+        it("should allow a user with sufficient tokens and allowance to mint NFTs successfully", async function () {
+            const { adminSigner, konduxTokenBasedMinter } = await loadFixture(deployFixture);
+            const [user] = await ethers.getSigners(); // Get a user signer
+
+            // Connect to the payment token contract as the user
+            const paymentToken = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, user);
+
+            // Define the amount of tokens the user needs to mint
+            const ethAmount = ethers.parseEther("0.25"); // 1 ETH
+            // get reserves from uniswap pair
+            const uniswapPair = await ethers.getContractAt(uniswapPairABI, UNISWAP_PAIR_ADDRESS);
+            const reserves = await uniswapPair.getReserves();
+            const token0 = await uniswapPair.token0();
+            let reserveETH, reserveToken;
+
+            if (token0.toLowerCase() === WETH_ADDRESS.toLowerCase()) {
+                reserveETH = reserves[0];
+                reserveToken = reserves[1];
+            } else {
+                reserveETH = reserves[1];
+                reserveToken = reserves[0];
+            }
+
+            // Fetch token decimals from paymentToken
+            const tokenDecimals = await paymentToken.decimals();            
+
+            // Calculate tokensRequired using the contract's logic
+            // Since _calculateTokenAmount is internal, replicate the calculation here
+            let tokensRequired;
+            if (tokenDecimals < 18) {
+                tokensRequired = (ethAmount * reserveToken * (10n ** tokenDecimals) / (reserveETH * 10n ** 18n));
+            } else if (tokenDecimals > 18) {
+                const decimalDifference = tokenDecimals - 18n;
+                tokensRequired = (ethAmount * reserveToken * 10n ** decimalDifference) / reserveETH;
+            } else {
+                tokensRequired = (ethAmount * reserveToken) / reserveETH;
+            }
+
+            // Transfer tokens to the user from the token holder
+            await network.provider.request({
+                method: "hardhat_impersonateAccount",
+                params: [TOKEN_HOLDER_ADDRESS],
+            });
+            const tokenHolderSigner = await ethers.getSigner(TOKEN_HOLDER_ADDRESS);
+
+            // Connect to the payment token as the token holder
+            const paymentTokenAsHolder = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, tokenHolderSigner);
+
+            // Transfer tokens to the user
+            await paymentTokenAsHolder.transfer(user.address, tokensRequired);
+
+            // Stop impersonating the token holder
+            await network.provider.request({
+                method: "hardhat_stopImpersonatingAccount",
+                params: [TOKEN_HOLDER_ADDRESS],
+            });
+
+            const konduxTokenBasedMinterAddress = await konduxTokenBasedMinter.getAddress();
+
+            // Approve the minter contract to spend the user's tokens
+            await paymentToken.connect(user).approve(konduxTokenBasedMinterAddress, tokensRequired);
+
+            const userAddress = await user.getAddress();
+
+            // Capture the user's initial token balance
+            const initialUserBalance = await paymentToken.balanceOf(userAddress);
+
+            // Unpause the contract
+            await konduxTokenBasedMinter.connect(adminSigner).setPaused(false);
+
+            // Set adminSigner as the minter with on Kondux NFT contract
+            // first get the role hash
+            // bytes32 public MINTER_ROLE = keccak256("MINTER_ROLE"); using ethers v6
+            const MINTER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("MINTER_ROLE"));
+            // initialize kNFTContract
+            const kNFTContractAsAdmin = await ethers.getContractAt("Kondux", KNFT_ADDRESS, adminSigner);
+            // now get contract instance knftContract and set the minter role for konduxTokenBasedMinter            
+            await kNFTContractAsAdmin.grantRole(MINTER_ROLE, konduxTokenBasedMinterAddress);
+                        
+            // Perform the minting
+            const tx = await konduxTokenBasedMinter.connect(user).publicMint();
+            const receipt = await tx.wait();
+
+            // Capture the user's final token balance
+            const finalUserBalance = await paymentToken.balanceOf(userAddress);
+
+            // Verify that tokens have been transferred to the treasury
+            const tokensTransferred = initialUserBalance - finalUserBalance;
+            expect(tokensTransferred).to.equal(tokensRequired);
+
+            // Verify that NFTs have been minted to the user
+            const kNFTContract = await ethers.getContractAt("Kondux", KNFT_ADDRESS);
+            const userNFTBalance = await kNFTContract.balanceOf(userAddress);
+
+            const bundleSize = await konduxTokenBasedMinter.bundleSize();
+            expect(userNFTBalance).to.equal(bundleSize);
+        });
+
+        it("should revert when the contract is paused", async function () {
+            const { adminSigner, konduxTokenBasedMinter } = await loadFixture(deployFixture);
+            const [user] = await ethers.getSigners(); // Get a user signer
+
+            // Connect to the payment token contract as the user
+            const paymentToken = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, user);
+
+            // Define the amount of tokens the user needs to mint
+            const ethAmount = ethers.parseEther("0.25"); // 1 ETH
+            // get reserves from uniswap pair
+            const uniswapPair = await ethers.getContractAt(uniswapPairABI, UNISWAP_PAIR_ADDRESS);
+            const reserves = await uniswapPair.getReserves();
+            const token0 = await uniswapPair.token0();
+            let reserveETH, reserveToken;
+
+            if (token0.toLowerCase() === WETH_ADDRESS.toLowerCase()) {
+                reserveETH = reserves[0];
+                reserveToken = reserves[1];
+            } else {
+                reserveETH = reserves[1];
+                reserveToken = reserves[0];
+            }
+
+            // Fetch token decimals from paymentToken
+            const tokenDecimals = await paymentToken.decimals();            
+
+            // Calculate tokensRequired using the contract's logic
+            // Since _calculateTokenAmount is internal, replicate the calculation here
+            let tokensRequired;
+            if (tokenDecimals < 18) {
+                tokensRequired = (ethAmount * reserveToken * (10n ** tokenDecimals) / (reserveETH * 10n ** 18n));
+            } else if (tokenDecimals > 18) {
+                const decimalDifference = tokenDecimals - 18n;
+                tokensRequired = (ethAmount * reserveToken * 10n ** decimalDifference) / reserveETH;
+            } else {
+                tokensRequired = (ethAmount * reserveToken) / reserveETH;
+            }
+
+            // Transfer tokens to the user from the token holder
+            await network.provider.request({
+                method: "hardhat_impersonateAccount",
+                params: [TOKEN_HOLDER_ADDRESS],
+            });
+            const tokenHolderSigner = await ethers.getSigner(TOKEN_HOLDER_ADDRESS);
+
+            // Connect to the payment token as the token holder
+            const paymentTokenAsHolder = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, tokenHolderSigner);
+
+            // Transfer tokens to the user
+            await paymentTokenAsHolder.transfer(user.address, tokensRequired);
+
+            // Stop impersonating the token holder
+            await network.provider.request({
+                method: "hardhat_stopImpersonatingAccount",
+                params: [TOKEN_HOLDER_ADDRESS],
+            });
+
+            const konduxTokenBasedMinterAddress = await konduxTokenBasedMinter.getAddress();
+
+            // Approve the minter contract to spend the user's tokens
+            await paymentToken.connect(user).approve(konduxTokenBasedMinterAddress, tokensRequired);
+
+            // Pause the contract
+            await konduxTokenBasedMinter.connect(adminSigner).setPaused(true);
+
+            // Attempt to mint
+            await expect(
+                konduxTokenBasedMinter.connect(user).publicMint()
+            ).to.be.revertedWith("Contract is paused");
+        });
+
+        it("should revert when user has insufficient token allowance", async function () {
+            const { adminSigner, konduxTokenBasedMinter } = await loadFixture(deployFixture);
+            const [user] = await ethers.getSigners(); // Get a user signer
+
+            // Connect to the payment token contract as the user
+            const paymentToken = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, user);
+
+            // Define the amount of tokens the user needs to mint
+            const ethAmount = ethers.parseEther("0.25"); // 1 ETH
+            // get reserves from uniswap pair
+            const uniswapPair = await ethers.getContractAt(uniswapPairABI, UNISWAP_PAIR_ADDRESS);
+            const reserves = await uniswapPair.getReserves();
+            const token0 = await uniswapPair.token0();
+            let reserveETH, reserveToken;
+
+            if (token0.toLowerCase() === WETH_ADDRESS.toLowerCase()) {
+                reserveETH = reserves[0];
+                reserveToken = reserves[1];
+            } else {
+                reserveETH = reserves[1];
+                reserveToken = reserves[0];
+            }
+
+            // Fetch token decimals from paymentToken
+            const tokenDecimals = await paymentToken.decimals();            
+
+            // Calculate tokensRequired using the contract's logic
+            // Since _calculateTokenAmount is internal, replicate the calculation here
+            let tokensRequired;
+            if (tokenDecimals < 18) {
+                tokensRequired = (ethAmount * reserveToken * (10n ** tokenDecimals) / (reserveETH * 10n ** 18n));
+            } else if (tokenDecimals > 18) {
+                const decimalDifference = tokenDecimals - 18n;
+                tokensRequired = (ethAmount * reserveToken * 10n ** decimalDifference) / reserveETH;
+            } else {
+                tokensRequired = (ethAmount * reserveToken) / reserveETH;
+            }
+
+            // Transfer tokens to the user from the token holder
+            await network.provider.request({
+                method: "hardhat_impersonateAccount",
+                params: [TOKEN_HOLDER_ADDRESS],
+            });
+            const tokenHolderSigner = await ethers.getSigner(TOKEN_HOLDER_ADDRESS);
+
+            // Connect to the payment token as the token holder
+            const paymentTokenAsHolder = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, tokenHolderSigner);
+
+            // Transfer tokens to the user
+            await paymentTokenAsHolder.transfer(user.address, tokensRequired);
+
+            // Stop impersonating the token holder
+            await network.provider.request({
+                method: "hardhat_stopImpersonatingAccount",
+                params: [TOKEN_HOLDER_ADDRESS],
+            });
+
+            const konduxTokenBasedMinterAddress = await konduxTokenBasedMinter.getAddress();          
+
+            // Approve the minter contract to spend less than required tokens
+            const insufficientAllowance = tokensRequired - 1n; // Approve 1 token less
+            await paymentToken.connect(user).approve(konduxTokenBasedMinterAddress, insufficientAllowance);
+
+            // Unpause the contract
+            await konduxTokenBasedMinter.connect(adminSigner).setPaused(false);
+
+            // Attempt to mint
+            await expect(
+                konduxTokenBasedMinter.connect(user).publicMint()
+            ).to.be.revertedWith("Insufficient token allowance");
+        });
+
+        it("should revert when user has insufficient token balance", async function () {
+            const { adminSigner, konduxTokenBasedMinter } = await loadFixture(deployFixture);
+            const [user] = await ethers.getSigners(); // Get a user signer
+
+            // Connect to the payment token contract as the user
+            const paymentToken = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, user);
+
+            // Define the amount of tokens the user needs to mint
+            const ethAmount = ethers.parseEther("0.25"); // 1 ETH
+            // get reserves from uniswap pair
+            const uniswapPair = await ethers.getContractAt(uniswapPairABI, UNISWAP_PAIR_ADDRESS);
+            const reserves = await uniswapPair.getReserves();
+            const token0 = await uniswapPair.token0();
+            let reserveETH, reserveToken;
+
+            if (token0.toLowerCase() === WETH_ADDRESS.toLowerCase()) {
+                reserveETH = reserves[0];
+                reserveToken = reserves[1];
+            } else {
+                reserveETH = reserves[1];
+                reserveToken = reserves[0];
+            }
+
+            // Fetch token decimals from paymentToken
+            const tokenDecimals = await paymentToken.decimals();            
+
+            // Calculate tokensRequired using the contract's logic
+            // Since _calculateTokenAmount is internal, replicate the calculation here
+            let tokensRequired;
+            if (tokenDecimals < 18) {
+                tokensRequired = (ethAmount * reserveToken * (10n ** tokenDecimals) / (reserveETH * 10n ** 18n));
+            } else if (tokenDecimals > 18) {
+                const decimalDifference = tokenDecimals - 18n;
+                tokensRequired = (ethAmount * reserveToken * 10n ** decimalDifference) / reserveETH;
+            } else {
+                tokensRequired = (ethAmount * reserveToken) / reserveETH;
+            }
+
+            // Transfer tokens to the user from the token holder
+            await network.provider.request({
+                method: "hardhat_impersonateAccount",
+                params: [TOKEN_HOLDER_ADDRESS],
+            });
+            const tokenHolderSigner = await ethers.getSigner(TOKEN_HOLDER_ADDRESS);
+
+            // Connect to the payment token as the token holder
+            const paymentTokenAsHolder = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, tokenHolderSigner);
+
+            const userAddress = await user.getAddress();
+            
+            // Transfer tokens to the user (less than required)
+            const transferAmount = tokensRequired - 1n; // Transfer 1 token less
+            await paymentTokenAsHolder.transfer(userAddress, transferAmount);
+            
+            const konduxTokenBasedMinterAddress = await konduxTokenBasedMinter.getAddress();
+
+            // Approve the minter contract to spend the user's tokens
+            await paymentToken.connect(user).approve(konduxTokenBasedMinterAddress, tokensRequired);
+
+            // Stop impersonating the token holder
+            await network.provider.request({
+                method: "hardhat_stopImpersonatingAccount",
+                params: [TOKEN_HOLDER_ADDRESS],
+            });
+
+            // Approve the minter contract to spend the tokens
+            await paymentToken.connect(user).approve(konduxTokenBasedMinterAddress, tokensRequired);
+
+            await konduxTokenBasedMinter.connect(adminSigner).setPaused(false);
+
+            // Attempt to mint
+            await expect(
+                konduxTokenBasedMinter.connect(user).publicMint()
+            ).to.be.revertedWith("Insufficient token balance");
+        });
+
+        it("should allow minting when user has exactly the required token balance and allowance", async function () {
+            const { adminSigner, konduxTokenBasedMinter } = await loadFixture(deployFixture);
+            const [user] = await ethers.getSigners(); // Get a user signer
+
+            // Connect to the payment token contract as the user
+            const paymentToken = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, user);
+
+            // Define the amount of tokens the user needs to mint
+            const ethAmount = ethers.parseEther("0.25"); // 1 ETH
+            const uniswapPair = await ethers.getContractAt(uniswapPairABI, UNISWAP_PAIR_ADDRESS);
+            const reserves = await uniswapPair.getReserves();
+            const token0 = await uniswapPair.token0();
+            let reserveETH, reserveToken;
+
+            if (token0.toLowerCase() === WETH_ADDRESS.toLowerCase()) {
+                reserveETH = reserves[0];
+                reserveToken = reserves[1];
+            } else {
+                reserveETH = reserves[1];
+                reserveToken = reserves[0];
+            }
+
+            // Fetch token decimals from paymentToken
+            const tokenDecimals = await paymentToken.decimals();            
+
+            // Calculate tokensRequired using the contract's logic
+            // Since _calculateTokenAmount is internal, replicate the calculation here
+            let tokensRequired;
+            if (tokenDecimals < 18) {
+                tokensRequired = (ethAmount * reserveToken * (10n ** tokenDecimals) / (reserveETH * 10n ** 18n));
+            } else if (tokenDecimals > 18) {
+                const decimalDifference = tokenDecimals - 18n;
+                tokensRequired = (ethAmount * reserveToken * 10n ** decimalDifference) / reserveETH;
+            } else {
+                tokensRequired = (ethAmount * reserveToken) / reserveETH;
+            }
+
+            // Transfer exact amount of tokens to the user from the token holder
+            await network.provider.request({
+                method: "hardhat_impersonateAccount",
+                params: [TOKEN_HOLDER_ADDRESS],
+            });
+            const tokenHolderSigner = await ethers.getSigner(TOKEN_HOLDER_ADDRESS);
+
+            // Connect to the payment token as the token holder
+            const paymentTokenAsHolder = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, tokenHolderSigner);
+
+            const userAddress = await user.getAddress();
+
+            // Transfer tokens to the user
+            await paymentTokenAsHolder.transfer(userAddress, tokensRequired);
+
+            // Stop impersonating the token holder
+            await network.provider.request({
+                method: "hardhat_stopImpersonatingAccount",
+                params: [TOKEN_HOLDER_ADDRESS],
+            });
+
+            const konduxTokenBasedMinterAddress = await konduxTokenBasedMinter.getAddress();
+
+            // Approve the minter contract to spend exactly the required tokens
+            await paymentToken.connect(user).approve(konduxTokenBasedMinterAddress, tokensRequired);
+
+            // Capture the user's initial token balance
+            const initialUserBalance = await paymentToken.balanceOf(userAddress);
+            
+            // Unpause the contract
+            await konduxTokenBasedMinter.connect(adminSigner).setPaused(false);  
+            
+            // Set adminSigner as the minter with on Kondux NFT contract
+            // first get the role hash
+            // bytes32 public MINTER_ROLE = keccak256("MINTER_ROLE"); using ethers v6
+            const MINTER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("MINTER_ROLE"));
+            // initialize kNFTContract
+            const kNFTContractAsAdmin = await ethers.getContractAt("Kondux", KNFT_ADDRESS, adminSigner);
+            // now get contract instance knftContract and set the minter role for konduxTokenBasedMinter            
+            await kNFTContractAsAdmin.grantRole(MINTER_ROLE, konduxTokenBasedMinterAddress);
+
+            // Perform the minting
+            const tx = await konduxTokenBasedMinter.connect(user).publicMint();
+            const receipt = await tx.wait();
+
+            // Capture the user's final token balance
+            const finalUserBalance = await paymentToken.balanceOf(userAddress);
+
+            // Verify that tokens have been transferred to the treasury
+            const tokensTransferred = initialUserBalance - finalUserBalance;
+            expect(tokensTransferred).to.equal(tokensRequired);
+
+            const bundleSize = 5n; // Default bundle size
+
+            // Verify that NFTs have been minted to the user
+            const kNFTContract = await ethers.getContractAt("Kondux", KNFT_ADDRESS);
+            const userNFTBalance = await kNFTContract.balanceOf(userAddress);
+            expect(userNFTBalance).to.equal(bundleSize);
+        });
+
+        it("should handle multiple minting operations correctly", async function () {
+            const { adminSigner, konduxTokenBasedMinter } = await loadFixture(deployFixture);
+            const [user] = await ethers.getSigners(); // Get a user signer
+
+            // Connect to the payment token contract as the user
+            const paymentToken = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, user);
+
+            // Define the amount of tokens the user needs to mint
+            const ethAmount = ethers.parseEther("0.25"); // 1 ETH
+            // get reserves from uniswap pair
+            const uniswapPair = await ethers.getContractAt(uniswapPairABI, UNISWAP_PAIR_ADDRESS);
+            const reserves = await uniswapPair.getReserves();
+            const token0 = await uniswapPair.token0();
+            let reserveETH, reserveToken;
+
+            if (token0.toLowerCase() === WETH_ADDRESS.toLowerCase()) {
+                reserveETH = reserves[0];
+                reserveToken = reserves[1];
+            } else {
+                reserveETH = reserves[1];
+                reserveToken = reserves[0];
+            }
+
+            // Fetch token decimals from paymentToken
+            const tokenDecimals = await paymentToken.decimals();            
+
+            // Calculate tokensRequired using the contract's logic
+            // Since _calculateTokenAmount is internal, replicate the calculation here
+            let tokensRequired;
+            if (tokenDecimals < 18) {
+                tokensRequired = (ethAmount * reserveToken * (10n ** tokenDecimals) / (reserveETH * 10n ** 18n));
+            } else if (tokenDecimals > 18) {
+                const decimalDifference = tokenDecimals - 18n;
+                tokensRequired = (ethAmount * reserveToken * 10n ** decimalDifference) / reserveETH;
+            } else {
+                tokensRequired = (ethAmount * reserveToken) / reserveETH;
+            }
+
+            // Transfer enough tokens to the user from the token holder for multiple mints
+            const numberOfMints = 3n;
+            const totalTokensRequired = tokensRequired * numberOfMints;
+
+            await network.provider.request({
+                method: "hardhat_impersonateAccount",
+                params: [TOKEN_HOLDER_ADDRESS],
+            });
+            const tokenHolderSigner = await ethers.getSigner(TOKEN_HOLDER_ADDRESS);
+
+            // Connect to the payment token as the token holder
+            const paymentTokenAsHolder = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, tokenHolderSigner);
+
+            const userAddress = await user.getAddress();
+
+            // Transfer tokens to the user
+            await paymentTokenAsHolder.transfer(userAddress, totalTokensRequired);
+
+            // Stop impersonating the token holder
+            await network.provider.request({
+                method: "hardhat_stopImpersonatingAccount",
+                params: [TOKEN_HOLDER_ADDRESS],
+            });
+
+            const konduxTokenBasedMinterAddress = await konduxTokenBasedMinter.getAddress();
+
+            // Approve the minter contract to spend the required tokens
+            await paymentToken.connect(user).approve(konduxTokenBasedMinterAddress, totalTokensRequired);
+            
+            // Unpause the contract
+            await konduxTokenBasedMinter.connect(adminSigner).setPaused(false);
+
+            // Set adminSigner as the minter with on Kondux NFT contract
+            // first get the role hash
+            // bytes32 public MINTER_ROLE = keccak256("MINTER_ROLE"); using ethers v6
+            const MINTER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("MINTER_ROLE"));
+            // initialize kNFTContract
+            const kNFTContractAsAdmin = await ethers.getContractAt("Kondux", KNFT_ADDRESS, adminSigner);
+            // now get contract instance knftContract and set the minter role for konduxTokenBasedMinter            
+            await kNFTContractAsAdmin.grantRole(MINTER_ROLE, konduxTokenBasedMinterAddress);
+
+            // Perform multiple mints
+            for (let i = 0; i < numberOfMints; i++) {
+                await expect(
+                    konduxTokenBasedMinter.connect(user).publicMint()
+                )
+                .to.emit(konduxTokenBasedMinter, "BundleMinted");
+            }
+
+            // Verify that the user's token balance has decreased correctly
+            const finalUserBalance = await paymentToken.balanceOf(userAddress);
+            const expectedFinalBalance = 0n; // All tokens spent
+            expect(finalUserBalance).to.equal(expectedFinalBalance);
+
+            const bundleSize = 5n; // Default bundle size
+
+            // Verify that the user has received the correct number of NFTs
+            const kNFTContract = await ethers.getContractAt("Kondux", KNFT_ADDRESS);
+            const userNFTBalance = await kNFTContract.balanceOf(userAddress);
+            expect(userNFTBalance).to.equal(bundleSize * numberOfMints);
+        });
+
+        it("should emit the BundleMinted event with correct token IDs", async function () {
+            const { adminSigner, konduxTokenBasedMinter } = await loadFixture(deployFixture);
+            const [user] = await ethers.getSigners(); // Get a user signer
+
+            // Connect to the payment token contract as the user
+            const paymentToken = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, user);
+
+            // Define the amount of tokens the user needs to mint
+            const ethAmount = ethers.parseEther("1.0"); // 1 ETH
+            const reserveETH = 1000n; // Example reserveETH
+            const reserveToken = 2000000n; // Example reserveToken
+            const tokenDecimals = BigInt(KNDX_DECIMALS); // 9 decimals
+            const bundleSize = 5n; // Default bundle size
+
+            // Calculate tokensRequired using the contract's logic
+            let tokensRequired;
+            if (tokenDecimals < 18) {
+                tokensRequired = (ethAmount * reserveToken * (10n ** tokenDecimals)) / (reserveETH * (10n ** 18n));
+            } else if (tokenDecimals > 18) {
+                const decimalDifference = (tokenDecimals) - 18n;
+                tokensRequired = (ethAmount * reserveToken * (10n ** decimalDifference)) / (reserveETH);
+            } else {
+                tokensRequired = (ethAmount * reserveToken) / (reserveETH);
+            }
+
+            // Transfer tokens to the user from the token holder
+            await network.provider.request({
+                method: "hardhat_impersonateAccount",
+                params: [TOKEN_HOLDER_ADDRESS],
+            });
+            const tokenHolderSigner = await ethers.getSigner(TOKEN_HOLDER_ADDRESS);
+
+            // Connect to the payment token as the token holder
+            const paymentTokenAsHolder = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, tokenHolderSigner);
+
+            const userAddress = await user.getAddress();
+
+            // Transfer tokens to the user
+            await paymentTokenAsHolder.transfer(userAddress, tokensRequired);
+
+            // Set adminSigner as the minter with on Kondux NFT contract
+            // first get the role hash
+            // bytes32 public MINTER_ROLE = keccak256("MINTER_ROLE"); using ethers v6
+            const MINTER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("MINTER_ROLE"));
+            // initialize kNFTContract
+            const kNFTContractAsAdmin = await ethers.getContractAt("Kondux", KNFT_ADDRESS, adminSigner);
+            // now get contract instance knftContract and set the minter role for konduxTokenBasedMinter            
+            const konduxTokenBasedMinterAddress = await konduxTokenBasedMinter.getAddress();
+            await kNFTContractAsAdmin.grantRole(MINTER_ROLE, konduxTokenBasedMinterAddress);
+
+            // Stop impersonating the token holder
+            await network.provider.request({
+                method: "hardhat_stopImpersonatingAccount",
+                params: [TOKEN_HOLDER_ADDRESS],
+            });
+
+            // Approve the minter contract to spend the user's tokens
+            await paymentToken.connect(user).approve(konduxTokenBasedMinterAddress, tokensRequired);
+
+            // Unpause the contract
+            await konduxTokenBasedMinter.connect(adminSigner).setPaused(false);            
+
+            // Perform the minting and capture the event
+            const tx = await konduxTokenBasedMinter.connect(user).publicMint();
+            const receipt = await tx.wait();
+
+            // console.log(receipt);
+
+            // get the latest nft id from the supply of Kondux NFT contract
+            const kNFTContract = await ethers.getContractAt("Kondux", KNFT_ADDRESS);
+            const latestNFTId = await kNFTContract.totalSupply();
+
+            // create an array of token ids from latestNFTId - bundleSize to latestNFTId
+            const expectedTokenIds = [ 1590n, 1591n, 1592n, 1593n, 1594n ];
+
+            // Perform the minting and capture the event using `.to.emit`
+            await expect(konduxTokenBasedMinter.connect(user).publicMint())
+                .to.emit(konduxTokenBasedMinter, "BundleMinted")
+                .withArgs(userAddress, expectedTokenIds);            
+        });
+
+        it("should prevent reentrancy attacks on publicMint", async function () {
+            const { adminSigner, konduxTokenBasedMinter } = await loadFixture(deployFixture);
+            const [user] = await ethers.getSigners(); // Get a user signer
+
+            const konduxTokenBasedMinterAddress = await konduxTokenBasedMinter.getAddress();
+
+            // Deploy the malicious contract
+            const ReentrancyAttacker = await ethers.getContractFactory("ReentrancyAttacker", user);
+            const attacker = await ReentrancyAttacker.deploy(konduxTokenBasedMinterAddress);
+            await attacker.waitForDeployment();
+
+            // Connect to the payment token contract as the attacker
+            const paymentToken = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, attacker);
+
+            // Define the amount of tokens the attacker needs to mint
+            const ethAmount = ethers.parseEther("1.0"); // 1 ETH
+            const reserveETH = 1000n; // Example reserveETH
+            const reserveToken = 2000000n; // Example reserveToken
+            const tokenDecimals = BigInt(KNDX_DECIMALS); // 9 decimals
+
+            // Calculate tokensRequired
+            let tokensRequired;
+            if (tokenDecimals < 18) {
+                tokensRequired = (ethAmount * reserveToken * (10n ** tokenDecimals)) / (reserveETH * (10n ** 18n));
+            } else if (tokenDecimals > 18) {
+                const decimalDifference = (tokenDecimals) - 18n;
+                tokensRequired = (ethAmount * reserveToken * (10n ** decimalDifference)) / (reserveETH);
+            } else {
+                tokensRequired = (ethAmount * reserveToken) / (reserveETH);
+            }
+
+            // Transfer tokens to the attacker from the token holder
+            await network.provider.request({
+                method: "hardhat_impersonateAccount",
+                params: [TOKEN_HOLDER_ADDRESS],
+            });
+            const tokenHolderSigner = await ethers.getSigner(TOKEN_HOLDER_ADDRESS);
+
+            // Connect to the payment token as the token holder
+            const paymentTokenAsHolder = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, tokenHolderSigner);
+
+            const attackerAddress = await attacker.getAddress();
+
+            // Transfer tokens to the attacker
+            await paymentTokenAsHolder.transfer(attackerAddress, tokensRequired);
+
+            // Stop impersonating the token holder
+            await network.provider.request({
+                method: "hardhat_stopImpersonatingAccount",
+                params: [TOKEN_HOLDER_ADDRESS],
+            });
+
+            // Unpause the contract
+            await konduxTokenBasedMinter.connect(adminSigner).setPaused(false);
+
+            // Get ReentrancyAttacker contract approval to spend tokens
+            await attacker.approve(konduxTokenBasedMinterAddress);
+
+            // Attempt the attack
+            await expect(
+                attacker.connect(user).attack({ value: ethers.parseEther("1.0") })
+            ).to.be.reverted; // Expect the attack to fail
+
+            // Verify that no additional NFTs have been minted
+            const kNFTContract = await ethers.getContractAt("Kondux", KNFT_ADDRESS);
+            const attackerNFTBalance = await kNFTContract.balanceOf(attackerAddress);
+            expect(attackerNFTBalance).to.equal(0);
+
+            // Verify that the minter's ETH balance remains unchanged
+            const minterETHBalance = await ethers.provider.getBalance(konduxTokenBasedMinterAddress);
+            expect(minterETHBalance).to.equal(ethers.parseEther("5.0")); // Initial transfer
         });
     });
 });
