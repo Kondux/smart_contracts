@@ -202,7 +202,8 @@ contract KonduxDemo is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC72
         uint256 originalValue = indexDna[_tokenID];
         uint256 extractedValue;
 
-        for (uint8 i = startIndex; i < endIndex; i++) {
+        for (uint8 i = startIndex; i < endIndex; i++) {            
+            /* solhint-disable no-inline-assembly */
             assembly {
                 let bytePos := sub(31, i) // Reverse the index since bytes are stored in big-endian
                 let shiftAmount := mul(8, bytePos)
@@ -217,6 +218,8 @@ contract KonduxDemo is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC72
                 // Combine the shifted byte with the previously extracted bytes
                 extractedValue := or(extractedValue, shl(adjustedShiftAmount, extractedByte))
             }
+            /* solhint-enable no-inline-assembly */
+
         }
 
         return int256(extractedValue);
@@ -254,6 +257,7 @@ contract KonduxDemo is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC72
         uint256 updatedValue;
 
         for (uint8 i = startIndex; i < endIndex; i++) {
+            /* solhint-disable no-inline-assembly */
             assembly {
                 let bytePos := sub(31, i) // Reverse the index since bytes are stored in big-endian
                 let shiftAmount := mul(8, bytePos)
@@ -264,6 +268,8 @@ contract KonduxDemo is ERC721, ERC721Enumerable, Pausable, ERC721Burnable, ERC72
                 // Prepare the updated value
                 updatedValue := or(updatedValue, shl(shiftAmount, and(shr(mul(8, sub(i, startIndex)), inputValue), 0xff)))
             }
+            /* solhint-enable no-inline-assembly */
+
         }
 
         // Clear the bytes in the specified range of the original value, then store the updated value

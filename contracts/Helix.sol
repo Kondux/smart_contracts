@@ -85,6 +85,7 @@ contract Helix is ERC20, AccessControl, Pausable {
      */
     function isContract(address addr) internal view returns (bool) {
         uint256 size;
+        // solhint-disable-next-line no-inline-assembly
         assembly { size := extcodesize(addr) }
         return size > 0;
     }

@@ -67,6 +67,7 @@ contract Authority is IAuthority, AccessControlled {
 
     function isContract(address addr) public view returns (bool) {
         uint size;
+        // solhint-disable-next-line no-inline-assembly
         assembly { size := extcodesize(addr) }
         return size > 0;
     }

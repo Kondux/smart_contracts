@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.27;
 
 // Import OpenZeppelin contracts
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -187,6 +187,7 @@ contract Kondux is ERC721, ERC721Enumerable, ERC721Burnable, ERC721Royalty, Acce
         uint256 extractedValue;
 
         for (uint8 i = startIndex; i < endIndex; i++) {
+            /* solhint-disable no-inline-assembly */
             assembly {
                 let bytePos := sub(31, i) // Reverse the index since bytes are stored in big-endian
                 let shiftAmount := mul(8, bytePos)
@@ -201,6 +202,8 @@ contract Kondux is ERC721, ERC721Enumerable, ERC721Burnable, ERC721Royalty, Acce
                 // Combine the shifted byte with the previously extracted bytes
                 extractedValue := or(extractedValue, shl(adjustedShiftAmount, extractedByte))
             }
+            /* solhint-enable no-inline-assembly */
+
         }
 
         return int256(extractedValue);
@@ -238,6 +241,7 @@ contract Kondux is ERC721, ERC721Enumerable, ERC721Burnable, ERC721Royalty, Acce
         uint256 updatedValue;
 
         for (uint8 i = startIndex; i < endIndex; i++) {
+            /* solhint-disable no-inline-assembly */
             assembly {
                 let bytePos := sub(31, i) // Reverse the index since bytes are stored in big-endian
                 let shiftAmount := mul(8, bytePos)
@@ -248,6 +252,7 @@ contract Kondux is ERC721, ERC721Enumerable, ERC721Burnable, ERC721Royalty, Acce
                 // Prepare the updated value
                 updatedValue := or(updatedValue, shl(shiftAmount, and(shr(mul(8, sub(i, startIndex)), inputValue), 0xff)))
             }
+            /* solhint-enable no-inline-assembly */
         }
 
         // Clear the bytes in the specified range of the original value, then store the updated value

@@ -17,6 +17,9 @@ import { HardhatUserConfig } from "hardhat/config";
 import { NetworkUserConfig } from "hardhat/types";
 // import "@ericxstone/hardhat-blockscout-verify";
 
+import wethABI from "./abi/remote/wethABI.json";
+import uniswapPairABI from "./abi/remote/uniswapPairABI.json";
+import uniswapV2RouterABI from "./abi/remote/uniswapV2RouterABI.json";
 
 dotenvConfig({ path: resolve(__dirname, "./.env") });
 
@@ -59,6 +62,12 @@ function getChainConfig(network: keyof typeof chainIds): NetworkUserConfig {
 
   // Accounts
   const accounts = [deployer];
+
+  // console.log(`Deployer: ${deployer}`);
+  // console.log(`Network: ${network}`);
+  // console.log(`ChainId: ${chainIds[network]}`);	
+  // console.log(`RPC: ${url}`);
+  // console.log(`Etherscan: ${ETHERSCAN_API_KEY}`);
 
   return {
       accounts: accounts,
@@ -109,10 +118,10 @@ const config: HardhatUserConfig = {
         },
         chainId: chainIds.hardhat,          
         loggingEnabled: process.env.EVM_LOGGING === "true",
-        // forking: {
-        //   url: getChainRPC("mainnet"),
-        //   blockNumber: 19069705
-        // },
+        forking: {
+          url: getChainRPC("mainnet"),
+          blockNumber: 21088919
+        },
         
     },   
     mainnet: getChainConfig("mainnet"),
@@ -130,11 +139,29 @@ const config: HardhatUserConfig = {
     currency: 'USD',
     token: 'ETH',
     showMethodSig: true,
-    showTimeSpent: true,
+    // showTimeSpent: true,
     enabled: process.env.REPORT_GAS ? true : false,
     excludeContracts: [],
-    src: "./contracts",
+    // src: "./contracts",
     coinmarketcap: COINMARKETCAP_API_KEY,
+    L1Etherscan: ETHERSCAN_API_KEY,
+    remoteContracts: [
+      {
+        name: "WETH",
+        address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        abi: wethABI, 
+      },
+      {
+        name: "UniswapV2Pair",
+        address: "0x79dd15aD871b0fE18040a52F951D757Ef88cfe72",
+        abi: uniswapPairABI,
+      },
+      {
+        name: "UniswapV2Router02",
+        address: "0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD",
+        abi: uniswapV2RouterABI,
+      },
+    ],
   },
 
   etherscan: {
@@ -210,6 +237,18 @@ const config: HardhatUserConfig = {
       },
       {
         version: "0.8.23",
+        settings: {
+          metadata: {
+            bytecodeHash: "none",
+          },
+          optimizer: {
+            enabled: true,
+            runs: 800,
+          },
+        },
+      },
+      {
+        version: "0.8.27",
         settings: {
           metadata: {
             bytecodeHash: "none",
