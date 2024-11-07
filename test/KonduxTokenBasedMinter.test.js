@@ -210,6 +210,8 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
 
                 // Define new configuration parameters
                 const newPrice = ethers.parseEther("0.5"); // 0.5 ETH
+                const newDiscountPrice = ethers.parseEther("0.25"); // 0.25 ETH
+                const newFounderPrice = ethers.parseEther("0.1"); // 0.1 ETH
                 const newBundleSize = 10;
                 const newKNFT = "0x0000000000000000000000000000000000000001"; // Example address
                 const newFoundersPass = "0x0000000000000000000000000000000000000002"; // Example address
@@ -222,6 +224,8 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
                 await expect(
                     konduxTokenBasedMinter.connect(adminSigner).batchUpdateConfigurations(
                         newPrice,
+                        newDiscountPrice,
+                        newFounderPrice,
                         newBundleSize,
                         newKNFT,
                         newFoundersPass,
@@ -234,6 +238,8 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
                 .to.emit(konduxTokenBasedMinter, "ConfigurationsUpdated")
                 .withArgs(
                     newPrice,
+                    newDiscountPrice,
+                    newFounderPrice,
                     newBundleSize,
                     newKNFT,
                     newFoundersPass,
@@ -244,7 +250,9 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
                 );
 
                 // Verify updates
-                expect(await konduxTokenBasedMinter.price()).to.equal(newPrice);
+                expect(await konduxTokenBasedMinter.fullPrice()).to.equal(newPrice);
+                expect(await konduxTokenBasedMinter.discountPrice()).to.equal(newDiscountPrice);
+                expect(await konduxTokenBasedMinter.founderDiscountPrice()).to.equal(newFounderPrice);
                 expect(await konduxTokenBasedMinter.bundleSize()).to.equal(newBundleSize);
                 expect(await konduxTokenBasedMinter.getKNFT()).to.equal(newKNFT);
                 expect(await konduxTokenBasedMinter.getTreasury()).to.equal(newTreasury);
@@ -262,6 +270,8 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
                 await expect(
                     konduxTokenBasedMinter.connect(nonAdmin).batchUpdateConfigurations(
                         ethers.parseEther("0.5"),
+                        ethers.parseEther("0.25"),
+                        ethers.parseEther("0.1"),
                         10,
                         "0x0000000000000000000000000000000000000001",
                         "0x0000000000000000000000000000000000000002",
@@ -285,6 +295,8 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
                 await expect(
                     konduxTokenBasedMinter.connect(adminSigner).batchUpdateConfigurations(
                         invalidPrice,
+                        ethers.parseEther("0.25"),
+                        ethers.parseEther("0.1"),
                         10,
                         "0x0000000000000000000000000000000000000001",
                         "0x0000000000000000000000000000000000000002",
@@ -299,6 +311,8 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
                 await expect(
                     konduxTokenBasedMinter.connect(adminSigner).batchUpdateConfigurations(
                         ethers.parseEther("0.5"),
+                        ethers.parseEther("0.25"),
+                        ethers.parseEther("0.1"),
                         invalidBundleSize,
                         "0x0000000000000000000000000000000000000001",
                         "0x0000000000000000000000000000000000000002",
@@ -313,6 +327,8 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
                 await expect(
                     konduxTokenBasedMinter.connect(adminSigner).batchUpdateConfigurations(
                         ethers.parseEther("0.5"),
+                        ethers.parseEther("0.25"),
+                        ethers.parseEther("0.1"),
                         10,
                         invalidAddress,
                         "0x0000000000000000000000000000000000000002",
@@ -532,21 +548,21 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
             });
         });
 
-        describe("setPrice", function () {
+        describe("setFullPrice", function () {
             it("should allow admin to set a valid price", async function () {
                 const { adminSigner, konduxTokenBasedMinter } = await loadFixture(deployFixture);
 
                 const newPrice = ethers.parseEther("0.75"); // 0.75 ETH
 
-                // Call setPrice
+                // Call setFullPrice
                 await expect(
-                    konduxTokenBasedMinter.connect(adminSigner).setPrice(newPrice)
+                    konduxTokenBasedMinter.connect(adminSigner).setFullPrice(newPrice)
                 )
                 .to.emit(konduxTokenBasedMinter, "PriceChanged")
                 .withArgs(newPrice);
 
                 // Verify update
-                expect(await konduxTokenBasedMinter.price()).to.equal(newPrice);
+                expect(await konduxTokenBasedMinter.fullPrice()).to.equal(newPrice);
             });
 
             it("should revert when non-admin tries to set price", async function () {
@@ -556,7 +572,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
                 const newPrice = ethers.parseEther("0.5"); // 0.5 ETH
 
                 await expect(
-                    konduxTokenBasedMinter.connect(nonAdmin).setPrice(newPrice)
+                    konduxTokenBasedMinter.connect(nonAdmin).setFullPrice(newPrice)
                 ).to.be.revertedWith("Caller is not an admin");
             });
 
@@ -566,7 +582,83 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
                 const invalidPrice = 0;
 
                 await expect(
-                    konduxTokenBasedMinter.connect(adminSigner).setPrice(invalidPrice)
+                    konduxTokenBasedMinter.connect(adminSigner).setFullPrice(invalidPrice)
+                ).to.be.revertedWith("Price must be greater than 0");
+            });
+
+            // same price tests for the discount price
+            it("should allow admin to set a valid discount price", async function () {
+                const { adminSigner, konduxTokenBasedMinter } = await loadFixture(deployFixture);
+
+                const newPrice = ethers.parseEther("0.75"); // 0.75 ETH
+
+                // Call setFullPrice
+                await expect(
+                    konduxTokenBasedMinter.connect(adminSigner).setDiscountPrice(newPrice)
+                )
+                .to.emit(konduxTokenBasedMinter, "PriceChanged")
+                .withArgs(newPrice);
+
+                // Verify update
+                expect(await konduxTokenBasedMinter.discountPrice()).to.equal(newPrice);
+            });
+
+            it("should revert when non-admin tries to set discount price", async function () {
+                const { konduxTokenBasedMinter } = await loadFixture(deployFixture);
+                const [_, nonAdmin] = await ethers.getSigners();
+
+                const newPrice = ethers.parseEther("0.5"); // 0.5 ETH
+
+                await expect(
+                    konduxTokenBasedMinter.connect(nonAdmin).setDiscountPrice(newPrice)
+                ).to.be.revertedWith("Caller is not an admin");
+            });
+
+            it("should revert when setting discount price to zero", async function () {
+                const { adminSigner, konduxTokenBasedMinter } = await loadFixture(deployFixture);
+
+                const invalidPrice = 0;
+
+                await expect(
+                    konduxTokenBasedMinter.connect(adminSigner).setDiscountPrice(invalidPrice)
+                ).to.be.revertedWith("Price must be greater than 0");
+            });
+
+            // same thing for the founders pass price
+            it("should allow admin to set a valid founders pass price", async function () {
+                const { adminSigner, konduxTokenBasedMinter } = await loadFixture(deployFixture);
+
+                const newPrice = ethers.parseEther("0.75"); // 0.75 ETH
+
+                // Call setFullPrice
+                await expect(
+                    konduxTokenBasedMinter.connect(adminSigner).setFounderDiscountPrice(newPrice)
+                )
+                .to.emit(konduxTokenBasedMinter, "PriceChanged")
+                .withArgs(newPrice);
+
+                // Verify update
+                expect(await konduxTokenBasedMinter.founderDiscountPrice()).to.equal(newPrice);
+            });
+
+            it("should revert when non-admin tries to set founders pass price", async function () {
+                const { konduxTokenBasedMinter } = await loadFixture(deployFixture);
+                const [_, nonAdmin] = await ethers.getSigners();
+
+                const newPrice = ethers.parseEther("0.5"); // 0.5 ETH
+
+                await expect(
+                    konduxTokenBasedMinter.connect(nonAdmin).setFounderDiscountPrice(newPrice)
+                ).to.be.revertedWith("Caller is not an admin");
+            });
+
+            it("should revert when setting founders pass price to zero", async function () {
+                const { adminSigner, konduxTokenBasedMinter } = await loadFixture(deployFixture);
+
+                const invalidPrice = 0;
+
+                await expect(
+                    konduxTokenBasedMinter.connect(adminSigner).setFounderDiscountPrice(invalidPrice)
                 ).to.be.revertedWith("Price must be greater than 0");
             });
         });
@@ -581,7 +673,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
             const paymentToken = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, user);
 
             // Define the amount of tokens the user needs to mint
-            const ethAmount = ethers.parseEther("0.25"); // 1 ETH
+            const ethAmount = ethers.parseEther("0.225"); // 1 ETH
             // get reserves from uniswap pair
             const uniswapPair = await ethers.getContractAt(uniswapPairABI, UNISWAP_PAIR_ADDRESS);
             const reserves = await uniswapPair.getReserves();
@@ -679,7 +771,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
             const paymentToken = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, user);
 
             // Define the amount of tokens the user needs to mint
-            const ethAmount = ethers.parseEther("0.25"); // 1 ETH
+            const ethAmount = ethers.parseEther("0.225"); // 1 ETH
             // get reserves from uniswap pair
             const uniswapPair = await ethers.getContractAt(uniswapPairABI, UNISWAP_PAIR_ADDRESS);
             const reserves = await uniswapPair.getReserves();
@@ -750,7 +842,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
             const paymentToken = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, user);
 
             // Define the amount of tokens the user needs to mint
-            const ethAmount = ethers.parseEther("0.25"); // 1 ETH
+            const ethAmount = ethers.parseEther("0.225"); // 1 ETH
             // get reserves from uniswap pair
             const uniswapPair = await ethers.getContractAt(uniswapPairABI, UNISWAP_PAIR_ADDRESS);
             const reserves = await uniswapPair.getReserves();
@@ -822,7 +914,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
             const paymentToken = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, user);
 
             // Define the amount of tokens the user needs to mint
-            const ethAmount = ethers.parseEther("0.25"); // 1 ETH
+            const ethAmount = ethers.parseEther("0.225"); // 1 ETH
             // get reserves from uniswap pair
             const uniswapPair = await ethers.getContractAt(uniswapPairABI, UNISWAP_PAIR_ADDRESS);
             const reserves = await uniswapPair.getReserves();
@@ -898,7 +990,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
             const paymentToken = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, user);
 
             // Define the amount of tokens the user needs to mint
-            const ethAmount = ethers.parseEther("0.25"); // 1 ETH
+            const ethAmount = ethers.parseEther("0.225"); // 1 ETH
             const uniswapPair = await ethers.getContractAt(uniswapPairABI, UNISWAP_PAIR_ADDRESS);
             const reserves = await uniswapPair.getReserves();
             const token0 = await uniswapPair.token0();
@@ -995,7 +1087,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
             const paymentToken = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, user);
 
             // Define the amount of tokens the user needs to mint
-            const ethAmount = ethers.parseEther("0.25"); // 1 ETH
+            const ethAmount = ethers.parseEther("0.225"); // 1 ETH
             // get reserves from uniswap pair
             const uniswapPair = await ethers.getContractAt(uniswapPairABI, UNISWAP_PAIR_ADDRESS);
             const reserves = await uniswapPair.getReserves();

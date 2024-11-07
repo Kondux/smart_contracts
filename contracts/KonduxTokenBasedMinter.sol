@@ -11,6 +11,7 @@ import "./interfaces/IKonduxERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 
@@ -22,10 +23,12 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
     // State Variables
     bool public paused; // Controls whether minting is currently allowed.
     uint16 public bundleSize; // The number of NFTs in each minted bundle.
-    uint256 public price; // The ETH price for minting a bundle.
+    uint256 public fullPrice; // The ETH price for minting a bundle.
+    uint256 public discountPrice; // The discounted price for minting a bundle.
+    uint256 public founderDiscountPrice; // The discounted price for minting a bundle.
 
     IKondux public kNFT; // Interface to interact with the Kondux NFT contract for NFT operations.
-    IKondux public foundersPass; // Interface for the founders pass contract, allowing for special minting conditions.
+    IERC721 public foundersPass; // Interface for the founders pass contract, allowing for special minting conditions.
     ITreasury public treasury; // Interface to interact with the treasury contract for financial transactions.
     IKonduxERC20 public paymentToken; // Interface for the ERC20 token used for minting payments.
     IUniswapV2Pair public uniswapPair; // Interface for the Uniswap V2 pair contract for token swaps.
@@ -52,6 +55,8 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
     event ETHWithdrawn(address indexed admin, uint256 amount);
     event ConfigurationsUpdated(
         uint256 price,
+        uint256 discountPrice,
+        uint256 founderDiscountPrice,
         uint16 bundleSize,
         address kNFT,
         address foundersPass,
@@ -95,12 +100,14 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
         require(_WETH != address(0), "Invalid WETH address");
 
         kNFT = IKondux(_kNFT);
-        foundersPass = IKondux(_foundersPass);
+        foundersPass = IERC721(_foundersPass); 
         treasury = ITreasury(_treasury);
         paymentToken = IKonduxERC20(_paymentToken);
         uniswapPair = IUniswapV2Pair(_uniswapPair);
         WETH = _WETH;
-        price = 0.25 ether;
+        fullPrice = 0.25 ether;
+        discountPrice = 0.225 ether;
+        founderDiscountPrice = 0.2 ether;
         bundleSize = 5;
         paused = true;
         foundersPassActive = true;
@@ -132,8 +139,14 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
         // Fetch current reserves
         (uint112 reserveETH, uint112 reserveToken) = _getReserves();
 
+        uint256 _userPrice = discountPrice;
+
+        if (foundersPassActive && foundersPass.balanceOf(msg.sender) > 0) {
+            _userPrice = founderDiscountPrice;
+        }
+
         // Calculate the number of tokens required
-        uint256 tokensRequired = _calculateTokenAmount(price, reserveETH, reserveToken, tokenDecimalsCached);
+        uint256 tokensRequired = _calculateTokenAmount(_userPrice, reserveETH, reserveToken, tokenDecimalsCached);
 
         require(
             paymentToken.allowance(msg.sender, address(this)) >= tokensRequired,
@@ -183,7 +196,7 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
      */
     function setFoundersPass(address _foundersPass) public onlyAdmin {
         require(_foundersPass != address(0), "Founders pass address is not set");
-        foundersPass = IKondux(_foundersPass);
+        foundersPass = IERC721(_foundersPass);
         emit FoundersPassChanged(_foundersPass);
     }
 
@@ -192,9 +205,31 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
      * @dev Admin-only function to adjust the ETH price required to mint an NFT bundle. Validates the new price before applying the change and emits a `PriceChanged` event on success.
      * @param _price The new minting price in ETH.
      */
-    function setPrice(uint256 _price) public onlyAdmin {
+    function setFullPrice(uint256 _price) public onlyAdmin {
         require(_price > 0, "Price must be greater than 0");
-        price = _price;
+        fullPrice = _price;
+        emit PriceChanged(_price);
+    }
+
+    /**
+     * @notice Updates the discounted minting price for an NFT bundle.
+     * @dev Admin-only function to adjust the discounted ETH price required to mint an NFT bundle. Validates the new price before applying the change and emits a `PriceChanged` event on success.
+     * @param _price The new discounted minting price in ETH.
+     */
+    function setDiscountPrice(uint256 _price) public onlyAdmin {
+        require(_price > 0, "Price must be greater than 0");
+        discountPrice = _price;
+        emit PriceChanged(_price);
+    }
+
+    /**
+     * @notice Updates the discounted minting price for an NFT bundle.
+     * @dev Admin-only function to adjust the discounted ETH price required to mint an NFT bundle. Validates the new price before applying the change and emits a `PriceChanged` event on success.
+     * @param _price The new discounted minting price in ETH.
+     */
+    function setFounderDiscountPrice(uint256 _price) public onlyAdmin {
+        require(_price > 0, "Price must be greater than 0");
+        founderDiscountPrice = _price;
         emit PriceChanged(_price);
     }
 
@@ -408,6 +443,8 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
      * @notice Batch update multiple configuration parameters.
      * @dev Admin-only function to update multiple settings in a single transaction. Emits a `ConfigurationsUpdated` event.
      * @param _price The new minting price in ETH.
+     * @param _discountPrice The new discounted minting price in ETH.
+     * @param _founderDiscountPrice The new discounted minting price for founders in ETH.
      * @param _bundleSize The new bundle size.
      * @param _kNFT The new Kondux NFT contract address.
      * @param _foundersPass The new founders pass contract address.
@@ -418,6 +455,8 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
      */
     function batchUpdateConfigurations(
         uint256 _price,
+        uint256 _discountPrice,
+        uint256 _founderDiscountPrice,
         uint16 _bundleSize,
         address _kNFT,
         address _foundersPass,
@@ -427,6 +466,8 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
         address _WETH
     ) external onlyAdmin {
         require(_price > 0, "Price must be greater than 0");
+        require(_discountPrice > 0, "Discount price must be greater than 0");
+        require(_founderDiscountPrice > 0, "Founder discount price must be greater than 0");
         require(_bundleSize > 0 && _bundleSize <= 15, "Invalid bundle size");
         require(_kNFT != address(0), "Invalid kNFT address");
         require(_foundersPass != address(0), "Invalid foundersPass address");
@@ -435,10 +476,12 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
         require(_uniswapPair != address(0), "Invalid uniswapPair address");
         require(_WETH != address(0), "Invalid WETH address");
 
-        price = _price;
+        fullPrice = _price;
+        discountPrice = _discountPrice;
+        founderDiscountPrice = _founderDiscountPrice;
         bundleSize = _bundleSize;
         kNFT = IKondux(_kNFT);
-        foundersPass = IKondux(_foundersPass);
+        foundersPass = IERC721(_foundersPass);
         treasury = ITreasury(_treasury);
         paymentToken = IKonduxERC20(_paymentTokenAddr);
         uniswapPair = IUniswapV2Pair(_uniswapPair);
@@ -449,6 +492,8 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
 
         emit ConfigurationsUpdated(
             _price,
+            _discountPrice,
+            _founderDiscountPrice,
             _bundleSize,
             _kNFT,
             _foundersPass,
