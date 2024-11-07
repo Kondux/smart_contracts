@@ -1,6 +1,7 @@
 const { expect } = require("chai");
 const { ethers, network } = require("hardhat");
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
+const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 
 const uniswapPairABI = require("../abi/remote/uniswapPairABI.json");
 
@@ -19,6 +20,9 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
     
     // Address of an account holding a significant amount of PAYMENT_TOKEN_ADDRESS
     const TOKEN_HOLDER_ADDRESS = "0x4936167DAE4160E5556D9294F2C78675659a3B63"; 
+
+    // Address of a founder account
+    const FOUNDERS_PASS_HOLDER_ADDRESS = "0x79BD02b5936FFdC5915cB7Cd58156E3169F4F569"; 
     
     // Fixture to set up the testing environment
     async function deployFixture() {
@@ -1331,6 +1335,141 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
             // Verify that the minter's ETH balance remains unchanged
             const minterETHBalance = await ethers.provider.getBalance(konduxTokenBasedMinterAddress);
             expect(minterETHBalance).to.equal(ethers.parseEther("5.0")); // Initial transfer
+        });
+
+        it("should allow a user possessing a Founders Pass to mint a bundle at founder discount price", async function () {
+            const { adminSigner, konduxTokenBasedMinter } = await loadFixture(deployFixture);
+            const [user] = await ethers.getSigners(); // Get a user signer
+
+            // Connect to the payment token contract as the user
+            const paymentToken = await ethers.getContractAt("IKonduxERC20", PAYMENT_TOKEN_ADDRESS, user);
+
+            // Define the amount of tokens the user needs to mint at founder discount
+            const ethAmount = ethers.parseEther("0.2"); // founderDiscountPrice
+
+            // Fetch reserves from Uniswap pair
+            const uniswapPair = await ethers.getContractAt(uniswapPairABI, UNISWAP_PAIR_ADDRESS);
+            const reserves = await uniswapPair.getReserves();
+            const token0 = await uniswapPair.token0();
+            let reserveETH, reserveToken;
+
+            if (token0.toLowerCase() === WETH_ADDRESS.toLowerCase()) {
+                reserveETH = reserves[0];
+                reserveToken = reserves[1];
+            } else {
+                reserveETH = reserves[1];
+                reserveToken = reserves[0];
+            }
+
+            // Fetch token decimals from paymentToken
+            const tokenDecimals = await paymentToken.decimals();
+
+            // Calculate tokensRequired using the contract's logic for founder discount
+            let tokensRequired;
+            if (tokenDecimals < 18n) {
+                tokensRequired = (BigInt(ethers.toBigInt(ethAmount)) * BigInt(reserveToken) * BigInt(10n ** tokenDecimals)) / (BigInt(reserveETH) * BigInt(10 ** 18));
+            } else if (tokenDecimals > 18n) {
+                const decimalDifference = BigInt(tokenDecimals) - 18n;
+                tokensRequired = (BigInt(ethers.toBigInt(ethAmount)) * BigInt(reserveToken) * BigInt(10n ** decimalDifference)) / BigInt(reserveETH);
+            } else {
+                tokensRequired = (BigInt(ethers.toBigInt(ethAmount)) * BigInt(reserveToken)) / BigInt(reserveETH);
+            }
+
+            // Impersonate a Founders Pass holder and transfer a Founders Pass NFT to the user
+            await network.provider.request({
+                method: "hardhat_impersonateAccount",
+                params: [FOUNDERS_PASS_HOLDER_ADDRESS],
+            });
+            const foundersPassHolderSigner = await ethers.getSigner(FOUNDERS_PASS_HOLDER_ADDRESS);
+
+            // Connect to the Founders Pass contract
+            const foundersPassContract = await ethers.getContractAt("KonduxFounders", FOUNDERSPASS_ADDRESS, foundersPassHolderSigner);
+
+            // Find a token ID owned by the Founders Pass holder
+            const balance = await foundersPassContract.balanceOf(FOUNDERS_PASS_HOLDER_ADDRESS);
+            expect(balance).to.be.gt(0, "Founders Pass holder has no tokens");
+
+            const tokenId = await foundersPassContract.tokenOfOwnerByIndex(FOUNDERS_PASS_HOLDER_ADDRESS, 0);
+
+            // fund founders pass holder with ether using deployer account
+            await network.provider.request({
+                method: "hardhat_impersonateAccount",
+                params: [ADMIN_ADDRESS],
+            });
+            const deployerSigner = await ethers.getSigner(ADMIN_ADDRESS);
+
+            // fund the founders pass holder with ether
+            await deployerSigner.sendTransaction({
+                to: FOUNDERS_PASS_HOLDER_ADDRESS,
+                value: ethers.parseEther("1.0"),
+            });
+        
+
+            // Transfer the Founders Pass NFT to the user
+            await foundersPassContract.transferFrom(FOUNDERS_PASS_HOLDER_ADDRESS, await user.getAddress(), tokenId);
+
+            // Stop impersonating the Founders Pass holder
+            await network.provider.request({
+                method: "hardhat_stopImpersonatingAccount",
+                params: [FOUNDERS_PASS_HOLDER_ADDRESS],
+            });
+
+            // Transfer tokens to the user from the token holder
+            await network.provider.request({
+                method: "hardhat_impersonateAccount",
+                params: [TOKEN_HOLDER_ADDRESS],
+            });
+            const tokenHolderSigner = await ethers.getSigner(TOKEN_HOLDER_ADDRESS);
+
+            // Connect to the payment token as the token holder
+            const paymentTokenAsHolder = await ethers.getContractAt("IKonduxERC20", PAYMENT_TOKEN_ADDRESS, tokenHolderSigner);
+
+            // Transfer tokens to the user
+            await paymentTokenAsHolder.transfer(user.address, tokensRequired);
+
+            // Stop impersonating the token holder
+            await network.provider.request({
+                method: "hardhat_stopImpersonatingAccount",
+                params: [TOKEN_HOLDER_ADDRESS],
+            });
+
+            const konduxTokenBasedMinterAddress = await konduxTokenBasedMinter.getAddress();
+
+            // Approve the minter contract to spend the user's tokens
+            await paymentToken.connect(user).approve(konduxTokenBasedMinterAddress, tokensRequired);
+
+            // Unpause the contract if it's paused
+            const isPaused = await konduxTokenBasedMinter.paused();
+            if (isPaused) {
+                await konduxTokenBasedMinter.connect(adminSigner).setPaused(false);
+            }
+
+            // Grant MINTER_ROLE to the minter contract on the kNFT contract
+            const MINTER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("MINTER_ROLE"));
+            const kNFTContractAsAdmin = await ethers.getContractAt("Kondux", KNFT_ADDRESS, adminSigner);
+            await kNFTContractAsAdmin.grantRole(MINTER_ROLE, konduxTokenBasedMinterAddress);
+
+            // Save initial user token balance
+            const initialUserBalance = await paymentToken.balanceOf(user.address);
+
+            // Perform the minting and verify event emission
+            await expect(konduxTokenBasedMinter.connect(user).publicMint())
+                .to.emit(konduxTokenBasedMinter, "BundleMinted")
+                .withArgs(user.address, anyValue); // `anyValue` is used for dynamic tokenIds
+
+            // Capture the user's final token balance
+            const finalUserBalance = await paymentToken.balanceOf(await user.getAddress());
+
+            // Calculate expected tokens transferred (should be equal to tokensRequired)
+            const tokensTransferred = BigInt(ethers.toBigInt(initialUserBalance)) - BigInt(ethers.toBigInt(finalUserBalance));
+            expect(tokensTransferred).to.equal(tokensRequired);
+
+            // Verify that NFTs have been minted to the user
+            const kNFTContract = await ethers.getContractAt("IKondux", KNFT_ADDRESS);
+            const userNFTBalance = await kNFTContract.balanceOf(await user.getAddress());
+
+            const bundleSize = await konduxTokenBasedMinter.bundleSize();
+            expect(userNFTBalance).to.equal(bundleSize);
         });
     });
 });
