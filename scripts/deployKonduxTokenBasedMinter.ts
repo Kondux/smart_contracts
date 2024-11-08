@@ -1,6 +1,3 @@
-import { net } from "browserify/lib/builtins";
-
-// scripts/deployKonduxTokenBasedMinter.js
 const { ethers, network } = require("hardhat");
 require("dotenv").config();
 
@@ -42,6 +39,8 @@ async function createLiquidityPool(
   const receipt = await tx.wait();
   console.log("Liquidity Pool created successfully.");
   console.log(`Transaction Hash: ${receipt.hash}`);
+  console.log(`LP Address: ${receipt.logs[0].pair}`);
+    return receipt.logs[0].pair;
 }
 
 async function main() {
@@ -65,6 +64,16 @@ async function main() {
     WETH_ADDRESS: "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9",
     UNISWAP_V2_ROUTER_ADDRESS: "0xC532a74256D3Db42D0Bf7a0400fEFDbad7694008",
   };
+
+  const PREDEPLOYED_ADDRESSES = {
+    KNFT_ADDRESS: "0xDDAEc4bfe0D64A234F49F2fe1d22c42126089Ac1",
+    TREASURY_ADDRESS: "0x57B2FF8afF3b8A3307E2aE7bf0854167922aCf96",
+    FOUNDERSPASS_ADDRESS: "0xBE983455A9FF94480510Be64Ee4df75F444638AF",
+    PAYMENT_TOKEN_ADDRESS: "0x7601584C416aFC4DB0299964ceBD0aD2C7Da2500",
+    UNISWAP_PAIR_ADDRESS: "0xD5714c7dE4297199F08B0c7250DecFd3a4902718",
+  };
+
+  const IS_PRE_DEPLOYED = true;
 
   let deployerPK = process.env.DEPLOYER_PK;
     if (networkName === "mainnet" || networkName === "hardhat") {
@@ -97,34 +106,35 @@ async function main() {
     UNISWAP_V2_ROUTER_ADDRESS = MAINNET_ADDRESSES.UNISWAP_V2_ROUTER_ADDRESS;
   } else if (networkName === "sepolia" || networkName === "goerli" ) {
     console.log("Deploying mock contracts for Testnet.");
+    if (!IS_PRE_DEPLOYED) {
+        // Deploy MockKondux
+        const MockKondux = await ethers.getContractFactory("MockKondux");
+        const mockKondux = await MockKondux.connect(signer).deploy();
+        await mockKondux.waitForDeployment();
+        kNFTAddress = mockKondux.target;
+        console.log(`MockKondux deployed to: ${kNFTAddress}`);
 
-    // Deploy MockKondux
-    const MockKondux = await ethers.getContractFactory("MockKondux");
-    const mockKondux = await MockKondux.connect(signer).deploy();
-    await mockKondux.waitForDeployment();
-    kNFTAddress = mockKondux.target;
-    console.log(`MockKondux deployed to: ${kNFTAddress}`);
+        // Deploy MockFoundersPass
+        const MockFoundersPass = await ethers.getContractFactory("MockFoundersPass");
+        const mockFoundersPass = await MockFoundersPass.connect(signer).deploy();
+        await mockFoundersPass.waitForDeployment();
+        foundersPassAddress = mockFoundersPass.target;
+        console.log(`MockFoundersPass deployed to: ${foundersPassAddress}`);
 
-    // Deploy MockFoundersPass
-    const MockFoundersPass = await ethers.getContractFactory("MockFoundersPass");
-    const mockFoundersPass = await MockFoundersPass.connect(signer).deploy();
-    await mockFoundersPass.waitForDeployment();
-    foundersPassAddress = mockFoundersPass.target;
-    console.log(`MockFoundersPass deployed to: ${foundersPassAddress}`);
+        // Deploy MockTreasury
+        const MockTreasury = await ethers.getContractFactory("MockTreasury");
+        const mockTreasury = await MockTreasury.connect(signer).deploy();
+        await mockTreasury.waitForDeployment();
+        treasuryAddress = mockTreasury.target;
+        console.log(`MockTreasury deployed to: ${treasuryAddress}`);
 
-    // Deploy MockTreasury
-    const MockTreasury = await ethers.getContractFactory("MockTreasury");
-    const mockTreasury = await MockTreasury.connect(signer).deploy();
-    await mockTreasury.waitForDeployment();
-    treasuryAddress = mockTreasury.target;
-    console.log(`MockTreasury deployed to: ${treasuryAddress}`);
-
-    // Deploy MockKonduxERC20
-    const MockKonduxERC20 = await ethers.getContractFactory("MockKonduxERC20");
-    const mockPaymentToken = await MockKonduxERC20.connect(signer).deploy();
-    await mockPaymentToken.waitForDeployment();
-    paymentTokenAddress = mockPaymentToken.target;
-    console.log(`MockKonduxERC20 deployed to: ${paymentTokenAddress}`);
+        // Deploy MockKonduxERC20
+        const MockKonduxERC20 = await ethers.getContractFactory("MockKonduxERC20");
+        const mockPaymentToken = await MockKonduxERC20.connect(signer).deploy();
+        await mockPaymentToken.waitForDeployment();
+        paymentTokenAddress = mockPaymentToken.target;
+        console.log(`MockKonduxERC20 deployed to: ${paymentTokenAddress}`);
+    }
 
     // Use predefined Testnet Uniswap V2 Router address
     uniswapPairAddress = TESTNET_ADDRESSES.UNISWAP_V2_ROUTER_ADDRESS;
@@ -144,37 +154,16 @@ async function main() {
   console.log(`WETH Address: ${WETHAddress}`);
   console.log(`Uniswap V2 Router Address: ${UNISWAP_V2_ROUTER_ADDRESS}`);
 
-  // Deploy KonduxTokenBasedMinter
-  console.log("Deploying KonduxTokenBasedMinter...");
-  const KonduxTokenBasedMinter = await ethers.getContractFactory("KonduxTokenBasedMinter");
-  const konduxTokenBasedMinter = await KonduxTokenBasedMinter.connect(signer).deploy(
-    kNFTAddress,
-    foundersPassAddress,
-    treasuryAddress,
-    paymentTokenAddress,
-    uniswapPairAddress,
-    WETHAddress
-  );
-  await konduxTokenBasedMinter.waitForDeployment();
-  console.log(`KonduxTokenBasedMinter deployed to: ${konduxTokenBasedMinter.target}`);
-
-  // Grant MINTER_ROLE to KonduxTokenBasedMinter on the Kondux NFT contract
-  const MINTER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("MINTER_ROLE"));
-
-  if (networkName === "mainnet" || networkName === "hardhat") {
-    const kNFTContract = await ethers.getContractAt("Kondux", kNFTAddress);
-    const grantTx = await kNFTContract.connect(signer).grantRole(MINTER_ROLE, konduxTokenBasedMinter.target);
-    await grantTx.wait();
-    console.log(`Granted MINTER_ROLE to KonduxTokenBasedMinter on Kondux NFT contract.`);
-  } else if (networkName === "sepolia" || networkName === "goerli") {
-    const mockKondux = await ethers.getContractAt("MockKondux", kNFTAddress);
-    const grantTx = await mockKondux.connect(signer).grantRole(MINTER_ROLE, konduxTokenBasedMinter.target);
-    await grantTx.wait();
-    console.log(`Granted MINTER_ROLE to KonduxTokenBasedMinter on MockKondux NFT contract.`);
+  if (IS_PRE_DEPLOYED) {
+   // kNFTAddress = PREDEPLOYED_ADDRESSES.KNFT_ADDRESS;
+    foundersPassAddress = PREDEPLOYED_ADDRESSES.FOUNDERSPASS_ADDRESS;
+    treasuryAddress = PREDEPLOYED_ADDRESSES.TREASURY_ADDRESS;
+    paymentTokenAddress = PREDEPLOYED_ADDRESSES.PAYMENT_TOKEN_ADDRESS;
+    uniswapPairAddress = PREDEPLOYED_ADDRESSES.UNISWAP_PAIR_ADDRESS;
   }
 
-  // If deploying to Testnet or Hardhat, create Liquidity Pool
-  if (networkName === "sepolia" || networkName === "goerli") {
+   // If deploying to Testnet or Hardhat, create Liquidity Pool
+   if ((networkName === "sepolia" || networkName === "goerli") && !IS_PRE_DEPLOYED) {
     console.log("Creating Liquidity Pool on Uniswap V2 for Testnet.");
 
     // Instatiate the wallet from the deployer's private key (from .env file DEPLOYER_PK or PROD_DEPLOYER_PK for mainnet)
@@ -186,29 +175,63 @@ async function main() {
     
     // Mint 1,000,000 MockKonduxERC20 tokens to the deployer's address
     const mockPaymentToken = await ethers.getContractAt("MockKonduxERC20", paymentTokenAddress, signer);
-    const mintAmount = ethers.parseUnits("1000000", 9); // 1,000,000 tokens with 9 decimals
+    const mintAmount = ethers.parseUnits("100000", 9); // 1,000,000 tokens with 9 decimals
     console.log(`Minting ${mintAmount} MockKonduxERC20 tokens to ${await signer.getAddress()}...`);
     const mintTx = await mockPaymentToken.connect(signer).mint(await signer.getAddress(), mintAmount);
     await mintTx.wait();
     console.log(`Minted ${ethers.formatUnits(mintAmount, 9)} MockKonduxERC20 tokens to ${await signer.getAddress()}.`);
 
     // Define amounts for liquidity
-    const tokenAmount = mintAmount; // 1,000,000 tokens
-    const ethAmount = ethers.parseEther("0.01"); // 0.01 ETH
+    const tokenAmount = mintAmount; // 1 tokens
+    const ethAmount = ethers.parseEther("0.001"); // 0.01 ETH
 
     // Create Liquidity Pool
-    await createLiquidityPool(
-      UNISWAP_V2_ROUTER_ADDRESS,
-      paymentTokenAddress,
-      tokenAmount,
-      ethAmount,
-      signer
+    uniswapPairAddress = await createLiquidityPool(
+        UNISWAP_V2_ROUTER_ADDRESS,
+        paymentTokenAddress,
+        tokenAmount,
+        ethAmount,
+        signer
     );
+
   }
+  
+  // Deploy KonduxTokenBasedMinter
+  console.log("Deploying KonduxTokenBasedMinter...");
+  const KonduxTokenBasedMinter = await ethers.getContractFactory("KonduxTokenBasedMinter");
+  const konduxTokenBasedMinter = await KonduxTokenBasedMinter.connect(signer).deploy(
+    kNFTAddress,
+    foundersPassAddress,
+    treasuryAddress,
+    paymentTokenAddress,
+    uniswapPairAddress,
+    WETHAddress
+  );
+  console.log("Arguments for hardhat verify:");
+    console.log(`${kNFTAddress} ${foundersPassAddress} ${treasuryAddress} ${paymentTokenAddress} ${uniswapPairAddress} ${WETHAddress}`);
+  await konduxTokenBasedMinter.waitForDeployment();
+  console.log(`KonduxTokenBasedMinter deployed to: ${konduxTokenBasedMinter.target}`);
+
+  // Grant MINTER_ROLE to KonduxTokenBasedMinter on the Kondux NFT contract
+  const MINTER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("MINTER_ROLE"));
+
+  if (networkName === "mainnet" || networkName === "hardhat") {
+    const kNFTContract = await ethers.getContractAt("Kondux", kNFTAddress);
+    const grantTx = await kNFTContract.connect(signer).grantRole(MINTER_ROLE, konduxTokenBasedMinter.target);
+    await grantTx.wait();
+    console.log(`Granted MINTER_ROLE to KonduxTokenBasedMinter on Kondux NFT contract.`);
+  } else if ((networkName === "sepolia" || networkName === "goerli") ) {
+    const mockKondux = await ethers.getContractAt("MockKondux", kNFTAddress);
+    const grantTx = await mockKondux.connect(signer).grantRole(MINTER_ROLE, konduxTokenBasedMinter.target);
+    await grantTx.wait();
+    console.log(`Granted MINTER_ROLE to KonduxTokenBasedMinter on MockKondux NFT contract.`);
+  }
+
+ 
 
   console.log("Deployment completed successfully.\n");
 }
-
+ 
 // Execute the main function and handle errors
 main()
   .then(() => process.exit(0))

@@ -294,6 +294,9 @@ const config: HardhatUserConfig = {
     spacing: 2,
     // pretty: true,
   },
+  sourcify: {
+    enabled: false
+  }
 };
 
 export default config;

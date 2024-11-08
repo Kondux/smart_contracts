@@ -294,6 +294,15 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
         priceInETH = _calculatePriceInETH(reserveETH, reserveToken, tokenDecimalsCached);
     }
 
+    /**
+     * @dev Get the reserve amounts for ETH and the ERC20 token from the Uniswap pair.
+     * @return reserveETH The reserve amount of ETH in the pair.
+     * @return reserveToken The reserve amount of ERC20 tokens in the pair.
+     */
+    function getReserves() public view returns (uint112 reserveETH, uint112 reserveToken) {
+        return _getReserves();
+    } 
+
     // Internal helper functions
 
     /**
@@ -406,6 +415,15 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
             // Fallback to 18 decimals if the call fails
             decimals = 18;
         }
+    }
+
+    /**
+     * @dev Get token decimals for a given ERC20 token address.
+     * @param _token The address of the ERC20 token.
+     * @return decimals The number of decimals for the token.
+     */
+    function getTokenDecimals(address _token) public view returns (uint8 decimals) {
+        return _getTokenDecimals(_token);
     }
 
     // Additional functions to manage contract state (e.g., pause, activate) can be added here

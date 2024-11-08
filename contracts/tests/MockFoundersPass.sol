@@ -9,9 +9,9 @@ contract MockFoundersPass is ERC721 {
     constructor() ERC721("MockFoundersPass", "MFP") {
     }
 
-    function safeMint(address to, uint256 tokenId) external {
-        _safeMint(to, tokenId);
-        totalSupplyCount += 1;
+    function safeMint(address to) external {
+        uint256 _tokenId = totalSupplyCount++;
+        _safeMint(to, _tokenId);
     }
 
     function totalSupply() public view returns (uint256) {
