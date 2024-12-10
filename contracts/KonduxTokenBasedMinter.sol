@@ -146,7 +146,7 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
         }
 
         // Calculate the number of tokens required
-        uint256 tokensRequired = _calculateTokenAmount(_userPrice, reserveETH, reserveToken, tokenDecimalsCached);
+        uint256 tokensRequired = _calculateTokenAmount(_userPrice, reserveETH, reserveToken); 
 
         require(
             paymentToken.allowance(msg.sender, address(this)) >= tokensRequired,
@@ -198,6 +198,16 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
         require(_foundersPass != address(0), "Founders pass address is not set");
         foundersPass = IERC721(_foundersPass);
         emit FoundersPassChanged(_foundersPass);
+    }
+
+    /**
+     * @notice Toggles the active state of founders pass minting.
+     * @dev Admin-only function to enable or disable founders pass minting. Emits a `FoundersPassMintActive` event reflecting the new state.
+     * @param _active Boolean indicating the desired founders pass minting state.
+     */
+    function setFoundersPassActive(bool _active) public onlyAdmin {
+        foundersPassActive = _active;
+        emit FoundersPassMintActive(_active);
     }
 
     /**
@@ -282,7 +292,7 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
      */
     function getTokenAmountForETH(uint256 _ethAmount) public view returns (uint256 tokenAmount) {
         (uint112 reserveETH, uint112 reserveToken) = _getReserves();
-        tokenAmount = _calculateTokenAmount(_ethAmount, reserveETH, reserveToken, tokenDecimalsCached);
+        tokenAmount = _calculateTokenAmount(_ethAmount, reserveETH, reserveToken); 
     }
 
     /**
@@ -291,7 +301,7 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
      */
     function getTokenPriceInETH() public view returns (uint256 priceInETH) {
         (uint112 reserveETH, uint112 reserveToken) = _getReserves();
-        priceInETH = _calculatePriceInETH(reserveETH, reserveToken, tokenDecimalsCached);
+        priceInETH = _calculatePriceInETH(reserveETH, reserveToken);
     }
 
     /**
@@ -326,61 +336,35 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @notice Calculates the number of ERC20 tokens required for a given ETH amount based on reserves and token decimals.
+     * @notice Calculates the number of ERC20 tokens required for a given ETH amount based on reserves.
      * @param ethAmount The amount of ETH to convert to ERC20 tokens.
      * @param reserveETH The reserve amount of ETH in the pair.
      * @param reserveToken The reserve amount of ERC20 tokens in the pair.
-     * @param tokenDecimals The number of decimals the ERC20 token uses.
-     * @return tokenAmount The equivalent amount of ERC20 tokens.
+     * @return baseAmount The equivalent amount of ERC20 tokens.
      */
     function _calculateTokenAmount(
         uint256 ethAmount,
         uint112 reserveETH,
-        uint112 reserveToken,
-        uint8 tokenDecimals
-    ) internal pure returns (uint256 tokenAmount) {
+        uint112 reserveToken
+    ) internal pure returns (uint256 baseAmount) {
         // Base calculation: (ethAmount * reserveToken) / reserveETH
-        uint256 baseAmount = Math.mulDiv(ethAmount, reserveToken, reserveETH);
-
-        if (tokenDecimals < 18) {
-            // Adjust for tokens with fewer decimals
-            uint256 scalingFactor = 10**(18 - tokenDecimals);
-            tokenAmount = baseAmount / scalingFactor;
-        } else if (tokenDecimals > 18) {
-            // Adjust for tokens with more decimals
-            uint256 scalingFactor = 10**(tokenDecimals - 18);
-            tokenAmount = baseAmount * scalingFactor;
-        } else {
-            // Token has 18 decimals
-            tokenAmount = baseAmount;
-        }
+        baseAmount = Math.mulDiv(ethAmount, reserveToken, reserveETH);
     }
 
 
     /**
-     * @notice Calculates the price of one ERC20 token in ETH based on reserves and token decimals.
+     * @notice Calculates the price of one ERC20 token in ETH based on reserves.
      * @param reserveETH The reserve amount of ETH in the pair.
      * @param reserveToken The reserve amount of ERC20 tokens in the pair.
-     * @param tokenDecimals The number of decimals the ERC20 token uses.
      * @return priceInETH The price of one ERC20 token in ETH (in wei).
      */
     function _calculatePriceInETH(
         uint112 reserveETH,
-        uint112 reserveToken,
-        uint8 tokenDecimals
+        uint112 reserveToken    
     ) internal pure returns (uint256 priceInETH) {
-        // Formula: priceInETH = (reserveETH * 1e18) / (reserveToken * 10**tokenDecimals)
-        // Adjust based on token decimals to maintain precision.
-
-        if (tokenDecimals < 18) {
-            priceInETH = (uint256(reserveETH) * 1e18) / (uint256(reserveToken) * (10 ** tokenDecimals));
-        } else if (tokenDecimals > 18) {
-            uint256 decimalDifference = tokenDecimals - 18;
-            priceInETH = (uint256(reserveETH) * 1e18) / (uint256(reserveToken) * (10 ** decimalDifference));
-        } else {
-            // tokenDecimals == 18
-            priceInETH = (uint256(reserveETH) * 1e18) / uint256(reserveToken);
-        }
+        // Formula: priceInETH = (reserveETH * 1e18) / (reserveToken )
+        priceInETH = (uint256(reserveETH) * 1e18) / uint256(reserveToken);
+        
     }
 
     /**

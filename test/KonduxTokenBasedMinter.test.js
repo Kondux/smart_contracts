@@ -147,15 +147,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
             const tokenDecimals = await paymentToken.decimals();
 
             // Calculate expected token amount off-chain
-            let expectedTokenAmount;
-            if (tokenDecimals < 18) {
-                expectedTokenAmount = ethAmount * reserveToken * (10n ** BigInt(tokenDecimals)) / (reserveETH * (10n ** 18n));
-            } else if (tokenDecimals > 18) {
-                const decimalDifference = BigInt(tokenDecimals) - 18n;                
-                expectedTokenAmount = ethAmount * reserveToken * (10n ** decimalDifference) / reserveETH;
-            } else {
-                expectedTokenAmount = ethAmount * reserveToken / reserveETH;
-            }
+            let expectedTokenAmount = ethAmount * reserveToken / reserveETH;            
 
             // Convert expectedTokenAmount from BigInt to string for comparison
             const expectedTokenAmountStr = expectedTokenAmount.toString();
@@ -189,15 +181,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
             const tokenDecimals = await paymentToken.decimals();
 
             // Calculate expected price off-chain
-            let expectedPriceInETH;
-            if (tokenDecimals < 18) {                
-                expectedPriceInETH = reserveETH * (10n ** 18n) / (reserveToken * (10n ** BigInt(tokenDecimals)));
-            } else if (tokenDecimals > 18) {
-                const decimalDifference = BigInt(tokenDecimals) - 18n;                
-                expectedPriceInETH = reserveETH * (10n ** 18n) / (reserveToken * (10n ** decimalDifference));
-            } else {                
-                expectedPriceInETH = reserveETH * (10n ** 18n) / reserveToken;
-            }
+            let expectedPriceInETH = reserveETH * (10n ** 18n) / reserveToken;            
 
             // Fetch token price from the contract's getter
             const priceInETHFromContract = await konduxTokenBasedMinter.getTokenPriceInETH();
@@ -697,15 +681,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
 
             // Calculate tokensRequired using the contract's logic
             // Since _calculateTokenAmount is internal, replicate the calculation here
-            let tokensRequired;
-            if (tokenDecimals < 18) {
-                tokensRequired = (ethAmount * reserveToken * (10n ** tokenDecimals) / (reserveETH * 10n ** 18n));
-            } else if (tokenDecimals > 18) {
-                const decimalDifference = tokenDecimals - 18n;
-                tokensRequired = (ethAmount * reserveToken * 10n ** decimalDifference) / reserveETH;
-            } else {
-                tokensRequired = (ethAmount * reserveToken) / reserveETH;
-            }
+            let tokensRequired = (ethAmount * reserveToken) / reserveETH;
 
             // Transfer tokens to the user from the token holder
             await network.provider.request({
@@ -795,16 +771,8 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
 
             // Calculate tokensRequired using the contract's logic
             // Since _calculateTokenAmount is internal, replicate the calculation here
-            let tokensRequired;
-            if (tokenDecimals < 18) {
-                tokensRequired = (ethAmount * reserveToken * (10n ** tokenDecimals) / (reserveETH * 10n ** 18n));
-            } else if (tokenDecimals > 18) {
-                const decimalDifference = tokenDecimals - 18n;
-                tokensRequired = (ethAmount * reserveToken * 10n ** decimalDifference) / reserveETH;
-            } else {
-                tokensRequired = (ethAmount * reserveToken) / reserveETH;
-            }
-
+            let tokensRequired = (ethAmount * reserveToken) / reserveETH;
+            
             // Transfer tokens to the user from the token holder
             await network.provider.request({
                 method: "hardhat_impersonateAccount",
@@ -866,15 +834,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
 
             // Calculate tokensRequired using the contract's logic
             // Since _calculateTokenAmount is internal, replicate the calculation here
-            let tokensRequired;
-            if (tokenDecimals < 18) {
-                tokensRequired = (ethAmount * reserveToken * (10n ** tokenDecimals) / (reserveETH * 10n ** 18n));
-            } else if (tokenDecimals > 18) {
-                const decimalDifference = tokenDecimals - 18n;
-                tokensRequired = (ethAmount * reserveToken * 10n ** decimalDifference) / reserveETH;
-            } else {
-                tokensRequired = (ethAmount * reserveToken) / reserveETH;
-            }
+            let tokensRequired = (ethAmount * reserveToken) / reserveETH;            
 
             // Transfer tokens to the user from the token holder
             await network.provider.request({
@@ -938,15 +898,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
 
             // Calculate tokensRequired using the contract's logic
             // Since _calculateTokenAmount is internal, replicate the calculation here
-            let tokensRequired;
-            if (tokenDecimals < 18) {
-                tokensRequired = (ethAmount * reserveToken * (10n ** tokenDecimals) / (reserveETH * 10n ** 18n));
-            } else if (tokenDecimals > 18) {
-                const decimalDifference = tokenDecimals - 18n;
-                tokensRequired = (ethAmount * reserveToken * 10n ** decimalDifference) / reserveETH;
-            } else {
-                tokensRequired = (ethAmount * reserveToken) / reserveETH;
-            }
+            let tokensRequired = (ethAmount * reserveToken) / reserveETH;            
 
             // Transfer tokens to the user from the token holder
             await network.provider.request({
@@ -1013,15 +965,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
 
             // Calculate tokensRequired using the contract's logic
             // Since _calculateTokenAmount is internal, replicate the calculation here
-            let tokensRequired;
-            if (tokenDecimals < 18) {
-                tokensRequired = (ethAmount * reserveToken * (10n ** tokenDecimals) / (reserveETH * 10n ** 18n));
-            } else if (tokenDecimals > 18) {
-                const decimalDifference = tokenDecimals - 18n;
-                tokensRequired = (ethAmount * reserveToken * 10n ** decimalDifference) / reserveETH;
-            } else {
-                tokensRequired = (ethAmount * reserveToken) / reserveETH;
-            }
+            let tokensRequired = (ethAmount * reserveToken) / reserveETH;            
 
             // Transfer exact amount of tokens to the user from the token holder
             await network.provider.request({
@@ -1051,6 +995,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
 
             // Capture the user's initial token balance
             const initialUserBalance = await paymentToken.balanceOf(userAddress);
+            console.log("initialUserBalance: ", initialUserBalance.toString());
             
             // Unpause the contract
             await konduxTokenBasedMinter.connect(adminSigner).setPaused(false);  
@@ -1070,6 +1015,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
 
             // Capture the user's final token balance
             const finalUserBalance = await paymentToken.balanceOf(userAddress);
+            console.log("finalUserBalance: ", finalUserBalance.toString());
 
             // Verify that tokens have been transferred to the treasury
             const tokensTransferred = initialUserBalance - finalUserBalance;
@@ -1111,15 +1057,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
 
             // Calculate tokensRequired using the contract's logic
             // Since _calculateTokenAmount is internal, replicate the calculation here
-            let tokensRequired;
-            if (tokenDecimals < 18) {
-                tokensRequired = (ethAmount * reserveToken * (10n ** tokenDecimals) / (reserveETH * 10n ** 18n));
-            } else if (tokenDecimals > 18) {
-                const decimalDifference = tokenDecimals - 18n;
-                tokensRequired = (ethAmount * reserveToken * 10n ** decimalDifference) / reserveETH;
-            } else {
-                tokensRequired = (ethAmount * reserveToken) / reserveETH;
-            }
+            let tokensRequired= (ethAmount * reserveToken) / reserveETH;            
 
             // Transfer enough tokens to the user from the token holder for multiple mints
             const numberOfMints = 3n;
@@ -1193,20 +1131,12 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
             // Define the amount of tokens the user needs to mint
             const ethAmount = ethers.parseEther("1.0"); // 1 ETH
             const reserveETH = 1000n; // Example reserveETH
-            const reserveToken = 2000000n; // Example reserveToken
+            const reserveToken = 200000000000000n; // Example reserveToken
             const tokenDecimals = BigInt(KNDX_DECIMALS); // 9 decimals
             const bundleSize = 5n; // Default bundle size
 
             // Calculate tokensRequired using the contract's logic
-            let tokensRequired;
-            if (tokenDecimals < 18) {
-                tokensRequired = (ethAmount * reserveToken * (10n ** tokenDecimals)) / (reserveETH * (10n ** 18n));
-            } else if (tokenDecimals > 18) {
-                const decimalDifference = (tokenDecimals) - 18n;
-                tokensRequired = (ethAmount * reserveToken * (10n ** decimalDifference)) / (reserveETH);
-            } else {
-                tokensRequired = (ethAmount * reserveToken) / (reserveETH);
-            }
+            let tokensRequired= (ethAmount * reserveToken) / (reserveETH);            
 
             // Transfer tokens to the user from the token holder
             await network.provider.request({
@@ -1221,7 +1151,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
             const userAddress = await user.getAddress();
 
             // Transfer tokens to the user
-            await paymentTokenAsHolder.transfer(userAddress, tokensRequired);
+            await paymentTokenAsHolder.transfer(userAddress, reserveToken);
 
             // Set adminSigner as the minter with on Kondux NFT contract
             // first get the role hash
@@ -1285,15 +1215,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
             const tokenDecimals = BigInt(KNDX_DECIMALS); // 9 decimals
 
             // Calculate tokensRequired
-            let tokensRequired;
-            if (tokenDecimals < 18) {
-                tokensRequired = (ethAmount * reserveToken * (10n ** tokenDecimals)) / (reserveETH * (10n ** 18n));
-            } else if (tokenDecimals > 18) {
-                const decimalDifference = (tokenDecimals) - 18n;
-                tokensRequired = (ethAmount * reserveToken * (10n ** decimalDifference)) / (reserveETH);
-            } else {
-                tokensRequired = (ethAmount * reserveToken) / (reserveETH);
-            }
+            let tokensRequired = (ethAmount * reserveToken) / (reserveETH);            
 
             // Transfer tokens to the attacker from the token holder
             await network.provider.request({
@@ -1307,8 +1229,11 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
 
             const attackerAddress = await attacker.getAddress();
 
+            // console.log("Attacker address: ", attackerAddress);
+            // console.log("Tokens required: ", tokensRequired.toString());
+
             // Transfer tokens to the attacker
-            await paymentTokenAsHolder.transfer(attackerAddress, tokensRequired);
+            await paymentTokenAsHolder.transfer(attackerAddress, reserveToken);
 
             // Stop impersonating the token holder
             await network.provider.request({
@@ -1365,15 +1290,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
             const tokenDecimals = await paymentToken.decimals();
 
             // Calculate tokensRequired using the contract's logic for founder discount
-            let tokensRequired;
-            if (tokenDecimals < 18n) {
-                tokensRequired = (BigInt(ethers.toBigInt(ethAmount)) * BigInt(reserveToken) * BigInt(10n ** tokenDecimals)) / (BigInt(reserveETH) * BigInt(10 ** 18));
-            } else if (tokenDecimals > 18n) {
-                const decimalDifference = BigInt(tokenDecimals) - 18n;
-                tokensRequired = (BigInt(ethers.toBigInt(ethAmount)) * BigInt(reserveToken) * BigInt(10n ** decimalDifference)) / BigInt(reserveETH);
-            } else {
-                tokensRequired = (BigInt(ethers.toBigInt(ethAmount)) * BigInt(reserveToken)) / BigInt(reserveETH);
-            }
+            let tokensRequired = (BigInt(ethers.toBigInt(ethAmount)) * BigInt(reserveToken)) / BigInt(reserveETH);            
 
             // Impersonate a Founders Pass holder and transfer a Founders Pass NFT to the user
             await network.provider.request({

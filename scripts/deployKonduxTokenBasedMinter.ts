@@ -85,6 +85,7 @@ async function main() {
 
     // use the signer to perform every action on the current provider
     console.log(`Deployer Address: ${await signer.getAddress()}`);
+    console.log(`Deployer Balance: ${ethers.formatEther(await ethers.provider.getBalance(await signer.getAddress()))} ETH`);
 
   let kNFTAddress,
     foundersPassAddress,
@@ -154,8 +155,8 @@ async function main() {
   console.log(`WETH Address: ${WETHAddress}`);
   console.log(`Uniswap V2 Router Address: ${UNISWAP_V2_ROUTER_ADDRESS}`);
 
-  if (IS_PRE_DEPLOYED) {
-   // kNFTAddress = PREDEPLOYED_ADDRESSES.KNFT_ADDRESS;
+  if (IS_PRE_DEPLOYED && (networkName === "sepolia" || networkName === "goerli")) {
+    kNFTAddress = PREDEPLOYED_ADDRESSES.KNFT_ADDRESS;
     foundersPassAddress = PREDEPLOYED_ADDRESSES.FOUNDERSPASS_ADDRESS;
     treasuryAddress = PREDEPLOYED_ADDRESSES.TREASURY_ADDRESS;
     paymentTokenAddress = PREDEPLOYED_ADDRESSES.PAYMENT_TOKEN_ADDRESS;
@@ -172,10 +173,12 @@ async function main() {
         deployerPK = process.env.PROD_DEPLOYER_PK;
     }
     const signer = new ethers.Wallet(deployerPK, ethers.provider);
+    console.log(`Deployer Address: ${await signer.getAddress()}`);
+    console.log(`Deployer Balance: ${ethers.formatEther(await signer.getBalance())} ETH`);
     
     // Mint 1,000,000 MockKonduxERC20 tokens to the deployer's address
     const mockPaymentToken = await ethers.getContractAt("MockKonduxERC20", paymentTokenAddress, signer);
-    const mintAmount = ethers.parseUnits("100000", 9); // 1,000,000 tokens with 9 decimals
+    const mintAmount = ethers.parseUnits("100000", 18); // 1,000,000 tokens with 9 decimals
     console.log(`Minting ${mintAmount} MockKonduxERC20 tokens to ${await signer.getAddress()}...`);
     const mintTx = await mockPaymentToken.connect(signer).mint(await signer.getAddress(), mintAmount);
     await mintTx.wait();
@@ -199,6 +202,14 @@ async function main() {
   // Deploy KonduxTokenBasedMinter
   console.log("Deploying KonduxTokenBasedMinter...");
   const KonduxTokenBasedMinter = await ethers.getContractFactory("KonduxTokenBasedMinter");
+  console.log("Deploying KonduxTokenBasedMinter with the following arguments:");
+  console.log(`kNFTAddress: ${kNFTAddress}`);
+  console.log(`foundersPassAddress: ${foundersPassAddress}`);
+  console.log(`treasuryAddress: ${treasuryAddress}`);
+  console.log(`paymentTokenAddress: ${paymentTokenAddress}`);
+  console.log(`uniswapPairAddress: ${uniswapPairAddress}`);
+  console.log(`WETHAddress: ${WETHAddress}`);
+
   const konduxTokenBasedMinter = await KonduxTokenBasedMinter.connect(signer).deploy(
     kNFTAddress,
     foundersPassAddress,
