@@ -81,7 +81,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
         const paymentToken = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, tokenHolderSigner);
 
         // // Determine the amount to transfer (e.g., 1000 tokens with 9 decimals)
-        const transferAmount = ethers.parseUnits("1000", KNDX_DECIMALS); // Adjust decimals if necessary
+        const transferAmount = ethers.parseUnits("100000", KNDX_DECIMALS); // Adjust decimals if necessary
 
         // // Transfer tokens to the minter contract
         await paymentToken.transfer(konduxTokenBasedMinterAddress, transferAmount);
@@ -433,7 +433,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
                 const paymentToken = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS);
 
                 // Define a withdrawal amount greater than the minter's balance (e.g., 2000 tokens)
-                const withdrawAmount = ethers.parseUnits("2000", KNDX_DECIMALS); // Minter has only 1000 tokens
+                const withdrawAmount = ethers.parseUnits("200000", KNDX_DECIMALS); // Minter has only 1000 tokens
 
                 await expect(
                     konduxTokenBasedMinter.connect(adminSigner).emergencyWithdrawTokens(PAYMENT_TOKEN_ADDRESS, withdrawAmount)
@@ -682,6 +682,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
             // Calculate tokensRequired using the contract's logic
             // Since _calculateTokenAmount is internal, replicate the calculation here
             let tokensRequired = (ethAmount * reserveToken) / reserveETH;
+            console.log("tokensRequired: ", tokensRequired);
 
             // Transfer tokens to the user from the token holder
             await network.provider.request({
@@ -711,6 +712,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
 
             // Capture the user's initial token balance
             const initialUserBalance = await paymentToken.balanceOf(userAddress);
+            console.log("initialUserBalance: ", initialUserBalance.toString());
 
             // Unpause the contract
             await konduxTokenBasedMinter.connect(adminSigner).setPaused(false);
@@ -730,9 +732,11 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
 
             // Capture the user's final token balance
             const finalUserBalance = await paymentToken.balanceOf(userAddress);
+            console.log("finalUserBalance: ", finalUserBalance.toString());
 
             // Verify that tokens have been transferred to the treasury
             const tokensTransferred = initialUserBalance - finalUserBalance;
+            console.log("tokensTransferred: ", tokensTransferred);
             expect(tokensTransferred).to.equal(tokensRequired);
 
             // Verify that NFTs have been minted to the user
@@ -946,7 +950,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
             const paymentToken = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, user);
 
             // Define the amount of tokens the user needs to mint
-            const ethAmount = ethers.parseEther("0.225"); // 1 ETH
+            const ethAmount = ethers.parseEther("0.225"); // .225 ETH
             const uniswapPair = await ethers.getContractAt(uniswapPairABI, UNISWAP_PAIR_ADDRESS);
             const reserves = await uniswapPair.getReserves();
             const token0 = await uniswapPair.token0();
