@@ -14,45 +14,105 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-
-import "hardhat/console.sol";
-
 contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
     using Math for uint256;
 
     // State Variables
-    bool public paused; // Controls whether minting is currently allowed.
-    uint16 public bundleSize; // The number of NFTs in each minted bundle.
-    uint256 public fullPrice; // The ETH price for minting a bundle.
-    uint256 public discountPrice; // The discounted price for minting a bundle.
-    uint256 public founderDiscountPrice; // The discounted price for minting a bundle.
 
-    IKondux public kNFT; // Interface to interact with the Kondux NFT contract for NFT operations.
-    IERC721 public foundersPass; // Interface for the founders pass contract, allowing for special minting conditions.
-    ITreasury public treasury; // Interface to interact with the treasury contract for financial transactions.
-    IKonduxERC20 public paymentToken; // Interface for the ERC20 token used for minting payments.
-    IUniswapV2Pair public uniswapPair; // Interface for the Uniswap V2 pair contract for token swaps.
+    /// @notice Indicates whether minting operations are currently paused.
+    bool public paused;
 
-    // solhint-disable-next-line var-name-mixedcase
-    address public WETH; // The address of the WETH token contract.
+    /// @notice The number of NFTs in each minted bundle.
+    uint16 public bundleSize;
 
-    uint8 private tokenDecimalsCached; // Cached decimals of the ERC20 token.
+    /// @notice The full ETH price for minting a bundle of NFTs.
+    uint256 public fullPrice;
 
-    bool public foundersPassActive; // Controls whether founders pass minting is active.
+    /// @notice The discounted ETH price for minting a bundle of NFTs (e.g., for certain users).
+    uint256 public discountPrice;
 
-    // Events for tracking contract state changes and interactions.
+    /// @notice The discounted ETH price for minting a bundle if the minter holds a Founder's Pass NFT.
+    uint256 public founderDiscountPrice;
+
+    /// @notice The Kondux NFT contract interface used for minting NFTs.
+    IKondux public kNFT;
+
+    /// @notice The Founders Pass NFT contract interface. Holding this pass may grant minting discounts.
+    IERC721 public foundersPass;
+
+    /// @notice The Treasury contract interface where funds are directed.
+    ITreasury public treasury;
+
+    /// @notice The ERC20 token interface used as a payment method for minting.
+    IKonduxERC20 public paymentToken;
+
+    /// @notice The Uniswap V2 Pair interface used to determine token/ETH price ratios.
+    IUniswapV2Pair public uniswapPair;
+
+    /// @notice The WETH token contract address used in the Uniswap Pair.
+    address public WETH;
+
+    /// @dev Cached value of the payment token decimals for gas optimization.
+    uint8 private tokenDecimalsCached;
+
+    /// @notice Indicates whether the special Founder’s Pass minting discount is active.
+    bool public foundersPassActive;
+
+    // Events
+
+    /// @notice Emitted when a bundle of NFTs is minted.
+    /// @param minter The address that minted the bundle.
+    /// @param tokenIds The IDs of the newly minted NFTs.
     event BundleMinted(address indexed minter, uint256[] tokenIds);
+
+    /// @notice Emitted when the Treasury contract address is updated.
+    /// @param treasury The new treasury address.
     event TreasuryChanged(address indexed treasury);
+
+    /// @notice Emitted when the Founders Pass contract address is updated.
+    /// @param foundersPass The new Founders Pass contract address.
     event FoundersPassChanged(address indexed foundersPass);
+
+    /// @notice Emitted when the Kondux NFT contract address is updated.
+    /// @param kNFT The new Kondux NFT contract address.
     event KNFTChanged(address indexed kNFT);
+
+    /// @notice Emitted when the bundle size is updated.
+    /// @param bundleSize The new bundle size.
     event BundleSizeChanged(uint16 bundleSize);
+
+    /// @notice Emitted when any of the minting prices (full/discount/founder discount) is changed.
+    /// @param price The new price that was set.
     event PriceChanged(uint256 price);
+
+    /// @notice Emitted when the contract pause state changes.
+    /// @param paused The new paused state.
     event Paused(bool paused);
+
+    /// @notice Emitted when public minting is enabled or disabled.
+    /// @param active Indicates if public minting is active.
     event PublicMintActive(bool active);
+
+    /// @notice Emitted when Founders Pass minting is enabled or disabled.
+    /// @param active Indicates if Founders Pass minting is active.
     event FoundersPassMintActive(bool active);
+
+    /// @notice Emitted when a new admin is granted the DEFAULT_ADMIN_ROLE.
+    /// @param admin The address of the new admin.
     event AdminGranted(address indexed admin);
+
+    /// @notice Emitted when ERC20 tokens are withdrawn from the contract in an emergency.
+    /// @param admin The admin who performed the withdrawal.
+    /// @param token The token address withdrawn.
+    /// @param amount The amount of tokens withdrawn.
     event TokensWithdrawn(address indexed admin, address indexed token, uint256 amount);
+
+    /// @notice Emitted when ETH is withdrawn from the contract in an emergency.
+    /// @param admin The admin who performed the withdrawal.
+    /// @param amount The amount of ETH withdrawn.
     event ETHWithdrawn(address indexed admin, uint256 amount);
+
+    /// @notice Emitted when multiple configurations are updated in a single transaction.
     event ConfigurationsUpdated(
         uint256 price,
         uint256 discountPrice,
@@ -67,23 +127,27 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
     );
 
     // Modifiers
-    /**
-     * @dev Ensures a function is only callable when the contract is not paused.
-     */
+
+    /// @notice Ensures a function is only callable when the contract is not paused.
     modifier notPaused() {
         require(!paused, "Contract is paused");
         _;
     }
 
-    /**
-     * @dev Restricts a function's access to users with the admin role.
-     */
+    /// @notice Restricts a function's access to callers with the admin role.
     modifier onlyAdmin() {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Caller is not an admin");
         _;
     }
 
-    // Constructor to initialize contract addresses and settings
+    /// @notice Initializes the contract state and sets required external contract addresses.
+    /// @dev All provided addresses must be non-zero. Initializes default prices, bundle size, and grants deployer admin role.
+    /// @param _kNFT The Kondux NFT contract address.
+    /// @param _foundersPass The Founders Pass NFT contract address.
+    /// @param _treasury The Treasury contract address.
+    /// @param _paymentToken The ERC20 token contract address used for payments.
+    /// @param _uniswapPair The Uniswap V2 Pair contract address for price calculations.
+    /// @param _WETH The WETH contract address used in the Uniswap pair.
     constructor(
         address _kNFT,
         address _foundersPass,
@@ -120,8 +184,8 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @notice Toggles the paused state of minting operations.
-     * @dev Can only be executed by an admin. Emits a `Paused` event reflecting the new state.
+     * @notice Sets the paused state of the contract's minting operations.
+     * @dev Only callable by an admin. When paused, all minting functions will revert.
      * @param _paused Boolean indicating the desired paused state.
      */
     function setPaused(bool _paused) public onlyAdmin {
@@ -130,10 +194,11 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @notice Mints a bundle of NFTs if minting is active and sufficient ERC20 tokens are sent.
-     * @dev Validates the token amount against the current ETH price, transfers tokens to the treasury, and mints the NFT bundle.
-     * Requires the contract to not be paused.
-     * @return tokenIds Array of minted token IDs.
+     * @notice Allows a user to mint a bundle of NFTs using the payment token.
+     * @dev Checks for allowance and balance of payment tokens, calculates the required token amount
+     *      from the ETH price based on the Uniswap reserves, and transfers tokens to the treasury.
+     *      Mints `bundleSize` NFTs to the caller. Reverts if paused.
+     * @return tokenIds An array of token IDs for the newly minted NFTs.
      */
     function publicMint() public nonReentrant notPaused returns (uint256[] memory) {
         // Fetch current reserves
@@ -141,11 +206,12 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
 
         uint256 _userPrice = discountPrice;
 
+        // If foundersPass is active and user has at least one founders pass, apply founder discount price
         if (foundersPassActive && foundersPass.balanceOf(msg.sender) > 0) {
             _userPrice = founderDiscountPrice;
         }
 
-        // Calculate the number of tokens required
+        // Calculate the number of tokens required based on ETH price
         uint256 tokensRequired = _calculateTokenAmount(_userPrice, reserveETH, reserveToken); 
 
         require(
@@ -168,8 +234,8 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @notice Updates the address of the Kondux NFT contract.
-     * @dev Admin-only function to change the contract address for managing Kondux NFT operations. Validates the new address before updating and emits a `KNFTChanged` event on success.
+     * @notice Updates the Kondux NFT contract address.
+     * @dev Only callable by an admin. The provided address must be non-zero.
      * @param _kNFT The new Kondux NFT contract address.
      */
     function setKNFT(address _kNFT) public onlyAdmin {
@@ -179,9 +245,9 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @notice Updates the address of the treasury contract.
-     * @dev Admin-only function to change the contract address for managing treasury operations. Validates the new address before updating and emits a `TreasuryChanged` event on success.
-     * @param _treasury The new treasury contract address.
+     * @notice Updates the Treasury contract address.
+     * @dev Only callable by an admin. The provided address must be non-zero.
+     * @param _treasury The new Treasury contract address.
      */
     function setTreasury(address _treasury) public onlyAdmin {
         require(_treasury != address(0), "Treasury address is not set");
@@ -190,9 +256,9 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @notice Updates the address of the founders pass contract.
-     * @dev Admin-only function to change the contract address for managing founders pass operations. Validates the new address before updating and emits a `FoundersPassChanged` event on success.
-     * @param _foundersPass The new founders pass contract address.
+     * @notice Updates the Founders Pass contract address.
+     * @dev Only callable by an admin. The provided address must be non-zero.
+     * @param _foundersPass The new Founders Pass contract address.
      */
     function setFoundersPass(address _foundersPass) public onlyAdmin {
         require(_foundersPass != address(0), "Founders pass address is not set");
@@ -201,9 +267,9 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @notice Toggles the active state of founders pass minting.
-     * @dev Admin-only function to enable or disable founders pass minting. Emits a `FoundersPassMintActive` event reflecting the new state.
-     * @param _active Boolean indicating the desired founders pass minting state.
+     * @notice Sets whether the Founders Pass discount is active.
+     * @dev Only callable by an admin.
+     * @param _active Boolean indicating the desired state of the Founders Pass discount.
      */
     function setFoundersPassActive(bool _active) public onlyAdmin {
         foundersPassActive = _active;
@@ -211,9 +277,9 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @notice Updates the minting price for an NFT bundle.
-     * @dev Admin-only function to adjust the ETH price required to mint an NFT bundle. Validates the new price before applying the change and emits a `PriceChanged` event on success.
-     * @param _price The new minting price in ETH.
+     * @notice Updates the full (non-discounted) mint price for a bundle.
+     * @dev Only callable by an admin. The price must be greater than zero.
+     * @param _price The new full bundle minting price in ETH.
      */
     function setFullPrice(uint256 _price) public onlyAdmin {
         require(_price > 0, "Price must be greater than 0");
@@ -222,9 +288,9 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @notice Updates the discounted minting price for an NFT bundle.
-     * @dev Admin-only function to adjust the discounted ETH price required to mint an NFT bundle. Validates the new price before applying the change and emits a `PriceChanged` event on success.
-     * @param _price The new discounted minting price in ETH.
+     * @notice Updates the discounted mint price for a bundle.
+     * @dev Only callable by an admin. The price must be greater than zero.
+     * @param _price The new discounted bundle minting price in ETH.
      */
     function setDiscountPrice(uint256 _price) public onlyAdmin {
         require(_price > 0, "Price must be greater than 0");
@@ -233,9 +299,9 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @notice Updates the discounted minting price for an NFT bundle.
-     * @dev Admin-only function to adjust the discounted ETH price required to mint an NFT bundle. Validates the new price before applying the change and emits a `PriceChanged` event on success.
-     * @param _price The new discounted minting price in ETH.
+     * @notice Updates the Founder-specific discounted mint price for a bundle.
+     * @dev Only callable by an admin. The price must be greater than zero.
+     * @param _price The new founder discount bundle minting price in ETH.
      */
     function setFounderDiscountPrice(uint256 _price) public onlyAdmin {
         require(_price > 0, "Price must be greater than 0");
@@ -244,9 +310,9 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @notice Adjusts the size of the NFT bundle that can be minted at once.
-     * @dev Admin-only function to set the number of NFTs included in a single mint operation. Validates the new size for practical limits and emits a `BundleSizeChanged` event on update.
-     * @param _bundleSize The new bundle size, within set boundaries.
+     * @notice Updates the number of NFTs in each minted bundle.
+     * @dev Only callable by an admin. The bundle size must be between 1 and 15.
+     * @param _bundleSize The new bundle size.
      */
     function setBundleSize(uint16 _bundleSize) public onlyAdmin {
         require(_bundleSize > 0, "Bundle size must be greater than 0");
@@ -257,7 +323,7 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
 
     /**
      * @notice Grants the admin role to a specified address.
-     * @dev Can be executed only by an existing admin. Ensures that the target address is not already an admin and is not the zero address before granting the role.
+     * @dev Only callable by an admin. The new admin address must be non-zero and not already an admin.
      * @param _admin The address to be granted admin privileges.
      */
     function setAdmin(address _admin) public onlyAdmin {
@@ -267,28 +333,29 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
         emit AdminGranted(_admin);
     }
 
-    // Getter functions provide external visibility into the contract's state without modifying it.
-
     /**
      * @notice Returns the address of the Kondux NFT contract.
-     * @return The current address interfaced by this contract for Kondux NFT operations.
+     * @dev This is a simple getter function for external convenience.
+     * @return The current Kondux NFT contract address.
      */
     function getKNFT() public view returns (address) {
         return address(kNFT);
     }
 
     /**
-     * @notice Returns the address of the treasury contract.
-     * @return The current treasury contract address for financial transactions related to minting.
+     * @notice Returns the address of the Treasury contract.
+     * @dev This is a simple getter function for external convenience.
+     * @return The current treasury contract address.
      */
     function getTreasury() public view returns (address) {
         return address(treasury);
     }
 
     /**
-     * @notice Calculates the number of ERC20 tokens required for a given ETH amount based on Uniswap V2 pair reserves.
-     * @param _ethAmount The amount of ETH to convert to ERC20 tokens (in wei).
-     * @return tokenAmount The equivalent amount of ERC20 tokens.
+     * @notice Calculates how many payment tokens are required for a given amount of ETH.
+     * @dev Uses Uniswap V2 pair reserves to determine price. The formula is tokens = (ethAmount * reserveToken) / reserveETH.
+     * @param _ethAmount The amount of ETH (in wei) to convert into payment tokens.
+     * @return tokenAmount The equivalent amount of ERC20 tokens needed.
      */
     function getTokenAmountForETH(uint256 _ethAmount) public view returns (uint256 tokenAmount) {
         (uint112 reserveETH, uint112 reserveToken) = _getReserves();
@@ -296,8 +363,9 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @notice Helper function to get the current price of the token in ETH.
-     * @return priceInETH The price of one ERC20 token in ETH (in wei).
+     * @notice Calculates the price of one payment token in terms of ETH, given current reserves.
+     * @dev priceInETH = (reserveETH * 1e18) / reserveToken.
+     * @return priceInETH The price of one payment token in wei of ETH.
      */
     function getTokenPriceInETH() public view returns (uint256 priceInETH) {
         (uint112 reserveETH, uint112 reserveToken) = _getReserves();
@@ -305,116 +373,18 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @dev Get the reserve amounts for ETH and the ERC20 token from the Uniswap pair.
+     * @notice Retrieves the current reserve amounts of ETH and ERC20 tokens from the Uniswap pair.
+     * @dev Public getter function that relies on internal logic to determine which reserve corresponds to ETH and which corresponds to the token.
      * @return reserveETH The reserve amount of ETH in the pair.
-     * @return reserveToken The reserve amount of ERC20 tokens in the pair.
+     * @return reserveToken The reserve amount of the ERC20 token in the pair.
      */
     function getReserves() public view returns (uint112 reserveETH, uint112 reserveToken) {
         return _getReserves();
-    } 
-
-    // Internal helper functions
-
-    /**
-     * @notice Fetches and returns the reserves for ETH and the ERC20 token from the Uniswap pair.
-     * @return reserveETH The reserve amount of ETH in the pair.
-     * @return reserveToken The reserve amount of ERC20 tokens in the pair.
-     */
-    function _getReserves() internal view returns (uint112 reserveETH, uint112 reserveToken) {
-        (uint112 reserve0, uint112 reserve1, ) = uniswapPair.getReserves();
-        address token0 = uniswapPair.token0();
-
-        if (token0 == WETH) {
-            reserveETH = reserve0;
-            reserveToken = reserve1;
-        } else {
-            reserveETH = reserve1;
-            reserveToken = reserve0;
-        }
-
-        require(reserveETH > 0 && reserveToken > 0, "Invalid reserves");
     }
-
-    /**
-     * @notice Calculates the number of ERC20 tokens required for a given ETH amount based on reserves.
-     * @param ethAmount The amount of ETH to convert to ERC20 tokens.
-     * @param reserveETH The reserve amount of ETH in the pair.
-     * @param reserveToken The reserve amount of ERC20 tokens in the pair.
-     * @return baseAmount The equivalent amount of ERC20 tokens.
-     */
-    function _calculateTokenAmount(
-        uint256 ethAmount,
-        uint112 reserveETH,
-        uint112 reserveToken
-    ) internal pure returns (uint256 baseAmount) {
-        // Base calculation: (ethAmount * reserveToken) / reserveETH
-        baseAmount = Math.mulDiv(ethAmount, reserveToken, reserveETH);
-    }
-
-
-    /**
-     * @notice Calculates the price of one ERC20 token in ETH based on reserves.
-     * @param reserveETH The reserve amount of ETH in the pair.
-     * @param reserveToken The reserve amount of ERC20 tokens in the pair.
-     * @return priceInETH The price of one ERC20 token in ETH (in wei).
-     */
-    function _calculatePriceInETH(
-        uint112 reserveETH,
-        uint112 reserveToken    
-    ) internal pure returns (uint256 priceInETH) {
-        // Formula: priceInETH = (reserveETH * 1e18) / (reserveToken )
-        priceInETH = (uint256(reserveETH) * 1e18) / uint256(reserveToken);
-        
-    }
-
-    /**
-     * @dev Mints a specified number of NFTs to the sender's address. Each NFT minted is part of the bundle and is assigned a consecutive token ID.
-     * @param _bundleSize The number of NFTs to mint in the bundle.
-     * @return tokenIds An array of the minted NFT token IDs.
-     */
-    function _mintBundle(uint16 _bundleSize) internal returns (uint256[] memory) {
-        uint256[] memory tokenIds = new uint256[](_bundleSize);
-        for (uint16 i = 0; i < _bundleSize; i++) {
-            tokenIds[i] = kNFT.safeMint(msg.sender, 0); // The second parameter could be a metadata identifier or similar.
-        }
-        return tokenIds;
-    }
-
-    /**
-     * @dev Attempts to retrieve the decimals of the given ERC20 token.
-     * If the token does not implement decimals(), it defaults to 18.
-     * @param token The address of the ERC20 token.
-     * @return decimals The number of decimals for the token.
-     */
-    function _getTokenDecimals(address token) internal view returns (uint8 decimals) {
-        // Attempt to call decimals() using a low-level static call
-        (bool success, bytes memory data) = token.staticcall(
-            abi.encodeWithSignature("decimals()")
-        );
-
-        if (success && data.length >= 32) {
-            // Decode the returned data to uint8
-            decimals = abi.decode(data, (uint8));
-        } else {
-            // Fallback to 18 decimals if the call fails
-            decimals = 18;
-        }
-    }
-
-    /**
-     * @dev Get token decimals for a given ERC20 token address.
-     * @param _token The address of the ERC20 token.
-     * @return decimals The number of decimals for the token.
-     */
-    function getTokenDecimals(address _token) public view returns (uint8 decimals) {
-        return _getTokenDecimals(_token);
-    }
-
-    // Additional functions to manage contract state (e.g., pause, activate) can be added here
 
     /**
      * @notice Emergency function to withdraw ERC20 tokens from the contract.
-     * @dev Can only be executed by an admin. This function is intended for emergency situations.
+     * @dev Only callable by an admin. This is an emergency function in case tokens accidentally get stuck.
      * @param _token The address of the ERC20 token to withdraw.
      * @param _amount The amount of tokens to withdraw.
      */
@@ -430,8 +400,8 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
 
     /**
      * @notice Emergency function to withdraw ETH from the contract.
-     * @dev Can only be executed by an admin. This function is intended for emergency situations.
-     * @param _amount The amount of ETH to withdraw (in wei).
+     * @dev Only callable by an admin. This is an emergency function in case ETH accidentally gets stuck.
+     * @param _amount The amount of ETH (in wei) to withdraw.
      */
     function emergencyWithdrawETH(uint256 _amount) external onlyAdmin {
         uint256 contractETHBalance = address(this).balance;
@@ -442,18 +412,18 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @notice Batch update multiple configuration parameters.
-     * @dev Admin-only function to update multiple settings in a single transaction. Emits a `ConfigurationsUpdated` event.
-     * @param _price The new minting price in ETH.
-     * @param _discountPrice The new discounted minting price in ETH.
-     * @param _founderDiscountPrice The new discounted minting price for founders in ETH.
+     * @notice Batch update multiple configuration parameters in a single transaction.
+     * @dev Only callable by an admin. All addresses must be non-zero and prices must be greater than zero.
+     * @param _price The new full price.
+     * @param _discountPrice The new discount price.
+     * @param _founderDiscountPrice The new founder discount price.
      * @param _bundleSize The new bundle size.
      * @param _kNFT The new Kondux NFT contract address.
-     * @param _foundersPass The new founders pass contract address.
-     * @param _treasury The new treasury contract address.
-     * @param _paymentTokenAddr The new payment token address.
-     * @param _uniswapPair The new Uniswap pair address.
-     * @param _WETH The new WETH address.
+     * @param _foundersPass The new Founders Pass contract address.
+     * @param _treasury The new Treasury contract address.
+     * @param _paymentTokenAddr The new payment token contract address.
+     * @param _uniswapPair The new Uniswap pair contract address.
+     * @param _WETH The new WETH contract address.
      */
     function batchUpdateConfigurations(
         uint256 _price,
@@ -489,7 +459,7 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
         uniswapPair = IUniswapV2Pair(_uniswapPair);
         WETH = _WETH;
 
-        // Update cached token decimals with fallback mechanism
+        // Update cached token decimals
         tokenDecimalsCached = _getTokenDecimals(_paymentTokenAddr);
 
         emit ConfigurationsUpdated(
@@ -506,40 +476,133 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
         );
     }
 
-
     /**
-     * @notice Assigns a specific role to an address.
-     * @dev Admin-only function to assign roles for more granular access control.
-     * @param role The bytes32 identifier of the role.
-     * @param account The address to be assigned the role.
+     * @notice Grants a specific role to an account.
+     * @dev Only callable by an admin. The account must be non-zero.
+     * @param role The bytes32 identifier of the role (e.g., keccak256 hash).
+     * @param account The account to be granted the role.
      */
     function grantRoleTo(bytes32 role, address account) external onlyAdmin {
         require(account != address(0), "Cannot grant role to zero address");
         grantRole(role, account);
-        // Optionally, emit a custom event if desired
+        // Additional custom event can be emitted if needed.
     }
 
     /**
-     * @notice Revokes a specific role from an address.
-     * @dev Admin-only function to revoke roles for more granular access control.
+     * @notice Revokes a specific role from an account.
+     * @dev Only callable by an admin. The account must be non-zero.
      * @param role The bytes32 identifier of the role.
-     * @param account The address from which the role will be revoked.
+     * @param account The account from which the role will be revoked.
      */
     function revokeRoleFrom(bytes32 role, address account) external onlyAdmin {
         require(account != address(0), "Cannot revoke role from zero address");
         revokeRole(role, account);
-        // Optionally, emit a custom event if desired
+        // Additional custom event can be emitted if needed.
     }
 
     /**
-     * @notice Receives ETH sent directly to the contract.
-     * @dev Allows the contract to accept ETH. This could be useful for certain operations or in emergency scenarios.
+     * @notice Helper function to retrieve token decimals from a given ERC20 token address.
+     * @dev Tries a staticcall to `decimals()`; if it fails, defaults to 18.
+     * @param _token The ERC20 token address.
+     * @return decimals The number of decimals for the given token.
+     */
+    function getTokenDecimals(address _token) public view returns (uint8 decimals) {
+        return _getTokenDecimals(_token);
+    }
+
+    /**
+     * @notice Allows the contract to receive ETH directly.
+     * @dev This may be useful for certain operations or emergency recoveries.
      */
     receive() external payable {}
 
     /**
      * @notice Fallback function to handle calls to non-existent functions.
-     * @dev Ensures that any unexpected calls are gracefully handled.
+     * @dev This ensures that any unexpected calls are handled gracefully.
      */
     fallback() external payable {}
+
+
+    // Internal Helper Functions
+
+    /**
+     * @notice Retrieves and returns the reserves for ETH and the ERC20 token from the Uniswap pair.
+     * @dev Internally determines which token is WETH and which is the payment token.
+     * @return reserveETH The reserve amount of ETH in the pair.
+     * @return reserveToken The reserve amount of the ERC20 token in the pair.
+     */
+    function _getReserves() internal view returns (uint112 reserveETH, uint112 reserveToken) {
+        (uint112 reserve0, uint112 reserve1, ) = uniswapPair.getReserves();
+        address token0 = uniswapPair.token0();
+
+        if (token0 == WETH) {
+            reserveETH = reserve0;
+            reserveToken = reserve1;
+        } else {
+            reserveETH = reserve1;
+            reserveToken = reserve0;
+        }
+
+        require(reserveETH > 0 && reserveToken > 0, "Invalid reserves");
+    }
+
+    /**
+     * @notice Calculates the amount of payment tokens required for a given ETH amount using the current Uniswap reserves.
+     * @dev Formula: tokens = (ethAmount * reserveToken) / reserveETH.
+     * @param ethAmount The amount of ETH (in wei).
+     * @param reserveETH The ETH reserves in the Uniswap pair.
+     * @param reserveToken The token reserves in the Uniswap pair.
+     * @return baseAmount The equivalent amount of tokens needed.
+     */
+    function _calculateTokenAmount(
+        uint256 ethAmount,
+        uint112 reserveETH,
+        uint112 reserveToken
+    ) internal pure returns (uint256 baseAmount) {
+        baseAmount = Math.mulDiv(ethAmount, reserveToken, reserveETH);
+    }
+
+    /**
+     * @notice Calculates the price of one payment token in ETH, given the current reserves.
+     * @dev priceInETH = (reserveETH * 1e18) / reserveToken.
+     * @param reserveETH The ETH reserves in the Uniswap pair.
+     * @param reserveToken The token reserves in the Uniswap pair.
+     * @return priceInETH The price of one payment token in wei of ETH.
+     */
+    function _calculatePriceInETH(
+        uint112 reserveETH,
+        uint112 reserveToken    
+    ) internal pure returns (uint256 priceInETH) {
+        priceInETH = (uint256(reserveETH) * 1e18) / uint256(reserveToken);
+    }
+
+    /**
+     * @notice Mints a specified number of NFTs in a bundle to the caller.
+     * @dev Mints `_bundleSize` NFTs and returns their newly assigned token IDs.
+     * @param _bundleSize The number of NFTs to mint.
+     * @return tokenIds An array containing the token IDs of the minted NFTs.
+     */
+    function _mintBundle(uint16 _bundleSize) internal returns (uint256[] memory) {
+        uint256[] memory tokenIds = new uint256[](_bundleSize);
+        for (uint16 i = 0; i < _bundleSize; i++) {
+            // The second parameter (0) can represent a placeholder or metadata ID as needed.
+            tokenIds[i] = kNFT.safeMint(msg.sender, 0);
+        }
+        return tokenIds;
+    }
+
+    /**
+     * @notice Attempts to retrieve the decimals of a given ERC20 token.
+     * @dev Uses a low-level staticcall to `decimals()`. If it fails, defaults to 18.
+     * @param token The ERC20 token address.
+     * @return decimals The number of decimals of the token.
+     */
+    function _getTokenDecimals(address token) internal view returns (uint8 decimals) {
+        (bool success, bytes memory data) = token.staticcall(abi.encodeWithSignature("decimals()"));
+        if (success && data.length >= 32) {
+            decimals = abi.decode(data, (uint8));
+        } else {
+            decimals = 18;
+        }
+    }
 }
