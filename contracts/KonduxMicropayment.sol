@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 /**
  * @title External Treasury Interface
- * @notice Minimal interface for calling the provided Treasury contract.
+ * @notice Minimal interface for calling the Treasury contract.
  */
 interface ITreasury {
     function deposit(uint256 _amount, address _token) external;
@@ -18,7 +18,7 @@ interface ITreasury {
 }
 
 /**
- * @title External Usage Oracle (optional example)
+ * @title External Usage Oracle 
  * @notice This interface can be implemented by a Chainlink oracle or custom usage tracker.
  */
 interface IUsageOracle {
