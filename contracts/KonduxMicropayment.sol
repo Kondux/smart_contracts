@@ -18,7 +18,7 @@ interface ITreasury {
 }
 
 /**
- * @title External Usage Oracle 
+ * @title External Usage Oracle
  * @notice This interface can be implemented by a Chainlink oracle or custom usage tracker.
  */
 interface IUsageOracle {
@@ -26,10 +26,17 @@ interface IUsageOracle {
 }
 
 /**
- * @title KonduxMicropayment
- * @dev Manages tiered micro-payments, NFT-gating, usage-based metering, and time-locked deposits
+ * @title KonduxMeteredPayments
+ * @dev A metered micropayment contract that:
+ *  - Allows users to deposit stablecoins
+ *  - Deducts usage on a per-unit basis (metered)
+ *  - Gives optional NFT-based discounts
+ *  - Enforces a 1% royalty fee to Kondux
+ *  - Locks deposits until a certain period
+ *  - Integrates with an optional external usage oracle
+ *  - Uses a Treasury for all fund movements
  */
-contract KonduxMicropayment is AccessControl {
+contract KonduxMeteredPayments is AccessControl {
     /* ========== ROLES ========== */
     bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
     bytes32 public constant UPDATER_ROLE  = keccak256("UPDATER_ROLE"); // e.g. backend or oracle updaters
@@ -37,26 +44,25 @@ contract KonduxMicropayment is AccessControl {
     /* ========== STRUCTS ========== */
 
     /**
-     * @dev Stores deposit and usage information for each user.
+     * @dev Stores deposit information for each user.
      */
     struct UserPayment {
         // total tokens deposited in the treasury on behalf of the user
-        uint256 totalDeposited; 
-        // total usage cost consumed
-        uint256 totalUsed;      
-        // time at which deposit was locked
-        uint256 depositTime;    
+        uint256 totalDeposited;
+        // total usage cost consumed so far
+        uint256 totalUsed;
+        // time at which the user last deposited (start of lock)
+        uint256 depositTime;
         // whether the deposit is active
-        bool active;            
+        bool active;
     }
 
     /**
-     * @dev Defines a tier with usage threshold and cost per usage unit.
-     *      This is an example structure; adapt for your pricing.
+     * @dev Stores provider configuration.
      */
-    struct Tier {
-        uint256 usageThreshold; // e.g. up to 1,000 units
-        uint256 costPerUnit;    // cost in smallest stablecoin units (e.g. 1e6 for USDC=1)
+    struct ProviderInfo {
+        bool registered;    // whether the provider is registered
+        uint256 ratePerUnit; // cost per usage unit (before discounts/royalty)
     }
 
     /* ========== STATE ========== */
@@ -67,15 +73,25 @@ contract KonduxMicropayment is AccessControl {
     // Allowed stablecoins
     mapping(address => bool) public stablecoinAccepted;
 
-    // Basic NFT gating configuration
-    // If "nftContracts" is non-empty, user must hold at least 1 NFT in *any* of these contracts for discount/gate
-    address[] public nftContracts;
-
     // Tracks each user's deposit & usage
     mapping(address => UserPayment) public userPayments;
 
-    // Tiers array (index 0 is the lowest tier, last index is the highest)
-    Tier[] public tiers;
+    // Tracks each provider's info
+    mapping(address => ProviderInfo) public providers;
+
+    // Tracks how much each provider can withdraw (accumulated earnings)
+    mapping(address => uint256) public providerBalances;
+
+    // Address receiving the 1% royalty (e.g. Kondux or a treasury)
+    address public konduxRoyaltyAddress;
+
+    // Accumulates royalties for Kondux
+    uint256 public konduxRoyaltyBalance;
+
+    // NFT contracts used for discount or gating (simple approach)
+    // If non-empty, user must hold at least 1 NFT from at least one of these addresses to get a discount.
+    // (Or you can enforce gating logic differently.)
+    address[] public nftContracts;
 
     // Lock period for deposits (in seconds). E.g. 1 day = 86400
     uint256 public lockPeriod;
@@ -93,16 +109,22 @@ contract KonduxMicropayment is AccessControl {
      */
     event DepositMade(address indexed user, address indexed token, uint256 amount);
 
-    /** 
-     * @notice Emitted when usage is updated for a user.
+    /**
+     * @notice Emitted when a user updates usage (metered).
      * @param user The user whose usage was updated.
-     * @param cost The cost in stable tokens deducted from the user’s deposit.
+     * @param provider The provider receiving the usage payment.
+     * @param cost The total cost in stable tokens deducted from the user’s deposit (includes royalty).
      * @param newTotalUsed The new total used amount for the user.
      */
-    event UsageApplied(address indexed user, uint256 cost, uint256 newTotalUsed);
+    event UsageApplied(
+        address indexed user,
+        address indexed provider,
+        uint256 cost,
+        uint256 newTotalUsed
+    );
 
     /**
-     * @notice Emitted when a user withdraws unused funds.
+     * @notice Emitted when a user withdraws unused funds after lock period.
      * @param user The user withdrawing.
      * @param token The stablecoin address.
      * @param amount The amount withdrawn.
@@ -115,29 +137,55 @@ contract KonduxMicropayment is AccessControl {
      */
     event UsageOracleUpdated(address newOracle);
 
+    /**
+     * @notice Emitted when a provider registers or updates their rate.
+     * @param provider The provider address.
+     * @param ratePerUnit The new rate per usage unit.
+     */
+    event ProviderRegistered(address indexed provider, uint256 ratePerUnit);
+
+    /**
+     * @notice Emitted when a provider withdraws their accumulated earnings.
+     * @param provider The provider address.
+     * @param token The stablecoin being withdrawn.
+     * @param amount The amount withdrawn.
+     */
+    event ProviderWithdrawn(address indexed provider, address indexed token, uint256 amount);
+
+    /**
+     * @notice Emitted when Kondux (royalty address) withdraws royalties.
+     * @param token The stablecoin withdrawn.
+     * @param amount The amount withdrawn.
+     */
+    event RoyaltyWithdrawn(address indexed token, uint256 amount);
+
     /* ========== CONSTRUCTOR ========== */
 
     /**
-     * @notice Sets up roles, the treasury, and initial stablecoins.
+     * @notice Sets up roles, the treasury, stablecoins, lock period, and the Kondux royalty receiver.
      * @param _treasury Address of the deployed Treasury contract.
      * @param governor Address to be granted the GOVERNOR_ROLE.
      * @param _acceptedStablecoins List of stablecoins initially accepted.
      * @param _lockPeriod The initial lock period for deposits in seconds.
+     * @param _konduxRoyaltyAddress The address that receives the 1% royalty.
      */
     constructor(
         address _treasury,
         address governor,
         address[] memory _acceptedStablecoins,
-        uint256 _lockPeriod
+        uint256 _lockPeriod,
+        address _konduxRoyaltyAddress
     ) {
         require(_treasury != address(0), "Invalid treasury address");
         require(governor != address(0), "Invalid governor address");
+        require(_konduxRoyaltyAddress != address(0), "Invalid royalty address");
 
         _grantRole(DEFAULT_ADMIN_ROLE, governor);
         _grantRole(GOVERNOR_ROLE, governor);
 
         treasury = ITreasury(_treasury);
         lockPeriod = _lockPeriod;
+        konduxRoyaltyAddress = _konduxRoyaltyAddress;
 
         // Mark initial stablecoins as accepted
         for (uint256 i = 0; i < _acceptedStablecoins.length; i++) {
@@ -159,7 +207,6 @@ contract KonduxMicropayment is AccessControl {
 
     /**
      * @notice Add or remove a stablecoin from the accepted list.
-     * @dev Only callable by GOVERNOR_ROLE.
      * @param token The stablecoin address.
      * @param accepted True if it is accepted, false if not.
      */
@@ -171,8 +218,7 @@ contract KonduxMicropayment is AccessControl {
     }
 
     /**
-     * @notice Set or update the lock period for deposits.
-     * @dev Only callable by GOVERNOR_ROLE.
+     * @notice Update the lock period for deposits.
      * @param _lockPeriod The new lock period in seconds.
      */
     function setLockPeriod(uint256 _lockPeriod)
@@ -184,7 +230,6 @@ contract KonduxMicropayment is AccessControl {
 
     /**
      * @notice Add or remove NFT contracts for gating/discount checks.
-     * @dev Only callable by GOVERNOR_ROLE.
      * @param _nftContracts The full updated array of NFT contract addresses.
      */
     function setNFTContracts(address[] calldata _nftContracts)
@@ -196,7 +241,6 @@ contract KonduxMicropayment is AccessControl {
 
     /**
      * @notice Sets the usage oracle contract address (optional).
-     * @dev Only callable by GOVERNOR_ROLE.
      * @param _oracle Address of the usage oracle.
      */
     function setUsageOracle(address _oracle)
@@ -208,37 +252,98 @@ contract KonduxMicropayment is AccessControl {
     }
 
     /**
-     * @notice Sets or updates the tiers.
-     * @dev Only callable by GOVERNOR_ROLE. Clears old tiers and replaces them.
-     * @param usageThresholds Array of usage thresholds (ascending).
-     * @param costsPerUnit Array of cost-per-unit corresponding to each threshold.
+     * @notice Sets or updates the address that receives royalties (Kondux).
+     * @param _konduxRoyaltyAddress The new royalty receiver.
      */
-    function setTiers(
-        uint256[] calldata usageThresholds,
-        uint256[] calldata costsPerUnit
-    )
+    function setKonduxRoyaltyAddress(address _konduxRoyaltyAddress)
         external
         onlyRole(GOVERNOR_ROLE)
     {
-        require(
-            usageThresholds.length == costsPerUnit.length && usageThresholds.length > 0,
-            "Tier arrays mismatch or empty"
-        );
-
-        delete tiers;
-        for (uint256 i = 0; i < usageThresholds.length; i++) {
-            tiers.push(Tier({
-                usageThreshold: usageThresholds[i],
-                costPerUnit: costsPerUnit[i]
-            }));
-        }
+        require(_konduxRoyaltyAddress != address(0), "Invalid royalty address");
+        konduxRoyaltyAddress = _konduxRoyaltyAddress;
     }
 
-    /* ========== PUBLIC/EXTERNAL USER FUNCTIONS ========== */
+    /* ========== PROVIDER-RELATED FUNCTIONS ========== */
 
     /**
-     * @notice Deposit stablecoins on behalf of the caller, locked for the configured period.
-     * @dev All tokens go directly to the Treasury contract.
+     * @notice Registers or updates a provider's rate per usage unit.
+     * @dev Any user can call this to become a provider or update their rate.
+     * @param ratePerUnit The cost per usage unit in stable token units (before discount & royalty).
+     */
+    function registerProvider(uint256 ratePerUnit) external {
+        require(ratePerUnit > 0, "Rate must be > 0");
+
+        providers[msg.sender] = ProviderInfo({
+            registered: true,
+            ratePerUnit: ratePerUnit
+        });
+
+        emit ProviderRegistered(msg.sender, ratePerUnit);
+    }
+
+    /**
+     * @notice Unregisters a provider so they can no longer receive new usage payments.
+     * @dev Existing balances remain withdrawable.
+     */
+    function unregisterProvider() external {
+        ProviderInfo storage info = providers[msg.sender];
+        require(info.registered, "Provider not registered");
+
+        info.registered = false;
+        info.ratePerUnit = 0;
+        // Optionally emit an event or simply rely on logs from registerProvider with rate=0
+    }
+
+    /**
+     * @notice Withdraw the provider's accumulated balance (earnings) from the Treasury.
+     * @param token The stablecoin to withdraw (must be accepted).
+     */
+    function providerWithdraw(address token)
+        external
+        onlyAcceptedStablecoin(token)
+    {
+        uint256 balance = providerBalances[msg.sender];
+        require(balance > 0, "No balance to withdraw");
+        require(providers[msg.sender].registered == true, "Not a registered provider");
+
+        providerBalances[msg.sender] = 0;
+
+        // Now pull from treasury to the contract, then send to the provider
+        treasury.withdraw(balance, token);
+
+        // The treasury withdraw transfers to this contract, so forward to provider:
+        IERC20(token).transfer(msg.sender, balance);
+
+        emit ProviderWithdrawn(msg.sender, token, balance);
+    }
+
+    /**
+     * @notice Withdraw all accumulated royalties (1% portion) to Kondux.
+     * @param token The stablecoin to withdraw.
+     */
+    function withdrawRoyalty(address token)
+        external
+        onlyAcceptedStablecoin(token)
+    {
+        require(msg.sender == konduxRoyaltyAddress, "Only Kondux can withdraw royalty");
+        uint256 balance = konduxRoyaltyBalance;
+        require(balance > 0, "No royalty balance");
+
+        // Reset local royalty balance
+        konduxRoyaltyBalance = 0;
+
+        // Pull from treasury to this contract, then forward to Kondux
+        treasury.withdraw(balance, token);
+        IERC20(token).transfer(konduxRoyaltyAddress, balance);
+
+        emit RoyaltyWithdrawn(token, balance);
+    }
+
+    /* ========== DEPOSIT/WITHDRAW USER FUNCTIONS ========== */
+
+    /**
+     * @notice Deposit stablecoins for usage, locked until `lockPeriod` expires.
+     * @dev User must have approved the treasury to transfer 'amount' of 'token' first.
      * @param token The accepted stablecoin address.
      * @param amount The amount of stablecoins to deposit.
      */
@@ -246,23 +351,14 @@ contract KonduxMicropayment is AccessControl {
         external
         onlyAcceptedStablecoin(token)
     {
-        require(amount > 0, "Amount must be > 0");
+        require(amount > 0, "Deposit must be > 0");
 
-        // If this is the first deposit or user re-deposits after usage
+        // Retrieve or create the user payment record
         UserPayment storage payment = userPayments[msg.sender];
 
-        // Passive update: recalculate usage or discount if needed (example stub)
-        // e.g., check if user's NFT holding changed, re-apply discount, etc.
-        // In this example, we simply allow deposit.
-
-        // -- All stablecoins flow to the treasury:
-        // The treasury's deposit function itself will transfer tokens
-        // from tx.origin => treasury. However, that requires the user to
-        // have approved the treasury for 'amount'. The micropayment contract
-        // is simply orchestrating the call.
+        // Transfer tokens into the treasury
         treasury.deposit(amount, token);
 
-        // Update user payment info
         payment.totalDeposited += amount;
         payment.active = true;
         payment.depositTime = block.timestamp;
@@ -271,31 +367,7 @@ contract KonduxMicropayment is AccessControl {
     }
 
     /**
-     * @notice Update usage for a user (reactive update from your backend or a data feed).
-     * @dev Only callable by addresses with UPDATER_ROLE or user themselves.
-     * @param user The address whose usage to update.
-     * @param usageUnits The additional usage units to apply.
-     */
-    function applyUsage(address user, uint256 usageUnits)
-        external
-        onlyRole(UPDATER_ROLE)
-    {
-        _applyUsageInternal(user, usageUnits);
-    }
-
-    /**
-     * @notice Users can self-report usage, if that fits your model.
-     * @param usageUnits The additional usage units to apply.
-     */
-    function selfApplyUsage(uint256 usageUnits)
-        external
-    {
-        _applyUsageInternal(msg.sender, usageUnits);
-    }
-
-    /**
      * @notice Withdraw any unused tokens after verifying usage and ensuring lock has matured.
-     * @dev If usage from chainlink or internal accounting is incomplete, the final amount is calculated.
      * @param token The stablecoin address to withdraw (must be the same as initially deposited).
      */
     function withdrawUnused(address token)
@@ -304,135 +376,133 @@ contract KonduxMicropayment is AccessControl {
     {
         UserPayment storage payment = userPayments[msg.sender];
         require(payment.active, "No active deposit");
-        // Must wait for lock to end
-        require(
-            block.timestamp >= payment.depositTime + lockPeriod,
-            "Deposit still locked"
-        );
+        require(block.timestamp >= payment.depositTime + lockPeriod, "Deposit still locked");
 
-        // Optionally check usage with an external oracle to ensure up-to-date usage
+        // Optionally check usage from an external oracle
         uint256 externalUsage = 0;
         if (address(usageOracle) != address(0)) {
             externalUsage = usageOracle.getUsage(msg.sender);
         }
 
-        // The higher of local totalUsed or external usage is taken as final usage
+        // The higher of local totalUsed or external usage is final
         uint256 finalUsage = payment.totalUsed;
         if (externalUsage > finalUsage) {
             finalUsage = externalUsage;
         }
 
-        // Calculate how many units have been "paid for"
-        // In this example, we assume 1 usage unit => 1 "paid" unit of cost, 
-        // ignoring tiers. If you want to factor tier-based cost, you'd need 
-        // to replicate the tier calculation using "finalUsage".
-        uint256 costSoFar = _computeCost(finalUsage, msg.sender);
-
-        // If costSoFar >= totalDeposited, no tokens left to withdraw
-        if (costSoFar >= payment.totalDeposited) {
+        // If final usage cost >= deposit, nothing left
+        if (finalUsage >= payment.totalDeposited) {
             revert("No unused funds left");
         }
 
-        // The difference is unused and can be withdrawn
-        uint256 unused = payment.totalDeposited - costSoFar;
+        uint256 leftover = payment.totalDeposited - finalUsage;
 
-        // Mark deposit as used up to costSoFar
-        // If you want partial usage tracking, adjust logic as needed
+        // Mark deposit as used up to finalUsage
         payment.totalUsed = finalUsage;
-        payment.totalDeposited = costSoFar; // effectively "consumed" the deposit
+        payment.totalDeposited = finalUsage; // effectively consumed the deposit
 
-        // Now, call the treasury to withdraw to this contract, then transfer to user
-        treasury.withdraw(unused, token);
+        // Now withdraw from treasury to this contract, then forward to user
+        treasury.withdraw(leftover, token);
+        IERC20(token).transfer(msg.sender, leftover);
 
-        // In the provided Treasury code, `withdraw()` 
-        // does IKonduxERC20(_token).transfer(msg.sender, _amount);
-        // which sends tokens to this contract (which is msg.sender of `withdraw()` call).
-        // So we must forward them to the user:
+        emit UnusedWithdrawn(msg.sender, token, leftover);
+    }
 
-        IERC20(token).transfer(msg.sender, unused);
+    /* ========== METERED USAGE FUNCTIONS ========== */
 
-        emit UnusedWithdrawn(msg.sender, token, unused);
+    /**
+     * @notice Called by an authorized UPDATER_ROLE (or the user themselves) to apply usage to a given provider.
+     * @param provider The provider receiving the micropayment for usage.
+     * @param usageUnits The number of usage units to apply.
+     */
+    function applyUsage(address provider, uint256 usageUnits)
+        external
+        onlyRole(UPDATER_ROLE)
+    {
+        _applyUsageInternal(msg.sender, provider, usageUnits);
+    }
+
+    /**
+     * @notice Users can self-report usage directly, if that fits your model.
+     * @param provider The provider to pay for usage.
+     * @param usageUnits The number of usage units to apply.
+     */
+    function selfApplyUsage(address provider, uint256 usageUnits) external {
+        _applyUsageInternal(msg.sender, provider, usageUnits);
     }
 
     /* ========== INTERNAL LOGIC ========== */
 
     /**
-     * @notice Internal function to apply usage for a user (deduct cost from the ledger).
-     * @param user The user whose usage is updated.
-     * @param usageUnits The additional usage to apply.
+     * @dev Internal function to apply usage from a user to a provider.
+     * @param user The user paying for usage.
+     * @param provider The provider being paid.
+     * @param usageUnits The usage units to be billed.
      */
-    function _applyUsageInternal(address user, uint256 usageUnits) internal {
+    function _applyUsageInternal(address user, address provider, uint256 usageUnits) internal {
         require(usageUnits > 0, "Usage must be > 0");
+
         UserPayment storage payment = userPayments[user];
-        require(payment.active, "No active deposit for user");
+        require(payment.active, "No active deposit");
+        require(providers[provider].registered, "Provider not registered");
 
-        // Convert usageUnits to a cost based on user's discount/tier
-        uint256 cost = _computeCost(usageUnits, user);
+        // 1. Base cost = usageUnits * provider rate
+        uint256 baseCost = usageUnits * providers[provider].ratePerUnit;
 
-        // Add to totalUsed
-        payment.totalUsed += cost;
+        // 2. Apply NFT discount if user holds any of the configured NFTs
+        uint256 discountedCost = baseCost;
+        if (_userHasAnyNFT(user) && baseCost > 0) {
+            // Example discount: 20% if user has at least 1 NFT from the list
+            uint256 discountBps = 2000; // 20%
+            uint256 discountAmount = (baseCost * discountBps) / 10000;
+            discountedCost = baseCost - discountAmount;
+        }
 
-        // Ensure we haven't exceeded the total deposit 
-        // If we do exceed, it implies user is out of credit (you can revert or clamp usage).
-        require(
-            payment.totalUsed <= payment.totalDeposited,
-            "Insufficient deposit for usage"
-        );
+        // 3. Deduct 1% royalty for Kondux
+        //    i.e., if discountedCost is 100, then 1 goes to Kondux, 99 to the provider
+        //    user deposit is reduced by the entire `discountedCost`.
+        if (discountedCost == 0) {
+            // No cost to split
+            emit UsageApplied(user, provider, 0, payment.totalUsed);
+            return;
+        }
 
-        emit UsageApplied(user, cost, payment.totalUsed);
+        uint256 royalty = discountedCost / 100; // 1% (integer division is typical; leftover is for provider)
+        uint256 providerShare = discountedCost - royalty;
+
+        // 4. Ensure user has enough deposit left
+        //    We track usage in "totalUsed" to compare with "totalDeposited"
+        uint256 newTotalUsed = payment.totalUsed + discountedCost;
+        require(newTotalUsed <= payment.totalDeposited, "Insufficient deposit for usage");
+
+        // 5. Update ledger
+        payment.totalUsed = newTotalUsed;
+        // Add to provider's balance
+        providerBalances[provider] += providerShare;
+        // Accumulate royalty
+        konduxRoyaltyBalance += royalty;
+
+        emit UsageApplied(user, provider, discountedCost, newTotalUsed);
     }
 
     /**
-     * @notice Computes the cost of usageUnits for a given user by factoring the user's NFT discount & tier rates.
-     * @param usageUnits The number of usage units to cost out.
-     * @param user The user for which to compute cost.
-     * @return cost The final cost in stable token units.
+     * @dev Checks if a user holds at least 1 NFT from the listed NFT contracts.
+     * @param user The user being checked.
+     * @return True if user has at least one NFT from any contract in `nftContracts`.
      */
-    function _computeCost(uint256 usageUnits, address user)
-        internal
-        view
-        returns (uint256 cost)
-    {
-        // 1. Determine if user has any NFT from nftContracts => discount
-        bool hasNFT = false;
+    function _userHasAnyNFT(address user) internal view returns (bool) {
         for (uint256 i = 0; i < nftContracts.length; i++) {
             if (IERC721(nftContracts[i]).balanceOf(user) > 0) {
-                hasNFT = true;
-                break;
+                return true;
             }
         }
-
-        // 2. Calculate tier-based cost. 
-        //    For simplicity, assume usageUnits is processed in a single chunk at one cost tier.
-        //    In real scenarios, you may need to break usage across multiple tiers.
-        uint256 tierCost = 0;
-        for (uint256 i = 0; i < tiers.length; i++) {
-            // If usageUnits is <= the tier threshold, use that cost
-            if (usageUnits <= tiers[i].usageThreshold) {
-                tierCost = tiers[i].costPerUnit * usageUnits;
-                break;
-            }
-        }
-        // If usage exceeded the largest threshold, charge at the highest tier
-        if (tierCost == 0 && tiers.length > 0) {
-            tierCost = tiers[tiers.length - 1].costPerUnit * usageUnits;
-        }
-
-        // 3. Apply discount if user has NFT 
-        //    (For example, a 20% discount if they hold any NFT from the list).
-        if (hasNFT) {
-            uint256 discountBps = 2000; // 20% discount in basis points
-            uint256 discountAmount = (tierCost * discountBps) / 10000;
-            tierCost = tierCost - discountAmount;
-        }
-
-        cost = tierCost;
+        return false;
     }
 
     /* ========== VIEW FUNCTIONS ========== */
 
     /**
-     * @notice Returns whether a user is still locked.
+     * @notice Returns whether the user's deposit is still locked.
      * @param user The address of the user.
      * @return locked True if user deposit is locked, otherwise false.
      */
@@ -442,9 +512,9 @@ contract KonduxMicropayment is AccessControl {
     }
 
     /**
-     * @notice Returns the leftover user balance (not yet spent) without external oracle check.
+     * @notice Returns the unspent portion of the user's deposit by internal records (no oracle).
      * @param user The address of the user.
-     * @return leftover The unspent portion of the user’s deposit by internal records.
+     * @return leftover The deposit amount minus usage so far.
      */
     function getLeftoverBalance(address user) external view returns (uint256 leftover) {
         UserPayment memory payment = userPayments[user];
@@ -457,16 +527,31 @@ contract KonduxMicropayment is AccessControl {
     /**
      * @notice Returns the user payment info (convenience getter).
      * @param user The address of the user.
-     * @return The UserPayment struct (totalDeposited, totalUsed, depositTime, active).
      */
     function getUserPayment(address user) external view returns (UserPayment memory) {
         return userPayments[user];
     }
 
     /**
-     * @notice Returns the current length of the tier array.
+     * @notice Returns provider info, including if they're registered and their rate.
+     * @param provider The provider's address.
      */
-    function getTiersCount() external view returns (uint256) {
-        return tiers.length;
+    function getProviderInfo(address provider) external view returns (ProviderInfo memory) {
+        return providers[provider];
+    }
+
+    /**
+     * @notice Returns the provider's accumulated balance.
+     * @param provider The provider address.
+     */
+    function getProviderBalance(address provider) external view returns (uint256) {
+        return providerBalances[provider];
+    }
+
+    /**
+     * @notice Returns the current royalty balance waiting to be withdrawn by Kondux.
+     */
+    function getKonduxRoyaltyBalance() external view returns (uint256) {
+        return konduxRoyaltyBalance;
     }
 }
