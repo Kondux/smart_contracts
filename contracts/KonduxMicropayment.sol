@@ -26,17 +26,16 @@ interface IUsageOracle {
 }
 
 /**
- * @title KonduxMeteredPayments
- * @dev A metered micropayment contract that:
- *  - Allows users to deposit stablecoins
- *  - Deducts usage on a per-unit basis (metered)
- *  - Gives optional NFT-based discounts
- *  - Enforces a 1% royalty fee to Kondux
- *  - Locks deposits until a certain period
- *  - Integrates with an optional external usage oracle
- *  - Uses a Treasury for all fund movements
+ * @title KonduxTieredPayments
+ * @dev A flexible micropayment contract that:
+ *  - Allows any user to deposit stablecoins with time-lock
+ *  - Allows providers to register with tier-based pricing and a custom royalty
+ *  - Deducts usage cost across multiple tiers
+ *  - Applies optional NFT-based discounts
+ *  - Routes the provider’s share to their balance and the royalty to Kondux
+ *  - Integrates with a usage oracle
  */
-contract KonduxMeteredPayments is AccessControl {
+contract KonduxTieredPayments is AccessControl {
     /* ========== ROLES ========== */
     bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
     bytes32 public constant UPDATER_ROLE  = keccak256("UPDATER_ROLE"); // e.g. backend or oracle updaters
@@ -58,11 +57,24 @@ contract KonduxMeteredPayments is AccessControl {
     }
 
     /**
-     * @dev Stores provider configuration.
+     * @dev Defines a tier with usage threshold and cost per usage unit.
+     * E.g., up to 1,000 units at X cost, then up to next threshold at Y cost, etc.
+     */
+    struct Tier {
+        uint256 usageThreshold; 
+        uint256 costPerUnit;    
+    }
+
+    /**
+     * @dev Provider configuration, including:
+     *  - whether they're registered
+     *  - the royalty basis points (BPS)
+     *  - fallbackRate if usage exceeds their highest tier
      */
     struct ProviderInfo {
-        bool registered;    // whether the provider is registered
-        uint256 ratePerUnit; // cost per usage unit (before discounts/royalty)
+        bool registered;     
+        uint256 royaltyBps;  // e.g., 100 = 1%, 500 = 5%
+        uint256 fallbackRate; // cost per unit if usage is above the last tier threshold
     }
 
     /* ========== STATE ========== */
@@ -79,18 +91,19 @@ contract KonduxMeteredPayments is AccessControl {
     // Tracks each provider's info
     mapping(address => ProviderInfo) public providers;
 
+    // For each provider, store an array of Tiers
+    mapping(address => Tier[]) public providerTiers;
+
     // Tracks how much each provider can withdraw (accumulated earnings)
     mapping(address => uint256) public providerBalances;
 
-    // Address receiving the 1% royalty (e.g. Kondux or a treasury)
+    // Address receiving the royalty if provider does not override it or for Kondux
     address public konduxRoyaltyAddress;
 
-    // Accumulates royalties for Kondux
+    // Accumulates royalty for Kondux if the provider is using the default royalty
     uint256 public konduxRoyaltyBalance;
 
-    // NFT contracts used for discount or gating (simple approach)
-    // If non-empty, user must hold at least 1 NFT from at least one of these addresses to get a discount.
-    // (Or you can enforce gating logic differently.)
+    // If "nftContracts" is non-empty, user might get a discount if they hold at least one NFT from any listed contract
     address[] public nftContracts;
 
     // Lock period for deposits (in seconds). E.g. 1 day = 86400
@@ -98,6 +111,13 @@ contract KonduxMeteredPayments is AccessControl {
 
     // Optional usage oracle for verifying usage externally
     IUsageOracle public usageOracle;
+
+    // Default royalty in BPS if the provider does not set a `royaltyBps`. E.g., 100 = 1%.
+    uint256 public defaultRoyaltyBps = 100;
+
+    // Example discount rate (in BPS) if the user holds any NFT from `nftContracts`
+    // You could make this per-provider if you want more customization.
+    uint256 public nftDiscountBps = 2000; // 20%
 
     /* ========== EVENTS ========== */
 
@@ -110,18 +130,13 @@ contract KonduxMeteredPayments is AccessControl {
     event DepositMade(address indexed user, address indexed token, uint256 amount);
 
     /**
-     * @notice Emitted when a user updates usage (metered).
+     * @notice Emitted when a user updates usage with a provider.
      * @param user The user whose usage was updated.
-     * @param provider The provider receiving the usage payment.
-     * @param cost The total cost in stable tokens deducted from the user’s deposit (includes royalty).
+     * @param provider The provider receiving the micropayment.
+     * @param cost The total cost in stable tokens deducted (includes royalty).
      * @param newTotalUsed The new total used amount for the user.
      */
-    event UsageApplied(
-        address indexed user,
-        address indexed provider,
-        uint256 cost,
-        uint256 newTotalUsed
-    );
+    event UsageApplied(address indexed user, address indexed provider, uint256 cost, uint256 newTotalUsed);
 
     /**
      * @notice Emitted when a user withdraws unused funds after lock period.
@@ -138,11 +153,19 @@ contract KonduxMeteredPayments is AccessControl {
     event UsageOracleUpdated(address newOracle);
 
     /**
-     * @notice Emitted when a provider registers or updates their rate.
+     * @notice Emitted when a provider registers or updates their settings.
      * @param provider The provider address.
-     * @param ratePerUnit The new rate per usage unit.
+     * @param royaltyBps The new royalty BPS for this provider.
+     * @param fallbackRate Cost per unit if usage exceeds final tier.
      */
-    event ProviderRegistered(address indexed provider, uint256 ratePerUnit);
+    event ProviderRegistered(address indexed provider, uint256 royaltyBps, uint256 fallbackRate);
+
+    /**
+     * @notice Emitted when a provider sets or updates their tier array.
+     * @param provider The provider address.
+     * @param tiersLength The number of tiers set.
+     */
+    event ProviderTiersUpdated(address indexed provider, uint256 tiersLength);
 
     /**
      * @notice Emitted when a provider withdraws their accumulated earnings.
@@ -162,12 +185,12 @@ contract KonduxMeteredPayments is AccessControl {
     /* ========== CONSTRUCTOR ========== */
 
     /**
-     * @notice Sets up roles, the treasury, stablecoins, lock period, and the Kondux royalty receiver.
+     * @notice Sets up roles, the treasury, stablecoins, lock period, and Kondux royalty receiver.
      * @param _treasury Address of the deployed Treasury contract.
      * @param governor Address to be granted the GOVERNOR_ROLE.
      * @param _acceptedStablecoins List of stablecoins initially accepted.
      * @param _lockPeriod The initial lock period for deposits in seconds.
-     * @param _konduxRoyaltyAddress The address that receives the 1% royalty.
+     * @param _konduxRoyaltyAddress The default address that receives royalties if not overridden by provider.
      */
     constructor(
         address _treasury,
@@ -252,7 +275,29 @@ contract KonduxMeteredPayments is AccessControl {
     }
 
     /**
-     * @notice Sets or updates the address that receives royalties (Kondux).
+     * @notice Sets or updates the default royalty BPS if providers don't override.
+     * @param _defaultRoyaltyBps The new default BPS. E.g. 100 = 1%.
+     */
+    function setDefaultRoyaltyBps(uint256 _defaultRoyaltyBps)
+        external
+        onlyRole(GOVERNOR_ROLE)
+    {
+        defaultRoyaltyBps = _defaultRoyaltyBps;
+    }
+
+    /**
+     * @notice Sets or updates the NFT discount BPS applied if user holds any of the configured NFTs.
+     * @param _nftDiscountBps The discount in basis points. E.g. 2000 = 20%.
+     */
+    function setNFTDiscountBps(uint256 _nftDiscountBps)
+        external
+        onlyRole(GOVERNOR_ROLE)
+    {
+        nftDiscountBps = _nftDiscountBps;
+    }
+
+    /**
+     * @notice Sets or updates the Kondux royalty address (when default royalty is used).
      * @param _konduxRoyaltyAddress The new royalty receiver.
      */
     function setKonduxRoyaltyAddress(address _konduxRoyaltyAddress)
@@ -266,19 +311,21 @@ contract KonduxMeteredPayments is AccessControl {
     /* ========== PROVIDER-RELATED FUNCTIONS ========== */
 
     /**
-     * @notice Registers or updates a provider's rate per usage unit.
-     * @dev Any user can call this to become a provider or update their rate.
-     * @param ratePerUnit The cost per usage unit in stable token units (before discount & royalty).
+     * @notice Registers or updates a provider's royalty and fallback rate.
+     * @dev The provider can call this at any time to change their royalty or fallback rate.
+     * @param royaltyBps The royalty in basis points for this provider (e.g. 200 = 2%).
+     *                   If set to 0, the contract uses `defaultRoyaltyBps`.
+     * @param fallbackRate The cost per usage unit if usage surpasses the last tier threshold.
      */
-    function registerProvider(uint256 ratePerUnit) external {
-        require(ratePerUnit > 0, "Rate must be > 0");
+    function registerProvider(uint256 royaltyBps, uint256 fallbackRate) external {
+        // No strict upper limit on royaltyBps, but typically <= 10000
+        // The fallbackRate can be zero if the provider wants 0 cost above final tier
+        ProviderInfo storage info = providers[msg.sender];
+        info.registered = true;
+        info.royaltyBps = royaltyBps;
+        info.fallbackRate = fallbackRate;
 
-        providers[msg.sender] = ProviderInfo({
-            registered: true,
-            ratePerUnit: ratePerUnit
-        });
-
-        emit ProviderRegistered(msg.sender, ratePerUnit);
+        emit ProviderRegistered(msg.sender, royaltyBps, fallbackRate);
     }
 
     /**
@@ -290,13 +337,56 @@ contract KonduxMeteredPayments is AccessControl {
         require(info.registered, "Provider not registered");
 
         info.registered = false;
-        info.ratePerUnit = 0;
-        // Optionally emit an event or simply rely on logs from registerProvider with rate=0
+        info.royaltyBps = 0;
+        info.fallbackRate = 0;
+
+        // Optionally remove their tiers if you'd like
+        delete providerTiers[msg.sender];
+        // Not emitting an event for unregistration, but you could do so.
+    }
+
+    /**
+     * @notice Sets or updates the tier array for the provider.
+     * @dev Tiers should be in ascending order of usageThreshold.
+     * @param usageThresholds Array of usage thresholds (ascending).
+     * @param costsPerUnit Array of cost-per-unit corresponding to each threshold.
+     */
+    function setProviderTiers(
+        uint256[] calldata usageThresholds,
+        uint256[] calldata costsPerUnit
+    ) external {
+        ProviderInfo storage info = providers[msg.sender];
+        require(info.registered, "Not a registered provider");
+        require(
+            usageThresholds.length == costsPerUnit.length,
+            "Tier array mismatch"
+        );
+
+        delete providerTiers[msg.sender];
+
+        uint256 lastThreshold = 0;
+        for (uint256 i = 0; i < usageThresholds.length; i++) {
+            // Ensure ascending thresholds
+            require(
+                usageThresholds[i] > lastThreshold,
+                "Thresholds not ascending"
+            );
+            lastThreshold = usageThresholds[i];
+
+            providerTiers[msg.sender].push(
+                Tier({
+                    usageThreshold: usageThresholds[i],
+                    costPerUnit: costsPerUnit[i]
+                })
+            );
+        }
+
+        emit ProviderTiersUpdated(msg.sender, usageThresholds.length);
     }
 
     /**
      * @notice Withdraw the provider's accumulated balance (earnings) from the Treasury.
-     * @param token The stablecoin to withdraw (must be accepted).
+     * @param token The stablecoin to withdraw.
      */
     function providerWithdraw(address token)
         external
@@ -304,21 +394,19 @@ contract KonduxMeteredPayments is AccessControl {
     {
         uint256 balance = providerBalances[msg.sender];
         require(balance > 0, "No balance to withdraw");
-        require(providers[msg.sender].registered == true, "Not a registered provider");
+        require(providers[msg.sender].registered, "Not a registered provider");
 
         providerBalances[msg.sender] = 0;
 
-        // Now pull from treasury to the contract, then send to the provider
+        // Pull from treasury to the contract, then send to the provider
         treasury.withdraw(balance, token);
-
-        // The treasury withdraw transfers to this contract, so forward to provider:
         IERC20(token).transfer(msg.sender, balance);
 
         emit ProviderWithdrawn(msg.sender, token, balance);
     }
 
     /**
-     * @notice Withdraw all accumulated royalties (1% portion) to Kondux.
+     * @notice Withdraw all accumulated default royalties (from providers using 0 BPS) to konduxRoyaltyAddress.
      * @param token The stablecoin to withdraw.
      */
     function withdrawRoyalty(address token)
@@ -368,7 +456,7 @@ contract KonduxMeteredPayments is AccessControl {
 
     /**
      * @notice Withdraw any unused tokens after verifying usage and ensuring lock has matured.
-     * @param token The stablecoin address to withdraw (must be the same as initially deposited).
+     * @param token The stablecoin address to withdraw.
      */
     function withdrawUnused(address token)
         external
@@ -399,19 +487,19 @@ contract KonduxMeteredPayments is AccessControl {
 
         // Mark deposit as used up to finalUsage
         payment.totalUsed = finalUsage;
-        payment.totalDeposited = finalUsage; // effectively consumed the deposit
+        payment.totalDeposited = finalUsage; // effectively consumed
 
-        // Now withdraw from treasury to this contract, then forward to user
+        // Withdraw from treasury to this contract, then forward to user
         treasury.withdraw(leftover, token);
         IERC20(token).transfer(msg.sender, leftover);
 
         emit UnusedWithdrawn(msg.sender, token, leftover);
     }
 
-    /* ========== METERED USAGE FUNCTIONS ========== */
+    /* ========== TIERED USAGE FUNCTIONS ========== */
 
     /**
-     * @notice Called by an authorized UPDATER_ROLE (or the user themselves) to apply usage to a given provider.
+     * @notice Called by an authorized UPDATER_ROLE (or user themselves) to apply usage to a provider.
      * @param provider The provider receiving the micropayment for usage.
      * @param usageUnits The number of usage units to apply.
      */
@@ -446,43 +534,95 @@ contract KonduxMeteredPayments is AccessControl {
         require(payment.active, "No active deposit");
         require(providers[provider].registered, "Provider not registered");
 
-        // 1. Base cost = usageUnits * provider rate
-        uint256 baseCost = usageUnits * providers[provider].ratePerUnit;
+        // 1. Compute the cost by iterating over the provider's tiers
+        uint256 baseCost = _computeTieredCost(usageUnits, provider);
 
-        // 2. Apply NFT discount if user holds any of the configured NFTs
+        // 2. Apply NFT discount if user holds any listed NFT (example 20%).
         uint256 discountedCost = baseCost;
         if (_userHasAnyNFT(user) && baseCost > 0) {
-            // Example discount: 20% if user has at least 1 NFT from the list
-            uint256 discountBps = 2000; // 20%
-            uint256 discountAmount = (baseCost * discountBps) / 10000;
+            uint256 discountAmount = (baseCost * nftDiscountBps) / 10000;
             discountedCost = baseCost - discountAmount;
         }
 
-        // 3. Deduct 1% royalty for Kondux
-        //    i.e., if discountedCost is 100, then 1 goes to Kondux, 99 to the provider
-        //    user deposit is reduced by the entire `discountedCost`.
         if (discountedCost == 0) {
-            // No cost to split
+            // No charge
             emit UsageApplied(user, provider, 0, payment.totalUsed);
             return;
         }
 
-        uint256 royalty = discountedCost / 100; // 1% (integer division is typical; leftover is for provider)
+        // 3. Deduct the royalty from the discounted cost.
+        // If provider's royaltyBps is zero, use defaultRoyaltyBps.
+        uint256 actualRoyaltyBps = providers[provider].royaltyBps;
+        if (actualRoyaltyBps == 0) {
+            actualRoyaltyBps = defaultRoyaltyBps;
+        }
+
+        uint256 royalty = (discountedCost * actualRoyaltyBps) / 10000;
         uint256 providerShare = discountedCost - royalty;
 
-        // 4. Ensure user has enough deposit left
-        //    We track usage in "totalUsed" to compare with "totalDeposited"
+        // 4. Ensure user has enough deposit
         uint256 newTotalUsed = payment.totalUsed + discountedCost;
         require(newTotalUsed <= payment.totalDeposited, "Insufficient deposit for usage");
 
-        // 5. Update ledger
+        // 5. Update user's usage, provider balance, and royalty balance
         payment.totalUsed = newTotalUsed;
-        // Add to provider's balance
         providerBalances[provider] += providerShare;
-        // Accumulate royalty
+
+        // If the provider sets royaltyBps > 0, that portion belongs to the provider’s chosen arrangement?
+        // This snippet assumes the royalty always goes to Kondux. If you want each provider to have a custom
+        // "royalty receiver," you'd store that in `ProviderInfo`. But for demonstration, we track it in
+        // konduxRoyaltyBalance if the provider's not using a custom address. 
         konduxRoyaltyBalance += royalty;
 
         emit UsageApplied(user, provider, discountedCost, newTotalUsed);
+    }
+
+    /**
+     * @dev Computes the total cost for the given usage units by iterating through the provider's tier array.
+     *      If usage extends past the last tier threshold, the remainder is charged at the provider's fallbackRate.
+     */
+    function _computeTieredCost(uint256 usageUnits, address provider)
+        internal
+        view
+        returns (uint256 cost)
+    {
+        Tier[] storage tiers = providerTiers[provider];
+        uint256 remaining = usageUnits;
+        cost = 0;
+
+        for (uint256 i = 0; i < tiers.length; i++) {
+            // If the provider's tier is "up to X usage," we see how many units fit here
+            uint256 tierCap = tiers[i].usageThreshold;
+            uint256 unitsToCharge = 0;
+
+            // If there's a previous tier, tierCap is relative to previous threshold or absolute from 0.
+            // For simplicity, we treat it as the difference from the previous tier or ascending threshold.
+            // e.g. if tier 0 is up to 1000, tier 1 is up to 3000, etc.
+            // We must interpret the "up to usageThreshold" cumulatively or incrementally.
+            // Below logic assumes a "cumulative" threshold, e.g. tier 0 => 1000, tier 1 => 3000 total usage, etc.
+
+            // If we are on the first tier, usage <= tierCap. Next tier might say up to 3000 total usage. 
+            // So we check difference between tier i and tier i-1:
+            uint256 prevThreshold = (i == 0) ? 0 : tiers[i - 1].usageThreshold;
+            uint256 tierSize = tierCap - prevThreshold;
+
+            if (remaining == 0) break;
+
+            if (remaining <= tierSize) {
+                unitsToCharge = remaining;
+            } else {
+                unitsToCharge = tierSize;
+            }
+
+            cost += unitsToCharge * tiers[i].costPerUnit;
+            remaining -= unitsToCharge;
+        }
+
+        // If there's still remaining usage above the last tier, charge at fallbackRate
+        if (remaining > 0) {
+            uint256 fallbackRate = providers[provider].fallbackRate;
+            cost += remaining * fallbackRate;
+        }
     }
 
     /**
@@ -512,7 +652,7 @@ contract KonduxMeteredPayments is AccessControl {
     }
 
     /**
-     * @notice Returns the unspent portion of the user's deposit by internal records (no oracle).
+     * @notice Returns the unspent portion of the user's deposit by internal records (no oracle check).
      * @param user The address of the user.
      * @return leftover The deposit amount minus usage so far.
      */
@@ -533,11 +673,19 @@ contract KonduxMeteredPayments is AccessControl {
     }
 
     /**
-     * @notice Returns provider info, including if they're registered and their rate.
+     * @notice Returns provider info, including if they're registered, their royalty, and fallback rate.
      * @param provider The provider's address.
      */
     function getProviderInfo(address provider) external view returns (ProviderInfo memory) {
         return providers[provider];
+    }
+
+    /**
+     * @notice Returns the tiers for a given provider.
+     * @param provider The provider's address.
+     */
+    function getProviderTiers(address provider) external view returns (Tier[] memory) {
+        return providerTiers[provider];
     }
 
     /**
@@ -549,7 +697,7 @@ contract KonduxMeteredPayments is AccessControl {
     }
 
     /**
-     * @notice Returns the current royalty balance waiting to be withdrawn by Kondux.
+     * @notice Returns the current royalty balance waiting to be withdrawn by Kondux (for providers using 0 BPS).
      */
     function getKonduxRoyaltyBalance() external view returns (uint256) {
         return konduxRoyaltyBalance;
