@@ -1,19 +1,37 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.28;
 
-// Import OpenZeppelin contracts
+// OpenZeppelin imports
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Royalty.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/interfaces/IERC4906.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
-// Kondux contract inherits from various OpenZeppelin contracts
-contract Kondux is ERC721, ERC721Enumerable, ERC721Burnable, ERC721Royalty, AccessControl {
+/**
+ * @title Kondux
+ * @notice Inherits multiple OpenZeppelin contracts (ERC721, ERC721Enumerable, Burnable, Royalty, AccessControl)
+ *         and includes EIP-4906 for metadata update notifications, as well as emergency withdrawal functions.
+ * @dev This contract is a base contract for creating NFTs with DNA and royalty support.
+ *     It includes functions for minting, DNA reading/writing, and role management.
+ *    It also includes functions for setting base URI, changing denominator, and updating metadata.
+ *    The contract also includes functions for emergency withdrawal of ETH, ERC20, and ERC721 tokens.
+ */
+contract Kondux is
+    ERC721,
+    ERC721Enumerable,
+    ERC721Burnable,
+    ERC721Royalty,
+    AccessControl,
+    IERC4906
+{
     uint256 private _tokenIdCounter;
 
-    // Events emitted by the contract
+    // Events from the original contract
     event BaseURIChanged(string baseURI);
     event DnaChanged(uint256 indexed tokenID, uint256 dna);
     event DenominatorChanged(uint96 denominator);
@@ -28,93 +46,112 @@ contract Kondux is ERC721, ERC721Enumerable, ERC721Burnable, ERC721Royalty, Acce
     string public baseURI;
     uint96 public denominator;
 
-    mapping (uint256 => uint256) public indexDna; // Maps token IDs to DNA values
-    
-    mapping (uint256 => uint256) public transferDates; // Maps token IDs to the timestamp of receiving the token
+    // Mapping from token ID to DNA value
+    mapping(uint256 => uint256) public indexDna;
+
+    // Mapping from token ID to last transfer timestamp
+    mapping(uint256 => uint256) public transferDates;
 
     /**
-     * @dev Initializes the Kondux contract with the given name and symbol.
-     * Grants the DEFAULT_ADMIN_ROLE, MINTER_ROLE, and DNA_MODIFIER_ROLE to the contract creator.
-     * Inherits the ERC721 constructor to set the token name and symbol.
-     *
-     * @param _name The name of the token.
-     * @param _symbol The symbol of the token.
+     * @dev Initializes the Kondux contract with a name and symbol.
+     *      Grants DEFAULT_ADMIN_ROLE, MINTER_ROLE, and DNA_MODIFIER_ROLE to the deployer.
+     * @param _name   The name of the token (e.g., "Kondux").
+     * @param _symbol The symbol of the token (e.g., "KDX").
+     * @dev This function is only called once during deployment.
+     * It is used to set the name and symbol of the token, as well as grant roles to the deployer.
+     * The deployer is automatically granted DEFAULT_ADMIN_ROLE, MINTER_ROLE, and DNA_MODIFIER_ROLE.
+     * The deployer can then grant these roles to other addresses as needed.
+     * The denominator is set to 10,000 by default.
+     * The base URI is set to an empty string by default.
+     * The contract is initialized with an empty token ID counter.
+     * The contract is initialized with an empty mapping for DNA values.
+     * The contract is initialized with an empty mapping for transfer dates.
      */
-    constructor(string memory _name, string memory _symbol) 
-        ERC721(_name, _symbol) {
-            _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-            _grantRole(MINTER_ROLE, msg.sender);
-            _grantRole(DNA_MODIFIER_ROLE, msg.sender);
+    constructor(string memory _name, string memory _symbol)
+        ERC721(_name, _symbol)
+    {
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(MINTER_ROLE, msg.sender);
+        _grantRole(DNA_MODIFIER_ROLE, msg.sender);
     }
 
+    // -------------------- Modifiers -------------------- //
 
     /**
-     * @dev Modifier that requires the caller to have the DEFAULT_ADMIN_ROLE.
-     * Reverts with an error message if the caller does not have the required role.
+     * @dev Throws if called by any account other than the admin.
      */
     modifier onlyAdmin() {
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "kNFT Access Control: only admin");
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "kNFT: only admin");
         _;
     }
 
     /**
-     * @dev Modifier that requires the caller to have the MINTER_ROLE.
-     * Reverts with an error message if the caller does not have the required role.
+     * @dev Throws if called by any account other than the minter.
      */
     modifier onlyMinter() {
-        require(hasRole(MINTER_ROLE, msg.sender), "kNFT Access Control: only minter");
+        require(hasRole(MINTER_ROLE, msg.sender), "kNFT: only minter");
         _;
     }
 
     /**
-     * @dev Modifier that requires the caller to have the DNA_MODIFIER_ROLE.
-     * Reverts with an error message if the caller does not have the required role.
+     * @dev Throws if called by any account other than the DNA modifier.
      */
     modifier onlyDnaModifier() {
-        require(hasRole(DNA_MODIFIER_ROLE, msg.sender), "kNFT Access Control: only dna modifier");
+        require(hasRole(DNA_MODIFIER_ROLE, msg.sender), "kNFT: only dna modifier");
         _;
     }
 
+    // -------------------- Royalty Functions -------------------- //
+
     /**
-     * @dev Changes the denominator value.
-     * Emits a DenominatorChanged event with the new denominator value.
-     *
-     * @param _denominator The new denominator value.
-     * @return The updated denominator value.
+     * @dev Changes the numerator used for calculating royalty fees if needed.
+     *      Also emits DenominatorChanged event.
+     * @param _denominator New denominator to set (commonly 10,000 if you do fees in basis points).
+     * @return The new denominator.
+     * @dev This function is only callable by the admin.
+     *  It is used to set the denominator for royalty calculations.
      */
-    function changeDenominator(uint96 _denominator) public onlyAdmin returns (uint96) { 
+    function changeDenominator(uint96 _denominator) public onlyAdmin returns (uint96) {
         denominator = _denominator;
         emit DenominatorChanged(denominator);
         return denominator;
     }
 
     /**
-     * @dev Sets the default royalty for the contract.
-     *
-     * @param receiver The address that will receive the royalty fees.
-     * @param feeNumerator The numerator of the royalty fee.
+     * @dev Sets the default royalty for all tokens in this collection.
+     * @param receiver The address that will receive royalty payments.
+     * @param feeNumerator The fee numerator (e.g., 100 = 1% if denominator is 10,000).
+     * @dev This function is only callable by the admin.
+     * It is used to set a default royalty for all tokens in the collection.
      */
     function setDefaultRoyalty(address receiver, uint96 feeNumerator) public onlyAdmin {
         _setDefaultRoyalty(receiver, feeNumerator);
     }
 
     /**
-     * @dev Sets the royalty for a specific token.
-     *
-     * @param tokenId The ID of the token for which the royalty will be set.
-     * @param receiver The address that will receive the royalty fees.
-     * @param feeNumerator The numerator of the royalty fee.
+     * @dev Sets a custom royalty for a specific token ID.
+     * @param tokenId The token to apply the custom royalty.
+     * @param receiver The address that will receive the royalty.
+     * @param feeNumerator The fee numerator (e.g., 100 = 1% if denominator is 10,000).
+     * @dev This function is only callable by the admin.
+     * It is used to set a custom royalty for a specific token ID.
      */
-    function setTokenRoyalty(uint256 tokenId,address receiver,uint96 feeNumerator) public onlyAdmin {
-        _setTokenRoyalty(tokenId, receiver, feeNumerator); 
+    function setTokenRoyalty(uint256 tokenId, address receiver, uint96 feeNumerator)
+        public
+        onlyAdmin
+    {
+        _setTokenRoyalty(tokenId, receiver, feeNumerator);
     }
 
+    // -------------------- Base URI and Metadata -------------------- //
+
     /**
-     * @dev Sets the base URI for token metadata.
-     * Emits a BaseURIChanged event with the new base URI.
-     *
-     * @param _newURI The new base URI.
-     * @return The updated base URI.
+     * @dev Sets the base URI used to construct {tokenURI} for all tokens.
+     *      Emits BaseURIChanged event.
+     * @param _newURI New base URI for metadata.
+     * @return The new base URI.
+     * @dev This function is only callable by the admin.
+     *  It is used to set the base URI for all tokens in the collection.
      */
     function setBaseURI(string memory _newURI) external onlyAdmin returns (string memory) {
         baseURI = _newURI;
@@ -123,24 +160,38 @@ contract Kondux is ERC721, ERC721Enumerable, ERC721Burnable, ERC721Royalty, Acce
     }
 
     /**
-     * @dev Returns the token URI for a given token ID.
-     * Reverts if the token ID does not exist.
-     *
-     * @param tokenId The ID of the token.
-     * @return The token URI.
+     * @dev Returns the URI for a given token ID, constructed by concatenating baseURI and the token ID.
+     * @param tokenId The token ID to retrieve metadata for.
+     * @return The URI for the given token ID.
+     * @dev This function is view-only and does not modify the base URI.
+     *  It is used to read the URI for a specific token ID.
      */
     function tokenURI(uint256 tokenId) public view override(ERC721) returns (string memory) {
-        require(_ownerOf(tokenId) != address(0), "ERC721Metadata: URI query for nonexistent token");
-        return bytes(baseURI).length > 0 ? string(abi.encodePacked(baseURI, Strings.toString(tokenId))) : "";
+        require(_ownerOf(tokenId) != address(0), "kNFT: query for nonexistent token");
+        return bytes(baseURI).length > 0
+            ? string(abi.encodePacked(baseURI, Strings.toString(tokenId)))
+            : "";
     }
 
     /**
-     * @dev Safely mints a new token with a specified DNA value for the recipient.
-     * Increments the token ID counter.
-     *
-     * @param to The address of the recipient.
-     * @param dna The DNA value of the new token.
-     * @return The new token ID.
+     * @dev Returns the base URI set in the contract.
+     * @return The base URI for all tokens.
+     * @dev This function is view-only and does not modify the base URI.
+     *   It is used to read the base URI for all tokens.
+     */
+    function _baseURI() internal view override returns (string memory) {
+        return baseURI;
+    }
+
+    // -------------------- Minting and DNA -------------------- //
+
+    /**
+     * @dev Safely mints a new token to address `to` with the given `dna` value.
+     * @param to Address that will receive the newly minted token.
+     * @param dna The DNA value to associate with the new token.
+     * @return tokenId The new token ID.
+     * @dev This function is only callable by the minter.
+     *   It is used to mint a new token with a specified DNA value.
      */
     function safeMint(address to, uint256 dna) public onlyMinter returns (uint256) {
         uint256 tokenId = _tokenIdCounter++;
@@ -150,38 +201,58 @@ contract Kondux is ERC721, ERC721Enumerable, ERC721Burnable, ERC721Royalty, Acce
     }
 
     /**
-     * @dev Sets the DNA value for a given token ID.
-     *
-     * @param _tokenID The ID of the token for which the DNA value will be set.
-     * @param _dna The new DNA value.
+     * @dev Sets a token's DNA value. Requires DNA_MODIFIER_ROLE.
+     * @param _tokenID ID of the token to modify.
+     * @param _dna New DNA value.
+     * @dev This function is only callable by the DNA modifier.
+     *   It is used to set the DNA value of a token after minting.
      */
     function setDna(uint256 _tokenID, uint256 _dna) public onlyDnaModifier {
         _setDna(_tokenID, _dna);
     }
 
     /**
-     * @dev Returns the DNA value for a given token ID.
-     * Reverts if the token ID does not exist.
-     *
-     * @param _tokenID The ID of the token.
-     * @return The DNA value of the token.
+     * @dev Internal function to set DNA for a token and emit DnaChanged.
+     * @param _tokenID ID of the token to modify.
+     * @param _dna New DNA value.
+     * @dev This function is only callable by the DNA modifier.
+     *    It is used by both setDna and safeMint functions.
      */
-    function getDna(uint256 _tokenID) public view returns (uint256) {
-        require(_ownerOf(_tokenID) != address(0), "ERC721Metadata: URI query for nonexistent token");
-        return indexDna[_tokenID];
+    function _setDna(uint256 _tokenID, uint256 _dna) internal {
+        indexDna[_tokenID] = _dna;
+        emit DnaChanged(_tokenID, _dna);
     }
 
     /**
-     * @dev Reads a range of bytes from the DNA value of a given token ID.
-     * Reverts if the specified range is invalid.
-     *
-     * @param _tokenID The ID of the token.
-     * @param startIndex The starting index of the byte range.
-     * @param endIndex The ending index of the byte range.
-     * @return The extracted value from the specified byte range.
+     * @dev Returns the DNA value of a given token.
+     * @param _tokenID The token ID to query.
+     * @return The DNA value of the token.
+     * @dev This function is view-only and does not modify the DNA.
+     *    It is used to read the DNA value of a token.
      */
-    function readGen(uint256 _tokenID, uint8 startIndex, uint8 endIndex) public view returns (int256) {
-        require(startIndex < endIndex && endIndex <= 32, "Invalid range");
+    function getDna(uint256 _tokenID) public view returns (uint256) {
+        require(_ownerOf(_tokenID) != address(0), "kNFT: nonexistent token");
+        return indexDna[_tokenID];
+    }
+
+    // -------------------- DNA Gene Reading/Writing -------------------- //
+
+    /**
+     * @dev Reads a specified byte range from the DNA. Returns the extracted value as int256.
+     * @param _tokenID   ID of the token to read from.
+     * @param startIndex The start index of the range to read.
+     * @param endIndex  The end index of the range to read.
+     * @return extractedValue The extracted value as int256.
+     * @dev This function is view-only and does not modify the DNA.
+     *     It is used to read a specific range of bytes from the DNA.
+     */
+    function readGen(uint256 _tokenID, uint8 startIndex, uint8 endIndex)
+        public
+        view
+        returns (int256)
+    {
+        require(startIndex < endIndex && endIndex <= 32, "kNFT: Invalid range");
+        require(_ownerOf(_tokenID) != address(0), "kNFT: nonexistent token");
 
         uint256 originalValue = indexDna[_tokenID];
         uint256 extractedValue;
@@ -189,52 +260,52 @@ contract Kondux is ERC721, ERC721Enumerable, ERC721Burnable, ERC721Royalty, Acce
         for (uint8 i = startIndex; i < endIndex; i++) {
             /* solhint-disable no-inline-assembly */
             assembly {
-                let bytePos := sub(31, i) // Reverse the index since bytes are stored in big-endian
+                let bytePos := sub(31, i) // Reverse index for big-endian
                 let shiftAmount := mul(8, bytePos)
-
-                // Extract the byte from the original value at the current position
                 let extractedByte := and(shr(shiftAmount, originalValue), 0xff)
-
-                // Shift the extracted byte to the left by the number of positions
-                // from the start of the requested range
                 let adjustedShiftAmount := mul(8, sub(i, startIndex))
-
-                // Combine the shifted byte with the previously extracted bytes
                 extractedValue := or(extractedValue, shl(adjustedShiftAmount, extractedByte))
             }
             /* solhint-enable no-inline-assembly */
-
         }
 
         return int256(extractedValue);
     }
 
     /**
-     * @dev Writes a range of bytes to the DNA value of a given token ID.
-     * @param _tokenID The ID of the token.
-     * @param inputValue The value to be written to the specified byte range.
-     * @param startIndex The starting index of the byte range.
-     * @param endIndex The ending index of the byte range.
-     */ 
-    function writeGen(uint256 _tokenID, uint256 inputValue, uint8 startIndex, uint8 endIndex) public onlyDnaModifier {
-        _writeGen(_tokenID, inputValue, startIndex, endIndex); 
+     * @dev Writes a specified byte range to the DNA, injecting inputValue into [startIndex..endIndex).
+     * @param _tokenID   ID of the token to modify.
+     * @param inputValue The value to write.
+     * @param startIndex The start index of the range to write.
+     * @param endIndex   The end index of the range to write.
+     * @dev This function is only callable by the DNA modifier.
+     *    It emits DnaModified on completion.
+     */
+    function writeGen(uint256 _tokenID, uint256 inputValue, uint8 startIndex, uint8 endIndex)
+        public
+        onlyDnaModifier
+    {
+        _writeGen(_tokenID, inputValue, startIndex, endIndex);
     }
 
     /**
-     * @dev Writes a range of bytes to the DNA value of a given token ID.
-     * Reverts if the specified range is invalid or the input value is too large.
-     *
-     * @param _tokenID The ID of the token.
-     * @param inputValue The value to be written to the specified byte range.
-     * @param startIndex The starting index of the byte range.
-     * @param endIndex The ending index of the byte range.
+     * @dev Internal function to perform the DNA writing. Emits DnaModified on completion.
+     * @param _tokenID   ID of the token to modify.
+     * @param inputValue The value to write.
+     * @param startIndex The start index of the range to write.
+     * @param endIndex   The end index of the range to write.
+     * @dev This function is only callable by the DNA modifier.
+     *     It is used by both writeGen and setDna functions.
      */
-    function _writeGen(uint256 _tokenID, uint256 inputValue, uint8 startIndex, uint8 endIndex) internal {
-        require(startIndex < endIndex && endIndex <= 32, "Invalid range");
-        require(inputValue >= 0, "Only positive values are supported");
+    function _writeGen(uint256 _tokenID, uint256 inputValue, uint8 startIndex, uint8 endIndex)
+        internal
+    {
+        require(startIndex < endIndex && endIndex <= 32, "kNFT: Invalid range");
+        require(_ownerOf(_tokenID) != address(0), "kNFT: nonexistent token");
+        require(inputValue >= 0, "kNFT: Only positive values");
 
         uint256 maxInputValue = (1 << ((endIndex - startIndex) * 8)) - 1;
-        require(uint256(inputValue) <= maxInputValue, "Input value is too large for the specified range");
+        require(inputValue <= maxInputValue, "kNFT: Input too large");
 
         uint256 originalValue = indexDna[_tokenID];
         uint256 mask;
@@ -243,30 +314,33 @@ contract Kondux is ERC721, ERC721Enumerable, ERC721Burnable, ERC721Royalty, Acce
         for (uint8 i = startIndex; i < endIndex; i++) {
             /* solhint-disable no-inline-assembly */
             assembly {
-                let bytePos := sub(31, i) // Reverse the index since bytes are stored in big-endian
+                let bytePos := sub(31, i)
                 let shiftAmount := mul(8, bytePos)
-
-                // Prepare the mask for the current byte
                 mask := or(mask, shl(shiftAmount, 0xff))
-
-                // Prepare the updated value
-                updatedValue := or(updatedValue, shl(shiftAmount, and(shr(mul(8, sub(i, startIndex)), inputValue), 0xff)))
+                updatedValue := or(
+                    updatedValue,
+                    shl(
+                        shiftAmount,
+                        and(shr(mul(8, sub(i, startIndex)), inputValue), 0xff)
+                    )
+                )
             }
             /* solhint-enable no-inline-assembly */
         }
 
-        // Clear the bytes in the specified range of the original value, then store the updated value
+        // Clear bytes in specified range, then store new bits
         indexDna[_tokenID] = (originalValue & ~mask) | (updatedValue & mask);
-
-        // Emit the BytesRangeModified event
         emit DnaModified(_tokenID, indexDna[_tokenID], inputValue, startIndex, endIndex);
     }
 
+    // -------------------- Access Control Adjustments -------------------- //
+
     /**
-     * @dev Add or remove a role from an address.
-     * @param role The role identifier (keccak256 hash of the role name).
-     * @param addr The address for which the role will be granted or revoked.
-     * @param enabled Flag to indicate if the role should be granted (true) or revoked (false).
+     * @dev Grants or revokes a role on a specific address.
+     * @param role    The role to modify.
+     * @param addr    The address to grant/revoke the role.
+     * @param enabled True to grant, false to revoke.
+     * @dev This function is only callable by the admin.
      */
     function setRole(bytes32 role, address addr, bool enabled) public onlyAdmin {
         if (enabled) {
@@ -277,74 +351,133 @@ contract Kondux is ERC721, ERC721Enumerable, ERC721Burnable, ERC721Royalty, Acce
         emit RoleChanged(addr, role, enabled);
     }
 
+    // -------------------- Transfer Timestamp -------------------- //
+
     /**
      * @dev Returns the timestamp of the last transfer for a given token ID.
-     * Reverts if the token ID does not exist.
-     *
-     * @param tokenId The ID of the token.
+     * @param tokenId The token ID to query.
      * @return The timestamp of the last transfer.
      */
     function getTransferDate(uint256 tokenId) public view returns (uint256) {
-        require(_ownerOf(tokenId) != address(0), "ERC721Metadata: URI query for nonexistent token");
+        require(_ownerOf(tokenId) != address(0), "kNFT: nonexistent token");
         return transferDates[tokenId];
     }
-  
-    // Internal functions //
+
+    // -------------------- EIP-4906: Metadata Update Support -------------------- //
 
     /**
-     * @dev Returns the base URI for constructing token URIs.
-     * @return The base URI.
-     */
-    function _baseURI() internal view override returns (string memory) { 
-        return baseURI;
-    }
-
-    /**
-     * @dev Internal function to set the DNA value for a given token ID.
-     * @param _tokenID The ID of the token.
-     * @param _dna The DNA value to be set.
-     */
-    function _setDna(uint256 _tokenID, uint256 _dna) internal {
-        indexDna[_tokenID] = _dna;
-        emit DnaChanged(_tokenID, _dna);
-    }
-
-    /**
-     * @dev Returns true if this contract implements the interface defined by
-     * `interfaceId`. See the corresponding Solidity interface to learn more
-     * about how these IDs are created.
-     * @param interfaceId The interface identifier.
-     * @return Whether the interface is supported.
+     * @dev For EIP-4906, we declare that we support the 0x49064906 interface,
+     *      and add functions to emit MetadataUpdate or BatchMetadataUpdate events.
+     * @param interfaceId The interface ID to check for support.
+     * @return True if the contract supports the interface, false otherwise.
+     * @dev This function overrides the supportsInterface function in IERC165.
+     *     It checks for the EIP-4906 interface ID (0x49064906) in addition to the other interfaces.
      */
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721, ERC721Enumerable, ERC721Royalty, AccessControl)
+        virtual
+        override(ERC721, ERC721Enumerable, ERC721Royalty, AccessControl, IERC165)
         returns (bool)
     {
-        return super.supportsInterface(interfaceId);
+        // EIP-4906 interface ID is 0x49064906
+        return (interfaceId == 0x49064906) || super.supportsInterface(interfaceId);
     }
 
     /**
-     * @dev Internal function to update the balance of a given account.
-     * @param to The address of the account.
-     * @param tokenId The ID of the token.
-     * @param auth The address of the authorizer.
+     * @dev Manually emit a MetadataUpdate event to indicate that metadata for a specific token changed.
+     *      (Call this whenever you change metadata or want to notify off-chain apps.)
+     * @param tokenId The token whose metadata changed.
      */
-    function _update(address to, uint256 tokenId, address auth) internal
-        override(ERC721, ERC721Enumerable) 
-        returns (address prevOwner) {
-        return super._update(to, tokenId, auth);
+    function emitMetadataUpdate(uint256 tokenId) external onlyAdmin {
+        require(_ownerOf(tokenId) != address(0), "kNFT: nonexistent token");
+        emit MetadataUpdate(tokenId);
     }
 
     /**
-     * @dev Internal function to increase the balance of a given account.
-     * @param account The address of the account.
-     * @param value The amount by which to increase the balance.
+     * @dev Manually emit a BatchMetadataUpdate event to indicate that metadata for a range of tokens changed.
+     * @param fromTokenId The start of the range.
+     * @param toTokenId   The end of the range.
+     * @dev This function is only callable by the admin.
      */
-    function _increaseBalance(address account, uint128 value) internal
-        override(ERC721, ERC721Enumerable) {
+    function emitBatchMetadataUpdate(uint256 fromTokenId, uint256 toTokenId) external onlyAdmin {
+        require(fromTokenId <= toTokenId, "kNFT: invalid range");
+        emit BatchMetadataUpdate(fromTokenId, toTokenId);
+    }
+
+    // -------------------- Emergency Withdrawal -------------------- //
+
+    /**
+     * @dev Withdraws ETH stuck in this contract to a specified address.
+     * @param to Recipient address to receive the withdrawn Ether.
+     * @dev This function is only callable by the admin.
+     *    It is intended for emergency use only, and should be used with caution.
+     */
+    function emergencyWithdrawETH(address to) external onlyAdmin {
+        require(to != address(0), "kNFT: withdraw to zero");
+        uint256 amount = address(this).balance;
+        (bool success, ) = to.call{value: amount}("");
+        require(success, "kNFT: ETH transfer failed");
+    }
+
+    /**
+     * @dev Withdraws ERC20 tokens stuck in this contract.
+     * @param token  The ERC20 token contract address.
+     * @param to     Recipient address to receive the tokens.
+     * @param amount Amount of tokens to withdraw.
+     * @dev This function is only callable by the admin.
+     *    It is intended for emergency use only, and should be used with caution.
+     */
+    function emergencyWithdrawToken(IERC20 token, address to, uint256 amount) external onlyAdmin {
+        require(to != address(0), "kNFT: withdraw to zero");
+        require(token.transfer(to, amount), "kNFT: transfer failed");
+    }
+
+    /**
+     * @dev Withdraws an ERC721 NFT stuck in this contract.
+     * @param nft     The ERC721 contract address.
+     * @param to      Recipient address to receive the NFT.
+     * @param tokenId The NFT token ID to withdraw.
+     * @dev This function is only callable by the admin.
+     *     It is intended for emergency use only, and should be used with caution.
+     */
+    function emergencyWithdrawNFT(IERC721 nft, address to, uint256 tokenId) external onlyAdmin {
+        require(to != address(0), "kNFT: withdraw to zero");
+        nft.transferFrom(address(this), to, tokenId);
+    }
+
+    // -------------------- Internal Overrides -------------------- //
+
+    /**
+     * @dev Hook to handle enumerability and transfer date updates.
+     * @param to      Address to transfer to.
+     * @param tokenId Token ID to transfer.
+     * @param auth    Address authorizing the transfer.
+     * @return prevOwner Address of the previous owner.
+     * @dev Overrides both ERC721 and ERC721Enumerable functions.     
+     */
+    function _update(address to, uint256 tokenId, address auth)
+        internal
+        override(ERC721, ERC721Enumerable)
+        returns (address prevOwner)
+    {
+        prevOwner = super._update(to, tokenId, auth);
+        if (to != address(0)) {
+            // track the transfer date
+            transferDates[tokenId] = block.timestamp;
+        }
+    }
+
+    /**
+     * @dev For enumerability as required by ERC721Enumerable.
+     * @param account Address to query.
+     * @param value  Value to increase by.
+     * @dev Overrides both ERC721 and ERC721Enumerable functions.
+     */
+    function _increaseBalance(address account, uint128 value)
+        internal
+        override(ERC721, ERC721Enumerable)
+    {
         super._increaseBalance(account, value);
     }
-
 }
