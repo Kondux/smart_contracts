@@ -1,8 +1,7 @@
 {
     "compilerOptions": {
-      "target": "ES2017",
-      "module": "NodeNext",
-      "lib": ["es2020"],
+      "target": "es2020",
+      "module": "commonjs",
       "declaration": true,
       "declarationMap": true,
       "sourceMap": true,
@@ -14,5 +13,5 @@
       "skipLibCheck": true
     },
     "exclude": ["dist", "node_modules"],
-    "include": ["./test", "./src", "types.ts"]
+    "include": ["./test", "./src", "./scripts", "./types", "types.ts"]
   }
