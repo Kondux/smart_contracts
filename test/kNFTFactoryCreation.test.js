@@ -119,7 +119,7 @@ describe("kNFTFactory - Contract Creation & kNFT Functionality Tests", function 
   });
 
   it("Should charge fees if isFeeEnabled = true and caller not whitelisted", async function () {
-    const { factory, adminSigner, localDeployer } = await loadFixture(deployFactoryWithExistingAuthority);
+    const { factory, adminSigner, authority } = await loadFixture(deployFactoryWithExistingAuthority);
 
     // Setup: get new wallet to test fee payment
     const [admin, feePayer] = await ethers.getSigners();
@@ -133,11 +133,19 @@ describe("kNFTFactory - Contract Creation & kNFT Functionality Tests", function 
       factory.connect(feePayer).createKondux("FeeNFT", "FNFT") // no value
     ).to.be.revertedWith("Insufficient ETH for creation fee");
 
+    // Get previous balance of Treasury
+    const treasury = await authority.vault();
+    const treasuryBalanceBefore = await ethers.provider.getBalance(treasury);
+
     // Provide correct fee
     const tx = await factory.connect(feePayer).createKondux("PaidNFT", "PNFT", {
       value: ethers.parseEther("0.05"),
     });
     const receipt = await tx.wait();
+
+    // Confirm Treasury balance increased by fee
+    const treasuryBalanceAfter = await ethers.provider.getBalance(treasury);
+    expect(treasuryBalanceAfter).to.equal(treasuryBalanceBefore + ethers.parseEther("0.05"));
 
     const event = receipt.logs
       .map((log) => {
