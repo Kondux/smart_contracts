@@ -129,20 +129,20 @@ contract kNFTFactory is AccessControl {
         //       The Kondux constructor granted all roles to address(this), so we reassign them:
         newNFT.setRole(newNFT.DEFAULT_ADMIN_ROLE(), msg.sender, true);
         newNFT.setRole(newNFT.MINTER_ROLE(), msg.sender, true);
-        newNFT.setRole(newNFT.DNA_MODIFIER_ROLE(), msg.sender, true);
-
-        // Revoke from the factory
-        newNFT.setRole(newNFT.DEFAULT_ADMIN_ROLE(), address(this), false);
-        newNFT.setRole(newNFT.MINTER_ROLE(), address(this), false);
-        newNFT.setRole(newNFT.DNA_MODIFIER_ROLE(), address(this), false);
+        newNFT.setRole(newNFT.DNA_MODIFIER_ROLE(), msg.sender, true);        
 
         // -- 4) Set the default royalty info (purely informational per ERC-2981)
         newNFT.setDefaultRoyalty(authority.vault(), defaultRoyaltyFee); // 1% by default
 
-        // -- 5) Emit event
+        // -- 5) Revoke roles from the factory (this address)
+        newNFT.setRole(newNFT.MINTER_ROLE(), address(this), false);
+        newNFT.setRole(newNFT.DNA_MODIFIER_ROLE(), address(this), false);
+        newNFT.setRole(newNFT.DEFAULT_ADMIN_ROLE(), address(this), false);
+
+        // -- 6) Emit event
         emit kNFTDeployed(address(newNFT), msg.sender);
 
-        // -- 6) Return contract address
+        // -- 7) Return contract address
         return address(newNFT);
     }
 
@@ -256,5 +256,16 @@ contract kNFTFactory is AccessControl {
      */
     fallback() external payable {
         revert("Fallback not permitted");
+    }
+
+    // ------------------ Getters ------------------ //
+    /** 
+     * @notice Check if a given address is a factory admin.
+     * @param _address The address to check.
+     * @return True if the address has the FACTORY_ADMIN_ROLE.
+     */
+    
+    function isFactoryAdmin(address _address) external view returns (bool) {
+        return hasRole(FACTORY_ADMIN_ROLE, _address);
     }
 }

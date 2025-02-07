@@ -16,6 +16,10 @@ describe("kNFTFactory - Contract Creation Tests (Using Existing Authority/Treasu
    *  4. Impersonates ADMIN_ADDRESS (an admin) to configure roles if needed
    */
   async function deployFactoryWithExistingAuthority() {
+    // Get the signers and contracts we need to interact with
+    const [hreSigner] = await ethers.getSigners();
+    console.log("Hardhat Signer Address: %s", await hreSigner.getAddress());
+
     // 1) Connect to existing Authority
     //    We'll grab the ABI from Hardhat artifacts.
     //    Alternatively, you can pass a minimal ABI since we're mainly calling read/write methods we know exist.
@@ -33,13 +37,27 @@ describe("kNFTFactory - Contract Creation Tests (Using Existing Authority/Treasu
     const kNFTFactory = await ethers.getContractFactory("kNFTFactory", localDeployer);
     const factory = await kNFTFactory.deploy(AUTHORITY_ADDRESS);
     await factory.waitForDeployment();
+    console.log("kNFTFactory deployed at %s", await factory.getAddress());
 
+    // get the factory's admin FACTORY_ADMIN_ROLE from OZ AccessControl role
+    const factoryAdminRole = await factory.isFactoryAdmin(await localDeployer.getAddress());
+    console.log("Is Local Deployer a Factory Admin: %s", factoryAdminRole);    
+
+    expect(factoryAdminRole).to.be.true;
+    
     // 4) Impersonate the on-chain admin to configure roles on the new factory
     await network.provider.request({
       method: "hardhat_impersonateAccount",
       params: [ADMIN_ADDRESS],
     });
     const adminSigner = await ethers.getSigner(ADMIN_ADDRESS);
+
+    // Set the factory's admin role to the admin granting role FACTORY_ADMIN_ROLE
+    await factory.connect(localDeployer).grantRole(await factory.FACTORY_ADMIN_ROLE(), ADMIN_ADDRESS);
+
+    const isAdmin = await factory.isFactoryAdmin(ADMIN_ADDRESS);
+    expect(isAdmin).to.be.true;
+    console.log("Is Admin a Factory Admin: %s", isAdmin);
 
     // Optionally fund ADMIN_ADDRESS if it needs ETH for transaction gas
     const [funder] = await ethers.getSigners();
@@ -48,10 +66,6 @@ describe("kNFTFactory - Contract Creation Tests (Using Existing Authority/Treasu
       value: ethers.parseEther("3.0"),
     });
 
-    // For demonstration, let's grant FACTORY_ADMIN_ROLE to ADMIN_ADDRESS, if not already
-    const FACTORY_ADMIN_ROLE = await factory.FACTORY_ADMIN_ROLE();
-    await factory.connect(localDeployer).grantRole(FACTORY_ADMIN_ROLE, ADMIN_ADDRESS);
-
     // Return references for the tests
     return {
       authority,
@@ -59,6 +73,7 @@ describe("kNFTFactory - Contract Creation Tests (Using Existing Authority/Treasu
       factory,
       adminSigner,
       localDeployer,
+      hreSigner
     };
   }
 
@@ -76,7 +91,7 @@ describe("kNFTFactory - Contract Creation Tests (Using Existing Authority/Treasu
   });
 
   it("Should create a new Kondux contract if factory is active", async function () {
-    const { factory, adminSigner } = await loadFixture(deployFactoryWithExistingAuthority);
+    const { factory, adminSigner, localDeployer } = await loadFixture(deployFactoryWithExistingAuthority);
 
     // By default, isFactoryActive = true and isFeeEnabled = false
     const tx = await factory.connect(adminSigner).createKondux("MyKonduxNFT", "MKN");
@@ -101,31 +116,34 @@ describe("kNFTFactory - Contract Creation Tests (Using Existing Authority/Treasu
   });
 
   it("Should revert if factory is inactive", async function () {
-    const { factory, adminSigner } = await loadFixture(deployFactoryWithExistingAuthority);
+    const { factory, adminSigner, localDeployer } = await loadFixture(deployFactoryWithExistingAuthority);
 
     // Turn off factory
-    await factory.connect(adminSigner).setFactoryActive(false);
+    await factory.connect(localDeployer).setFactoryActive(false);
 
     // Attempt creation
     await expect(
-      factory.connect(adminSigner).createKondux("InactiveNFT", "INFT")
+      factory.connect(localDeployer).createKondux("InactiveNFT", "INFT")
     ).to.be.revertedWith("Factory is not active");
   });
 
   it("Should charge fees if isFeeEnabled = true and caller not whitelisted", async function () {
     const { factory, adminSigner, localDeployer } = await loadFixture(deployFactoryWithExistingAuthority);
 
+    // Setup: get a fresh wallet caller for createKondux 
+    const [admin, caller] = await ethers.getSigners();
+
     // 1) Enable fee
     await factory.connect(adminSigner).setFeeEnabled(true);
     await factory.connect(adminSigner).setCreationFee(ethers.parseEther("0.05"));
 
-    // localDeployer is not whitelisted => must pay
+    // caller is not whitelisted => must pay
     await expect(
-      factory.connect(localDeployer).createKondux("FeeNFT", "FNFT") // no value
+      factory.connect(caller).createKondux("FeeNFT", "FNFT") // no value
     ).to.be.revertedWith("Insufficient ETH for creation fee");
 
     // Provide correct fee
-    const tx = await factory.connect(localDeployer).createKondux("PaidNFT", "PNFT", {
+    const tx = await factory.connect(caller).createKondux("PaidNFT", "PNFT", {
       value: ethers.parseEther("0.05"),
     });
     const receipt = await tx.wait();
@@ -140,7 +158,7 @@ describe("kNFTFactory - Contract Creation Tests (Using Existing Authority/Treasu
       })
       .find((parsed) => parsed && parsed.name === "kNFTDeployed");
     expect(event, "kNFTDeployed event not found").to.exist;
-    expect(event.args.admin).to.equal(localDeployer.address);
+    expect(event.args.admin).to.equal(await caller.getAddress());
   });
 
   it("Should allow whitelisted user to create with no fee", async function () {
@@ -173,12 +191,15 @@ describe("kNFTFactory - Contract Creation Tests (Using Existing Authority/Treasu
   it("Should respect isRestricted = true", async function () {
     const { factory, adminSigner, localDeployer } = await loadFixture(deployFactoryWithExistingAuthority);
 
+    // Setup: get a fresh wallet caller for createKondux
+    const [_, caller] = await ethers.getSigners();
+
     // Restrict creation
     await factory.connect(adminSigner).setRestricted(true);
 
     // localDeployer does NOT have FACTORY_ADMIN_ROLE
     await expect(
-      factory.connect(localDeployer).createKondux("RestrictedNFT", "RFT")
+      factory.connect(caller).createKondux("RestrictedNFT", "RFT")
     ).to.be.revertedWith("Not factory admin");
 
     // adminSigner does have FACTORY_ADMIN_ROLE
