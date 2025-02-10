@@ -37,6 +37,7 @@ contract Kondux is
     event DenominatorChanged(uint96 denominator);
     event DnaModified(uint256 indexed tokenID, uint256 dna, uint256 inputValue, uint8 startIndex, uint8 endIndex);
     event RoleChanged(address indexed addr, bytes32 role, bool enabled);
+    event FreeMintingChanged(bool freeMinting);
 
     // Role definitions
     bytes32 public MINTER_ROLE = keccak256("MINTER_ROLE");
@@ -45,6 +46,7 @@ contract Kondux is
     // Contract state variables
     string public baseURI;
     uint96 public denominator;
+    bool public freeMinting;
 
     // Mapping from token ID to DNA value
     mapping(uint256 => uint256) public indexDna;
@@ -70,6 +72,7 @@ contract Kondux is
     constructor(string memory _name, string memory _symbol)
         ERC721(_name, _symbol)
     {
+        freeMinting = false;
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, msg.sender);
         _grantRole(DNA_MODIFIER_ROLE, msg.sender);
@@ -86,10 +89,12 @@ contract Kondux is
     }
 
     /**
-     * @dev Throws if called by any account other than the minter.
+     * @dev Throws if called by any account other than the minter. If freeMinting is enabled, anyone can mint.
      */
     modifier onlyMinter() {
-        require(hasRole(MINTER_ROLE, msg.sender), "kNFT: only minter");
+        if (!freeMinting) {
+            require(hasRole(MINTER_ROLE, msg.sender), "kNFT: only minter");
+        }
         _;
     }
 
@@ -198,6 +203,15 @@ contract Kondux is
         _setDna(tokenId, dna);
         _safeMint(to, tokenId);
         return tokenId;
+    }
+
+    /**
+     * @dev Sets the freeMinting flag to enable/disable free minting.
+     * @param _freeMinting True to enable free minting, false to disable.
+     */
+    function setFreeMinting(bool _freeMinting) public onlyAdmin {
+        freeMinting = _freeMinting;
+        emit FreeMintingChanged(freeMinting);
     }
 
     /**
