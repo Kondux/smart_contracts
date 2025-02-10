@@ -418,5 +418,108 @@ describe("kNFTFactory - Contract Creation & kNFT Functionality Tests", function 
       totalSupply = await knft.totalSupply();
       expect(totalSupply).to.equal(0);
     });
+
+    describe("Free Minting Tests", function () {
+      it("Should let the admin enable or disable freeMinting and emit an event", async function () {
+        const { knft, adminSigner } = await createAndAttachKondux();
+
+        // Initially false
+        expect(await knft.freeMinting()).to.equal(false, "Initially freeMinting should be false");
+
+        // Enable free minting
+        const enableTx = await knft.connect(adminSigner).setFreeMinting(true);
+        await expect(enableTx)
+          .to.emit(knft, "FreeMintingChanged")
+          .withArgs(true);
+
+        expect(await knft.freeMinting()).to.equal(true, "Should be true after enabling");
+
+        // Disable free minting
+        const disableTx = await knft.connect(adminSigner).setFreeMinting(false);
+        await expect(disableTx)
+          .to.emit(knft, "FreeMintingChanged")
+          .withArgs(false);
+
+        expect(await knft.freeMinting()).to.equal(false, "Should be false after disabling");
+      });
+
+      it("Should allow anyone to call safeMint if freeMinting = true", async function () {
+        const { knft, adminSigner, localDeployer } = await createAndAttachKondux();
+
+        // Another random user for minting
+        const [_, randomUser] = await ethers.getSigners();
+
+        // Enable free minting
+        await knft.connect(adminSigner).setFreeMinting(true);
+
+        // Now random user calls safeMint
+        const dnaValue = 7777;
+        const mintTx = await knft.connect(randomUser).safeMint(randomUser.address, dnaValue);
+        const receipt = await mintTx.wait();
+
+        // Parse the "Transfer" event
+        const parsedLogs = receipt.logs.map((log) => {
+          try {
+            return knft.interface.parseLog(log);
+          } catch {
+            return null;
+          }
+        }).filter(Boolean);
+
+        const transferLog = parsedLogs.find((l) => l.name === "Transfer");
+        expect(transferLog, "No Transfer event found").to.exist;
+
+        const tokenId = transferLog.args.tokenId;
+        expect(tokenId).to.be.gte(0);
+
+        // Confirm the DNA was set
+        const storedDNA = await knft.getDna(tokenId);
+        expect(storedDNA).to.equal(dnaValue);
+      });
+
+      it("Should revert if freeMinting = false and caller does not have MINTER_ROLE", async function () {
+        const { knft, adminSigner } = await createAndAttachKondux();
+
+        // Another random user for minting
+        const [_, randomUser] = await ethers.getSigners();
+
+        // By default or forcibly, ensure freeMinting is false
+        await knft.connect(adminSigner).setFreeMinting(false);
+        expect(await knft.freeMinting()).to.equal(false);
+
+        // randomUser tries to mint
+        await expect(
+          knft.connect(randomUser).safeMint(randomUser.address, 9999)
+        ).to.be.revertedWith("kNFT: only minter");
+      });
+
+      it("Should allow MINTER_ROLE to mint even if freeMinting is false", async function () {
+        const { knft, adminSigner } = await createAndAttachKondux();
+
+        // By default, adminSigner has MINTER_ROLE, freeMinting is false
+        expect(await knft.freeMinting()).to.equal(false);
+
+        // adminSigner can still mint
+        const dnaValue = 20202;
+        const mintTx = await knft.connect(adminSigner).safeMint(adminSigner.address, dnaValue);
+        const receipt = await mintTx.wait();
+
+        const parsedLogs = receipt.logs.map((log) => {
+          try {
+            return knft.interface.parseLog(log);
+          } catch {
+            return null;
+          }
+        }).filter(Boolean);
+
+        const transferLog = parsedLogs.find((l) => l.name === "Transfer");
+        expect(transferLog).to.exist;
+
+        const tokenId = transferLog.args.tokenId;
+        const storedDNA = await knft.getDna(tokenId);
+        expect(storedDNA).to.equal(dnaValue);
+      });
+    });
   });
+
 });
