@@ -7,7 +7,7 @@ const AUTHORITY_ADDRESS = "0x6A005c11217863c4e300Ce009c5Ddc7e1672150A";
 const TREASURY_ADDRESS  = "0xaD2E62E90C63D5c2b905C3F709cC3045AecDAa1E";
 const ADMIN_ADDRESS     = "0x41BC231d1e2eB583C24cee022A6CBCE5168c9FD2";
 
-describe("kNFTFactory - Contract Creation & kNFT Functionality Tests", function () {
+describe("kNFTFactory - Contract Creation & kNFT (Kondux) Functionality Tests", function () {
   /**
    * @dev This fixture:
    *  1. Connects to the existing Authority at AUTHORITY_ADDRESS
@@ -25,7 +25,7 @@ describe("kNFTFactory - Contract Creation & kNFT Functionality Tests", function 
       ethers.provider
     );
 
-    // 2) Connect to existing Treasury
+    // 2) Connect to existing Treasury (optional if you need direct calls)
     const TreasuryFactory = await ethers.getContractFactory("Treasury");
     const treasuryAbi = TreasuryFactory.interface;
     const treasury = new ethers.Contract(
@@ -39,7 +39,6 @@ describe("kNFTFactory - Contract Creation & kNFT Functionality Tests", function 
     const kNFTFactory = await ethers.getContractFactory("kNFTFactory", localDeployer);
     const factory = await kNFTFactory.deploy(AUTHORITY_ADDRESS);
     await factory.waitForDeployment();
-    // console.log("kNFTFactory deployed at", await factory.getAddress());
 
     // 4) Impersonate ADMIN_ADDRESS to configure the factory
     await network.provider.request({
@@ -48,7 +47,7 @@ describe("kNFTFactory - Contract Creation & kNFT Functionality Tests", function 
     });
     const adminSigner = await ethers.getSigner(ADMIN_ADDRESS);
 
-    // Fund admin if needed
+    // Optionally fund the admin if needed (for forks)
     const [funder] = await ethers.getSigners();
     await funder.sendTransaction({
       to: ADMIN_ADDRESS,
@@ -70,7 +69,7 @@ describe("kNFTFactory - Contract Creation & kNFT Functionality Tests", function 
   }
 
   // --------------------------------------------------------------------
-  // Confirm the factory deploys, toggles, and creates kNFT
+  // Factory Tests
   // --------------------------------------------------------------------
 
   it("Should connect to existing Authority, Treasury, and deploy kNFTFactory", async function () {
@@ -88,7 +87,7 @@ describe("kNFTFactory - Contract Creation & kNFT Functionality Tests", function 
     const tx = await factory.connect(adminSigner).createKondux("MyKonduxNFT", "MKN");
     const receipt = await tx.wait();
 
-    // Parse logs to find kNFTDeployed event
+    // Parse logs for kNFTDeployed event
     const event = receipt.logs
       .map((log) => {
         try {
@@ -121,21 +120,21 @@ describe("kNFTFactory - Contract Creation & kNFT Functionality Tests", function 
   it("Should charge fees if isFeeEnabled = true and caller not whitelisted", async function () {
     const { factory, adminSigner, authority } = await loadFixture(deployFactoryWithExistingAuthority);
 
-    // Setup: get new wallet to test fee payment
-    const [admin, feePayer] = await ethers.getSigners();
+    // We need a new wallet to demonstrate paying fees
+    const [_, feePayer] = await ethers.getSigners();
 
     // 1) Enable fee
     await factory.connect(adminSigner).setFeeEnabled(true);
     await factory.connect(adminSigner).setCreationFee(ethers.parseEther("0.05"));
 
-    // localDeployer is not whitelisted => must pay
+    // localDeployer (or feePayer here) is not whitelisted => must pay
     await expect(
       factory.connect(feePayer).createKondux("FeeNFT", "FNFT") // no value
     ).to.be.revertedWith("Insufficient ETH for creation fee");
 
-    // Get previous balance of Treasury
-    const treasury = await authority.vault();
-    const treasuryBalanceBefore = await ethers.provider.getBalance(treasury);
+    // Get treasury address (from authority)
+    const treasuryAddr = await authority.vault();
+    const treasuryBalanceBefore = await ethers.provider.getBalance(treasuryAddr);
 
     // Provide correct fee
     const tx = await factory.connect(feePayer).createKondux("PaidNFT", "PNFT", {
@@ -144,9 +143,11 @@ describe("kNFTFactory - Contract Creation & kNFT Functionality Tests", function 
     const receipt = await tx.wait();
 
     // Confirm Treasury balance increased by fee
-    const treasuryBalanceAfter = await ethers.provider.getBalance(treasury);
-    expect(treasuryBalanceAfter).to.equal(treasuryBalanceBefore + ethers.parseEther("0.05"));
+    const treasuryBalanceAfter = await ethers.provider.getBalance(treasuryAddr);
+    const diff = treasuryBalanceAfter - treasuryBalanceBefore;
+    expect(diff).to.equal(ethers.parseEther("0.05"), "Treasury should receive 0.05 ETH");
 
+    // Confirm event
     const event = receipt.logs
       .map((log) => {
         try {
@@ -174,6 +175,7 @@ describe("kNFTFactory - Contract Creation & kNFT Functionality Tests", function 
     const tx = await factory.connect(localDeployer).createKondux("FreeNFT", "FRN");
     const receipt = await tx.wait();
 
+    // Check event
     const event = receipt.logs
       .map((log) => {
         try {
@@ -188,20 +190,19 @@ describe("kNFTFactory - Contract Creation & kNFT Functionality Tests", function 
   });
 
   it("Should respect isRestricted = true", async function () {
-    const { factory, adminSigner, localDeployer } = await loadFixture(deployFactoryWithExistingAuthority);
+    const { factory, adminSigner } = await loadFixture(deployFactoryWithExistingAuthority);
 
-    // Get new wallet to test restriction
-    const [admin, newUser ] = await ethers.getSigners();
+    const [_, newUser] = await ethers.getSigners();
 
     // Restrict creation
     await factory.connect(adminSigner).setRestricted(true);
 
-    // localDeployer does NOT have FACTORY_ADMIN_ROLE
+    // newUser does NOT have FACTORY_ADMIN_ROLE
     await expect(
       factory.connect(newUser).createKondux("RestrictedNFT", "RFT")
     ).to.be.revertedWith("Not factory admin");
 
-    // adminSigner does have FACTORY_ADMIN_ROLE
+    // adminSigner does have FACTORY_ADMIN_ROLE => should succeed
     const tx = await factory.connect(adminSigner).createKondux("AdminNFT", "ANFT");
     const receipt = await tx.wait();
 
@@ -218,10 +219,10 @@ describe("kNFTFactory - Contract Creation & kNFT Functionality Tests", function 
   });
 
   // --------------------------------------------------------------------
-  // Confirm the newly created Kondux can mint, update URIs, and handle DNA
+  // Tests for the newly created Kondux contract
   // --------------------------------------------------------------------
 
-  describe("kNFT (Kondux) Usage Tests", function () {
+  describe("Kondux (kNFT) Usage Tests", function () {
     async function createAndAttachKondux() {
       // Reuse the main fixture
       const { factory, adminSigner, localDeployer } = await loadFixture(deployFactoryWithExistingAuthority);
@@ -243,11 +244,10 @@ describe("kNFTFactory - Contract Creation & kNFT Functionality Tests", function 
 
       const newKonduxAddress = event.args.newkNFT;
 
-      // Attach to it
+      // Attach
       const Kondux = await ethers.getContractFactory("Kondux");
       const knft = Kondux.attach(newKonduxAddress);
 
-      // Return references
       return {
         factory,
         adminSigner,
@@ -256,7 +256,7 @@ describe("kNFTFactory - Contract Creation & kNFT Functionality Tests", function 
       };
     }
 
-    it("Should allow the admin to setBaseURI and read tokenURI", async function () {
+    it("Should allow admin to setBaseURI and read tokenURI", async function () {
       const { knft, adminSigner } = await createAndAttachKondux();
     
       // By default, baseURI is empty => tokenURI => ""
@@ -278,17 +278,13 @@ describe("kNFTFactory - Contract Creation & kNFT Functionality Tests", function 
     
       // We expect exactly one Transfer event from ERC721
       const transferLog = parsedLogs.find((l) => l.name === "Transfer");
-      if (!transferLog) {
-        throw new Error("No Transfer event found in logs");
-      }
-    
+      expect(transferLog, "No Transfer event found").to.exist;
       const tokenId = transferLog.args.tokenId;
-    
+
       // Check tokenURI
       const uri = await knft.tokenURI(tokenId);
       expect(uri).to.equal(`https://mytesturi.com/metadata/${tokenId}`);
     });
-    
 
     it("Should allow minted tokens and track DNA properly", async function () {
       const { knft, adminSigner } = await createAndAttachKondux();
@@ -298,16 +294,17 @@ describe("kNFTFactory - Contract Creation & kNFT Functionality Tests", function 
       const tx = await knft.connect(adminSigner).safeMint(adminSigner.address, dnaValue);
       const receipt = await tx.wait();
       
-      // Manually parse logs to find a "Transfer" event
-      const parsedLogs = receipt.logs.map((log) => {
-        try {
-          return knft.interface.parseLog(log);
-        } catch (err) {
-          return null;
-        }
-      }).filter(Boolean);
-    
-      // We expect exactly one Transfer event from ERC721
+      // parse logs => find "Transfer"
+      const parsedLogs = receipt.logs
+        .map((log) => {
+          try {
+            return knft.interface.parseLog(log);
+          } catch (err) {
+            return null;
+          }
+        })
+        .filter(Boolean);
+
       const transferLog = parsedLogs.find((l) => l.name === "Transfer");
       if (!transferLog) {
         throw new Error("No Transfer event found in logs");
@@ -320,10 +317,10 @@ describe("kNFTFactory - Contract Creation & kNFT Functionality Tests", function 
       expect(storedDNA).to.equal(dnaValue);
 
       // Also confirm the admin is the minter, so no revert
-      expect(tokenId).to.be.gte(0); // i.e. minted successfully
+      expect(tokenId).to.be.gte(0); // minted
     });
 
-    it("Should allow admin to setDna if they hold the DNA_MODIFIER_ROLE", async function () {
+    it("Should allow admin to setDna if they have DNA_MODIFIER_ROLE", async function () {
       const { knft, adminSigner } = await createAndAttachKondux();
 
       // Mint
@@ -331,19 +328,20 @@ describe("kNFTFactory - Contract Creation & kNFT Functionality Tests", function 
       const tx = await knft.connect(adminSigner).safeMint(adminSigner.address, initialDNA);
       const receipt = await tx.wait();
 
-      // Manually parse logs to find a "Transfer" event
-      const parsedLogs = receipt.logs.map((log) => {
-        try {
-          return knft.interface.parseLog(log);
-        } catch (err) {
-          return null;
-        }
-      }).filter(Boolean);
+      // parse logs => "Transfer"
+      const parsedLogs = receipt.logs
+        .map((log) => {
+          try {
+            return knft.interface.parseLog(log);
+          } catch (err) {
+            return null;
+          }
+        })
+        .filter(Boolean);
 
-      // We expect exactly one Transfer event from ERC721
       const transferLog = parsedLogs.find((l) => l.name === "Transfer");
       if (!transferLog) {
-        throw new Error("No Transfer event found in logs");
+        throw new Error("No Transfer event found");
       }
 
       const tokenId = transferLog.args.tokenId;
@@ -361,36 +359,32 @@ describe("kNFTFactory - Contract Creation & kNFT Functionality Tests", function 
 
       // Mint with a large DNA
       const bigDNA = BigInt("0x11223344556677889900AABBCCDDEEFF11223344556677889900AABBCCDDEEFF");
-      // We'll pass it as a decimal integer for safeMint:
       const dnaDecimal = bigDNA.toString(); 
-
       const tx = await knft.connect(adminSigner).safeMint(adminSigner.address, dnaDecimal);
       const receipt = await tx.wait();
 
-      // Manually parse logs to find a "Transfer" event
-      const parsedLogs = receipt.logs.map((log) => {
-        try {
-          return knft.interface.parseLog(log);
-        } catch (err) {
-          return null;
-        }
-      }).filter(Boolean);
+      const parsedLogs = receipt.logs
+        .map((log) => {
+          try {
+            return knft.interface.parseLog(log);
+          } catch (err) {
+            return null;
+          }
+        })
+        .filter(Boolean);
 
-      // We expect exactly one Transfer event from ERC721
       const transferLog = parsedLogs.find((l) => l.name === "Transfer");
       if (!transferLog) {
-        throw new Error("No Transfer event found in logs");
+        throw new Error("No Transfer event found");
       }
 
       const tokenId = transferLog.args.tokenId;
 
-      // Let's overwrite some bytes in the DNA from indices [4..8)
-      // For example, inputValue = 0xDEADBEEF, means 4 bytes
-      // startIndex=4, endIndex=8 => we'll inject 0xDEADBEEF in that range
+      // Overwrite bytes in the DNA at [4..8) with 0xDEADBEEF
       const inputValue = BigInt("0xDEADBEEF");
       await knft.connect(adminSigner).writeGen(tokenId, inputValue, 4, 8);
 
-      // readGen back the same range
+      // readGen back
       const extracted = await knft.readGen(tokenId, 4, 8); // returns int256
       expect(extracted).to.equal(inputValue, "Extracted bytes do not match inputValue");
     });
@@ -424,7 +418,7 @@ describe("kNFTFactory - Contract Creation & kNFT Functionality Tests", function 
         const { knft, adminSigner } = await createAndAttachKondux();
 
         // Initially false
-        expect(await knft.freeMinting()).to.equal(false, "Initially freeMinting should be false");
+        expect(await knft.freeMinting()).to.equal(false, "Should be false initially");
 
         // Enable free minting
         const enableTx = await knft.connect(adminSigner).setFreeMinting(true);
@@ -432,7 +426,7 @@ describe("kNFTFactory - Contract Creation & kNFT Functionality Tests", function 
           .to.emit(knft, "FreeMintingChanged")
           .withArgs(true);
 
-        expect(await knft.freeMinting()).to.equal(true, "Should be true after enabling");
+        expect(await knft.freeMinting()).to.equal(true, "Should be true now");
 
         // Disable free minting
         const disableTx = await knft.connect(adminSigner).setFreeMinting(false);
@@ -440,50 +434,45 @@ describe("kNFTFactory - Contract Creation & kNFT Functionality Tests", function 
           .to.emit(knft, "FreeMintingChanged")
           .withArgs(false);
 
-        expect(await knft.freeMinting()).to.equal(false, "Should be false after disabling");
+        expect(await knft.freeMinting()).to.equal(false, "Should be false now");
       });
 
       it("Should allow anyone to call safeMint if freeMinting = true", async function () {
-        const { knft, adminSigner, localDeployer } = await createAndAttachKondux();
-
-        // Another random user for minting
+        const { knft, adminSigner } = await createAndAttachKondux();
         const [_, randomUser] = await ethers.getSigners();
 
         // Enable free minting
         await knft.connect(adminSigner).setFreeMinting(true);
 
-        // Now random user calls safeMint
+        // Now random user can call safeMint
         const dnaValue = 7777;
         const mintTx = await knft.connect(randomUser).safeMint(randomUser.address, dnaValue);
         const receipt = await mintTx.wait();
 
-        // Parse the "Transfer" event
-        const parsedLogs = receipt.logs.map((log) => {
-          try {
-            return knft.interface.parseLog(log);
-          } catch {
-            return null;
-          }
-        }).filter(Boolean);
+        // parse logs => find "Transfer"
+        const parsedLogs = receipt.logs
+          .map((log) => {
+            try {
+              return knft.interface.parseLog(log);
+            } catch {
+              return null;
+            }
+          })
+          .filter(Boolean);
 
         const transferLog = parsedLogs.find((l) => l.name === "Transfer");
         expect(transferLog, "No Transfer event found").to.exist;
 
         const tokenId = transferLog.args.tokenId;
-        expect(tokenId).to.be.gte(0);
-
-        // Confirm the DNA was set
         const storedDNA = await knft.getDna(tokenId);
         expect(storedDNA).to.equal(dnaValue);
       });
 
       it("Should revert if freeMinting = false and caller does not have MINTER_ROLE", async function () {
         const { knft, adminSigner } = await createAndAttachKondux();
-
-        // Another random user for minting
         const [_, randomUser] = await ethers.getSigners();
 
-        // By default or forcibly, ensure freeMinting is false
+        // Ensure freeMinting is false
         await knft.connect(adminSigner).setFreeMinting(false);
         expect(await knft.freeMinting()).to.equal(false);
 
@@ -496,10 +485,10 @@ describe("kNFTFactory - Contract Creation & kNFT Functionality Tests", function 
       it("Should allow MINTER_ROLE to mint even if freeMinting is false", async function () {
         const { knft, adminSigner } = await createAndAttachKondux();
 
-        // By default, adminSigner has MINTER_ROLE, freeMinting is false
+        // freeMinting is false by default
         expect(await knft.freeMinting()).to.equal(false);
 
-        // adminSigner can still mint
+        // adminSigner has MINTER_ROLE => can mint
         const dnaValue = 20202;
         const mintTx = await knft.connect(adminSigner).safeMint(adminSigner.address, dnaValue);
         const receipt = await mintTx.wait();
