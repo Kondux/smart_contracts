@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import "./Kondux_NFT.sol";
+import "./Kondux_NFT.sol"; 
 import "./interfaces/IAuthority.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 /**
  * @title kNFTFactory
- * @notice Deploys new Kondux contracts (ERC721+EIP-4906+ERC2981),
+ * @notice Deploys new Kondux contracts (ERC721 + EIP-4906 + On-Chain Royalty Enforcement),
  *         optionally charges ETH for creation, and sets an *informational* default royalty
  *         (compliant with ERC-2981) pointing to the Authority vault.
- *         Whether or not that royalty is actually paid depends on off-chain or marketplace logic.
  */
 contract kNFTFactory is AccessControl {
     // ------------------ Roles ------------------ //
@@ -24,7 +24,7 @@ contract kNFTFactory is AccessControl {
     /// @notice Authority contract (manages vault address, etc.).
     IAuthority public authority;
 
-    /// @notice If true, the factory can create new kNFT contracts. If false, creation is disabled.
+    /// @notice If true, the factory can create new kNFT (Kondux) contracts. If false, creation is disabled.
     bool public isFactoryActive = true;
 
     /// @notice If true, the contract charges an ETH fee on creation unless the deployer is whitelisted.
@@ -34,21 +34,28 @@ contract kNFTFactory is AccessControl {
     uint256 public creationFee = 0.05 ether;
 
     /// @notice Default royalty fee numerator (e.g., 100 = 1% if using a 10,000 denominator).
-    /// @dev This is purely informational for marketplaces. The contract does not enforce it on-chain.
+    /// @dev This is purely informational for ERC-2981. The new Kondux enforces on-chain royalties separately.
     uint96 public defaultRoyaltyFee = 100; // 1% by default
 
-    /// @notice If true, only addresses with FACTORY_ADMIN_ROLE can call createKondux().
+    /// @notice If true, only addresses with FACTORY_ADMIN_ROLE can call `createKondux()`.
     bool public isRestricted = false;
 
-    /// @notice Whitelist for free (no ETH fee) deployments. Also used to set 0% royalty if desired.
+    /// @notice Whitelist for free (no ETH fee) deployments.
     mapping(address => bool) public freeCreators;
+
+    // ------------------ Addresses for the New Kondux Constructor ------------------ //
+    /// @dev Uniswap V2 router for price lookups
+    address public uniswapV2Router; 
+    /// @dev WETH address (for USDT->WETH->KNDX path)
+    address public WETH;
+    /// @dev KNDX token address
+    address public KNDX;
+    /// @dev Founder’s Pass contract
+    IERC721 public foundersPass;
 
     // ------------------ Events ------------------ //
 
-    /// @dev Emitted when a new kNFT (Kondux) contract is deployed.
     event kNFTDeployed(address indexed newkNFT, address indexed admin);
-
-    /// @dev Emitted when the factory toggles or configuration is changed.
     event FactoryToggled(bool isFactoryActive, bool isFeeEnabled, bool isRestricted);
     event FactoryFeeUpdated(uint256 newFee);
     event FactoryRoyaltyFeeUpdated(uint96 newFee);
@@ -57,24 +64,24 @@ contract kNFTFactory is AccessControl {
     // ------------------ Constructor ------------------ //
 
     /**
-     * @param _authority The address of the Authority contract (manages the vault, etc.).
+     * @param _authority        The address of the Authority contract (manages the vault, etc.).
      */
     constructor(address _authority) {
         require(_authority != address(0), "Authority cannot be zero address");
         authority = IAuthority(_authority);
 
-        // Grant deployer roles to configure the factory.
+        // Grant deployer roles to configure the factory
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(FACTORY_ADMIN_ROLE, msg.sender);
 
-        // Deployer is also whitelisted for free creation by default.
+        // Deployer is also whitelisted for free creation
         freeCreators[msg.sender] = true;
     }
 
     // ------------------ Modifiers ------------------ //
 
     /**
-     * @dev If `isRestricted` is true, only addresses with FACTORY_ADMIN_ROLE can call the function.
+     * @dev If `isRestricted` is true, only addresses with FACTORY_ADMIN_ROLE can call.
      *      Otherwise, anyone can call.
      */
     modifier restrictedOrAnyone() {
@@ -86,18 +93,26 @@ contract kNFTFactory is AccessControl {
 
     // ------------------ Core Factory Logic ------------------ //
 
+    
     /**
-     * @notice Create a new Kondux contract (EIP-4906 + ERC2981).
-     *         If `isFeeEnabled` is true and the caller is not whitelisted, they must pay the creationFee.
-     *         The caller (msg.sender) ends up as the admin (DEFAULT_ADMIN_ROLE, MINTER_ROLE, DNA_MODIFIER_ROLE)
-     *         in the newly deployed kNFT contract.
+     * @notice Creates a new Kondux NFT contract.
      *
-     * @dev The default royalty set here is purely informational for ERC-2981. 
-     *      Actual royalty payments depend on marketplace or off-chain logic.
+     * @dev Deploys a new Kondux NFT contract, initializes it with the provided name and symbol along with stored addresses,
+     * assigns necessary roles to the creator (msg.sender) and revokes the factory's roles.
+     * Depending on the fee settings, it either requires a minimum creation fee or ensures no ETH is sent.
+     * The sent fee (if applicable) is forwarded to the Authority's vault.
      *
-     * @param name   The ERC721 name for the new NFT collection.
-     * @param symbol The ERC721 symbol for the new NFT collection.
-     * @return The address of the newly deployed kNFT contract.
+     * Requirements:
+     * - The factory must be active (isFactoryActive must be true).
+     * - If fee is enabled and the caller is not exempt, at least 'creationFee' ETH must be sent.
+     * - If fee is not required, no ETH should be sent.
+     *
+     * Emits a {kNFTDeployed} event indicating the deployment of the new NFT contract.
+     *
+     * @param name The name for the new NFT contract.
+     * @param symbol The symbol for the new NFT contract.
+     *
+     * @return The address of the deployed Kondux NFT contract.
      */
     function createKondux(
         string memory name,
@@ -110,47 +125,55 @@ contract kNFTFactory is AccessControl {
     {
         require(isFactoryActive, "Factory is not active");
 
-        // -- 1) Handle optional creation fee
+        // (1) Optional creation fee
         if (isFeeEnabled && !freeCreators[msg.sender]) {
             require(msg.value >= creationFee, "Insufficient ETH for creation fee");
-            // Forward all ETH directly to the Authority's vault.
+            // Forward ETH to the Authority's vault
             (bool success, ) = authority.vault().call{value: msg.value}("");
             require(success, "ETH transfer to vault failed");
         } else {
-            // If no fee is required, ensure none is sent.
+            // If no fee is required, ensure none is sent
             require(msg.value == 0, "No fee required, do not send ETH");
         }
 
-        // -- 2) Deploy a new Kondux NFT contract
-        //       This contract is the deployer, so it temporarily has admin roles.
-        Kondux newNFT = new Kondux(name, symbol);
+        // (2) Deploy a new Kondux NFT contract with the stored addresses
+        //     The `_treasury` is `authority.vault()`.
+        Kondux newNFT = new Kondux(
+            name,
+            symbol,
+            uniswapV2Router,       // Uniswap router
+            WETH,                  // WETH address
+            KNDX,                  // KNDX token
+            address(foundersPass), // Founder’s Pass contract
+            authority.vault()      // treasury for 1% cut
+        );
 
-        // -- 3) Transfer roles from the factory (this address) to msg.sender
-        //       The Kondux constructor granted all roles to address(this), so we reassign them:
+        // (3) Transfer roles from the factory to msg.sender
         newNFT.setRole(newNFT.DEFAULT_ADMIN_ROLE(), msg.sender, true);
         newNFT.setRole(newNFT.MINTER_ROLE(), msg.sender, true);
-        newNFT.setRole(newNFT.DNA_MODIFIER_ROLE(), msg.sender, true);        
+        newNFT.setRole(newNFT.DNA_MODIFIER_ROLE(), msg.sender, true);
 
-        // -- 4) Set the default royalty info (purely informational per ERC-2981)
-        newNFT.setDefaultRoyalty(authority.vault(), defaultRoyaltyFee); // 1% by default
-
-        // -- 5) Revoke roles from the factory (this address)
+        // (4) Revoke roles from this factory
         newNFT.setRole(newNFT.MINTER_ROLE(), address(this), false);
         newNFT.setRole(newNFT.DNA_MODIFIER_ROLE(), address(this), false);
         newNFT.setRole(newNFT.DEFAULT_ADMIN_ROLE(), address(this), false);
 
-        // -- 6) Emit event
+        // (5) Emit event
         emit kNFTDeployed(address(newNFT), msg.sender);
 
-        // -- 7) Return contract address
+        // (6) Return address of new NFT contract
         return address(newNFT);
     }
 
     // ------------------ Admin / Configuration ------------------ //
 
     /**
-     * @notice Enable or disable the factory. If disabled, creation is blocked.
-     * @param _isFactoryActive Toggle for factory activity.
+     * @notice Sets the factory's active status.
+     * @dev This function can only be called by an account with the FACTORY_ADMIN_ROLE.
+     * @param _isFactoryActive A boolean that activates (true) or deactivates (false) the factory.
+     *
+     * Emits a {FactoryToggled} event indicating the new state of factory activity,
+     * fee enabling, and restriction status.
      */
     function setFactoryActive(bool _isFactoryActive) external onlyRole(FACTORY_ADMIN_ROLE) {
         isFactoryActive = _isFactoryActive;
@@ -158,8 +181,14 @@ contract kNFTFactory is AccessControl {
     }
 
     /**
-     * @notice Enable or disable fee collection on creation.
-     * @param _isFeeEnabled Toggle for fee requirement.
+     * @notice Enables or disables fee functionality.
+     * @dev Only callable by accounts with the FACTORY_ADMIN_ROLE.
+     * @param _isFeeEnabled A boolean flag that determines whether fees are enabled (true) or disabled (false).
+     *
+     * Emits a FactoryToggled event with the following parameters:
+     * - isFactoryActive: The current activation status of the factory.
+     * - isFeeEnabled: The updated fee status as provided by _isFeeEnabled.
+     * - isRestricted: The current restriction status.
      */
     function setFeeEnabled(bool _isFeeEnabled) external onlyRole(FACTORY_ADMIN_ROLE) {
         isFeeEnabled = _isFeeEnabled;
@@ -167,8 +196,10 @@ contract kNFTFactory is AccessControl {
     }
 
     /**
-     * @notice Set the creation fee (in WEI) if `isFeeEnabled` is true.
-     * @param _fee The new fee amount required for creation.
+     * @notice Updates the creation fee.
+     * @dev Can only be called by addresses with the FACTORY_ADMIN_ROLE.
+     *      Executes by setting the creation fee to the provided value and emitting a FactoryFeeUpdated event.
+     * @param _fee The new creation fee amount.
      */
     function setCreationFee(uint256 _fee) external onlyRole(FACTORY_ADMIN_ROLE) {
         creationFee = _fee;
@@ -176,8 +207,10 @@ contract kNFTFactory is AccessControl {
     }
 
     /**
-     * @notice Enable or disable the restriction to FACTORY_ADMIN_ROLE for new contract creation.
-     * @param _isRestricted If true, only factory admins can create new kNFTs; otherwise anyone can.
+     * @notice Toggles the restricted status of the factory.
+     * @dev Only callable by an account with the FACTORY_ADMIN_ROLE.
+     *      Updates the state variable 'isRestricted' and emits the FactoryToggled event.
+     * @param _isRestricted Boolean value indicating the new restricted status.
      */
     function setRestricted(bool _isRestricted) external onlyRole(FACTORY_ADMIN_ROLE) {
         isRestricted = _isRestricted;
@@ -185,10 +218,8 @@ contract kNFTFactory is AccessControl {
     }
 
     /**
-     * @notice Sets the default royalty fee for new contracts (in basis points, e.g., 100 = 1%).
-     * @param _fee The default royalty fee for newly deployed kNFTs.
-     *
-     * Note: This does not enforce on-chain royalties; it simply sets `royaltyInfo` for integrators.
+     * @notice Set the default royalty fee for newly deployed Kondux (for ERC2981).
+     * @param _fee Basis points, e.g., 100 => 1% if denominator = 10,000.
      */
     function setDefaultRoyaltyFee(uint96 _fee) external onlyRole(FACTORY_ADMIN_ROLE) {
         defaultRoyaltyFee = _fee;
@@ -196,10 +227,7 @@ contract kNFTFactory is AccessControl {
     }
 
     /**
-     * @notice Update or add an address to the free creation whitelist. 
-     *         Whitelisted addresses pay no creation fee and receive 0% royalty.
-     * @param creator The address to be added or removed from freeCreators.
-     * @param isFree  True to enable free creation, false to disable.
+     * @notice Update or add an address to the free-creation whitelist.
      */
     function setFreeCreator(address creator, bool isFree) external onlyRole(FACTORY_ADMIN_ROLE) {
         freeCreators[creator] = isFree;
@@ -207,32 +235,57 @@ contract kNFTFactory is AccessControl {
     }
 
     /**
-     * @notice Updates the Authority contract address.
-     * @param _authority The new Authority contract address.
+     * @notice Update the Authority contract address.
      */
     function setAuthority(address _authority) external onlyRole(FACTORY_ADMIN_ROLE) {
         require(_authority != address(0), "Cannot be zero address");
         authority = IAuthority(_authority);
     }
 
-    // ------------------ Emergency Withdraws ------------------ //
-
     /**
-     * @notice Withdraw any ETH accidentally sent to this contract. Only callable by factory admins.
-     * @param to Address to receive the withdrawn ETH.
+     * @notice Set the Uniswap V2 router address for price lookups.
+     * @param _router The new Uniswap V2 router address.
      */
-    function emergencyWithdrawETH(address to) external onlyRole(FACTORY_ADMIN_ROLE) {
-        require(to != address(0), "Cannot withdraw to zero address");
-        uint256 balance = address(this).balance;
-        (bool success, ) = to.call{value: balance}("");
-        require(success, "ETH transfer failed");
+    function setUniswapV2Router(address _router) external onlyRole(FACTORY_ADMIN_ROLE) {
+        require(_router != address(0), "Invalid router address");
+        uniswapV2Router = _router;
     }
 
     /**
-     * @notice Withdraw ERC20 tokens accidentally sent to this contract. Only callable by factory admins.
-     * @param token  ERC20 token address.
-     * @param to     Address to receive the tokens.
-     * @param amount Number of tokens to withdraw.
+     * @notice Set the WETH address.
+     * @param _weth The new WETH address.
+     */
+    function setWETH(address _weth) external onlyRole(FACTORY_ADMIN_ROLE) {
+        require(_weth != address(0), "Invalid WETH address");
+        WETH = _weth;
+    }
+
+    /**
+     * @notice Set the KNDX token address.
+     * @param _kndx The new KNDX token address.
+     */
+    function setKNDX(address _kndx) external onlyRole(FACTORY_ADMIN_ROLE) {
+        require(_kndx != address(0), "Invalid KNDX address");
+        KNDX = _kndx;
+    }
+
+    /**
+     * @notice Set the Founder’s pass contract address.
+     * @param _foundersPass The new Founder’s pass contract.
+     */
+    function setFoundersPass(IERC721 _foundersPass) external onlyRole(FACTORY_ADMIN_ROLE) {
+        require(address(_foundersPass) != address(0), "Invalid FoundersPass address");
+        foundersPass = _foundersPass;
+    }
+
+    // ------------------ Emergency Withdraws ------------------ //
+
+    /**
+     * @notice Withdraw tokens in emergency by transferring the specified amount to a given address.
+     * @dev Only callable by accounts with the FACTORY_ADMIN_ROLE. Requires a non-zero destination address and a successful token transfer.
+     * @param token The ERC20 token to be withdrawn.
+     * @param to The address to which the tokens will be sent.
+     * @param amount The number of tokens to withdraw.
      */
     function emergencyWithdrawToken(IERC20 token, address to, uint256 amount)
         external
@@ -245,26 +298,32 @@ contract kNFTFactory is AccessControl {
     // ------------------ Prevent Direct ETH Transfers ------------------ //
 
     /**
-     * @dev Revert any direct ETH sent to the factory outside of the createKondux() flow.
+     * @notice Prevents the contract from receiving Ether directly.
+     * @dev The receive function reverts all direct ETH transfers, ensuring that no deposits are accepted.
      */
     receive() external payable {
         revert("No direct ETH deposits");
     }
 
     /**
-     * @dev Revert any fallback calls with ETH or data.
+     * @notice Reverts any call made to the contract using a fallback mechanism.
+     * @dev This fallback function is set to receive ether but always reverts with a message.
+     * It ensures that any call that does not match an existing function signature is not processed,
+     * preventing unintended interactions.
      */
     fallback() external payable {
         revert("Fallback not permitted");
     }
 
     // ------------------ Getters ------------------ //
-    /** 
-     * @notice Check if a given address is a factory admin.
-     * @param _address The address to check.
-     * @return True if the address has the FACTORY_ADMIN_ROLE.
-     */
+
     
+    /**
+     * @notice Checks if the provided address is a factory administrator.
+     * @dev This function verifies that the address has the FACTORY_ADMIN_ROLE.
+     * @param _address The address to be checked.
+     * @return bool Returns true if the address holds the FACTORY_ADMIN_ROLE, false otherwise.
+     */
     function isFactoryAdmin(address _address) external view returns (bool) {
         return hasRole(FACTORY_ADMIN_ROLE, _address);
     }
