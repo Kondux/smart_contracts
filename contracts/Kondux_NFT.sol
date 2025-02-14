@@ -538,23 +538,15 @@ contract Kondux is
      *      shifts it into the correct position, and then updates the token's DNA by combining the untouched bytes with the new bytes.
      *      It requires that the token exists and that `inputValue` fits within the specified byte range.
      * @param _tokenID The identifier of the token whose DNA is being modified.
-     * @param inputValue The value that contains the new DNA segment; must be non-negative and within the bit-width defined by (endIndex - startIndex) bytes.
-     * @param startIndex The starting byte index (inclusive) for the DNA segment to update; must be less than `endIndex`.
+     * @param inputValue The value that contains the new DNA segment; must be within the bit-width for (endIndex - startIndex) bytes.
+     * @param startIndex The starting byte index (inclusive) for the DNA segment to update; must be < `endIndex`.
      * @param endIndex The ending byte index (exclusive) for the DNA segment update; must be no greater than 32.
-     * Requirements:
-     * - `startIndex` must be less than `endIndex` and `endIndex` must not exceed 32.
-     * - The token with `_tokenID` must exist.
-     * - `inputValue` must be within the range allowed by the number of bytes between `startIndex` and `endIndex`.
-     * Emits:
-     * - DnaModified event with the token ID, updated DNA, input value, start index, and end index.
-     * - MetadataUpdate event for the token to signal the change.
      */
     function _writeGen(uint256 _tokenID, uint256 inputValue, uint8 startIndex, uint8 endIndex)
         internal
     {
         require(startIndex < endIndex && endIndex <= 32, "kNFT: Invalid range");
         require(_ownerOf(_tokenID) != address(0), "kNFT: nonexistent token");
-        require(inputValue >= 0, "kNFT: Only positive values");
 
         uint256 maxInputValue = (1 << ((endIndex - startIndex) * 8)) - 1;
         require(inputValue <= maxInputValue, "kNFT: Input too large");
@@ -564,27 +556,38 @@ contract Kondux is
         uint256 updatedValue;
 
         for (uint8 i = startIndex; i < endIndex; i++) {
-            /* solhint-disable no-inline-assembly */
+            /* 
+            * We place the updated byte in a "big-endian" location for the final 256-bit word,
+            * but read the bytes from inputValue in big-endian order as well.
+            * If endIndex - startIndex = 2 and inputValue = 0xbeef, then:
+            *  - On i = startIndex (say, 0), we shift inputValue by 8 to extract 0xbe
+            *  - On i = startIndex+1 (1), we shift by 0 to extract 0xef
+            */
             assembly {
+                // Where to place it in the 256-bit word (big-endian offset)
                 let bytePos := sub(31, i)
                 let shiftAmount := mul(8, bytePos)
+
+                // Build the mask for this byte
                 mask := or(mask, shl(shiftAmount, 0xff))
-                updatedValue := or(
-                    updatedValue,
-                    shl(
-                        shiftAmount,
-                        and(shr(mul(8, sub(i, startIndex)), inputValue), 0xff)
-                    )
-                )
+
+                // Read the correct byte from inputValue in big-endian order
+                // Instead of sub(i, startIndex), we invert the read so 0xbe is written first, then 0xef
+                let readOffset := mul(8, sub(sub(endIndex, 1), i))
+                let extractedByte := and(shr(readOffset, inputValue), 0xff)
+
+                // Shift that byte into position and OR into updatedValue
+                updatedValue := or(updatedValue, shl(shiftAmount, extractedByte))
             }
-            /* solhint-enable no-inline-assembly */
         }
 
-        // Clear bytes in the specified range, then store new bits
+        // Clear the old bytes in this range, then store the updated bytes
         indexDna[_tokenID] = (originalValue & ~mask) | (updatedValue & mask);
+
         emit DnaModified(_tokenID, indexDna[_tokenID], inputValue, startIndex, endIndex);
         emit MetadataUpdate(_tokenID);
     }
+
 
     // -------------------- Access Control Adjustments -------------------- //
 
