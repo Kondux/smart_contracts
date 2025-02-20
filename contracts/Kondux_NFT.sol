@@ -13,16 +13,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/interfaces/IERC4906.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
-
-// ---------------------------------------
-// Uniswap V2 Router interface
-// ---------------------------------------
-interface IUniswapV2Router02 {
-    function getAmountsOut(uint256 amountIn, address[] calldata path)
-        external
-        view
-        returns (uint256[] memory amounts);
-}
+import "./interfaces/IUniswapV2Pair.sol";
 
 /**
  * @title Kondux
@@ -51,8 +42,6 @@ contract Kondux is
 
     // -------------------- Config Addresses (Set in Constructor) -------------------- //
 
-    /// @dev Uniswap V2 router for price lookups
-    address public uniswapV2Router;
     /// @dev WETH address (wrapped ETH)
     address public WETH;
     /// @dev KNDX token address
@@ -61,6 +50,9 @@ contract Kondux is
     IERC721 public foundersPass;
     /// @dev Kondux treasury address (receives 1% of each royalty)
     address public konduxTreasury;
+
+    /// @notice The Uniswap V2 Pair interface used to determine token/ETH price ratios.
+    IUniswapV2Pair public uniswapV2Pair;
 
     // -------------------- Royalty Settings / Toggles -------------------- //
 
@@ -107,7 +99,7 @@ contract Kondux is
      * @dev Initializes the Kondux contract.
      * @param _name         ERC721 name
      * @param _symbol       ERC721 symbol
-     * @param _uniswapRouter UniswapV2 router address
+     * @param _uniswapPair  Uniswap V2 pair address
      * @param _weth          WETH address
      * @param _kndx          KNDX token address
      * @param _foundersPass  Founder pass NFT
@@ -116,7 +108,7 @@ contract Kondux is
     constructor(
         string memory _name,
         string memory _symbol,
-        address _uniswapRouter,
+        address _uniswapPair, 
         address _weth,
         address _kndx,
         address _foundersPass,
@@ -130,7 +122,7 @@ contract Kondux is
         _grantRole(DNA_MODIFIER_ROLE, msg.sender);
 
         // init config
-        uniswapV2Router = _uniswapRouter;
+        uniswapV2Pair = IUniswapV2Pair(_uniswapPair); 
         WETH = _weth;
         KNDX = _kndx;
         foundersPass = IERC721(_foundersPass);
@@ -191,20 +183,20 @@ contract Kondux is
     /**
      * @notice Sets the contract addresses for the Uniswap router, WETH, KNDX, founders pass NFT, and treasury.
      * @dev Can only be called by an address with admin privileges (onlyAdmin modifier).
-     * @param _uniswapRouter The address of the Uniswap V2 router contract.
+     * @param _uniswapV2Pair The address of the Uniswap V2 pair contract.
      * @param _weth The address of the Wrapped Ether (WETH) contract.
      * @param _kndx The address of the KNDX token contract.
      * @param _foundersPass The address of the founders pass NFT contract.
      * @param _treasury The address of the treasury contract.
      */
     function setAddresses(
-        address _uniswapRouter,
+        address _uniswapV2Pair,
         address _weth,
         address _kndx,
         address _foundersPass,
         address _treasury
     ) external onlyAdmin {
-        uniswapV2Router = _uniswapRouter;
+        uniswapV2Pair = IUniswapV2Pair(_uniswapV2Pair);
         WETH = _weth;
         KNDX = _kndx;
         foundersPass = IERC721(_foundersPass);
@@ -371,26 +363,53 @@ contract Kondux is
 
    
     /**
-     * @notice Estimates the amount of KNDX tokens obtainable for a specified amount of ETH in Wei.
-     * @dev Uses the Uniswap V2 router's getAmountsOut function to calculate the token swap output.
-     *      Returns 0 if the input ETH amount is 0.
-     * @param ethAmountWei The amount of ETH, in Wei, to be swapped.
-     * @return The estimated amount of KNDX tokens that corresponds to the input ETH amount.
+     * @notice Returns how many KNDX tokens are required for a given amount of ETH in Wei
+     *         using the direct Uniswap V2 pair reserves (WETH/KNDX).
+     * @dev Formula: 
+     *     KNDX_required = (ethAmountWei * reserveKNDX) / reserveWETH
+     * @param ethAmountWei The amount of ETH (in Wei) to convert
+     * @return The amount of KNDX tokens equivalent to `ethAmountWei` of ETH
      */
     function getKndxForEth(uint256 ethAmountWei) public view returns (uint256) {
         if (ethAmountWei == 0) {
             return 0;
         }
 
-        address[] memory path = new address[](2);
-        path[0] = WETH;
-        path[1] = KNDX;
+        // 1) Grab the direct WETH-KNDX pair reserves
+        (uint112 reserveWETH, uint112 reserveKNDX) = _getReserves();
 
-        IUniswapV2Router02 router = IUniswapV2Router02(uniswapV2Router);
-        uint256[] memory amounts = router.getAmountsOut(ethAmountWei, path);
-        // amounts[1] is how much KNDX we need
-        return amounts[1];
+        // 2) Convert from ETH => KNDX based on the ratio: (ethAmountWei * reserveKNDX) / reserveWETH
+        //    If you want to handle safe multiplication/division, you can use OpenZeppelin's Math or a checked approach.
+        return (ethAmountWei * reserveKNDX) / reserveWETH;
     }
+
+    /**
+     * @notice Retrieves the current liquidity reserves for WETH and KNDX.
+     * @dev This function calls getReserves on the uniswapPair contract to obtain the reserves.
+     * It then determines the correct mapping of reserve values to WETH and KNDX based on the
+     * token order in the pair. Reverts if either reserve is zero.
+     *
+     * @return reserveWETH The liquidity reserve for the WETH token.
+     * @return reserveKNDX The liquidity reserve for the KNDX token.
+     */
+    function _getReserves() internal view returns (uint112 reserveWETH, uint112 reserveKNDX) {
+        // If your contract stores the pair address separately (e.g. `uniswapPair`), do:
+
+        (uint112 reserve0, uint112 reserve1, ) = uniswapV2Pair.getReserves(); 
+        address token0 = uniswapV2Pair.token0();  
+
+        // We assume `WETH` and `KNDX` are already stored in your contract
+        if (token0 == WETH) {
+            reserveWETH = reserve0;
+            reserveKNDX = reserve1;
+        } else {
+            reserveWETH = reserve1;
+            reserveKNDX = reserve0;
+        }
+
+        require(reserveWETH > 0 && reserveKNDX > 0, "Invalid reserves");
+    }
+
 
     // -------------------- Transfer Hook: _update Override -------------------- //
 
@@ -454,6 +473,12 @@ contract Kondux is
                 uint256 treasuryCut = (requiredKndx * 1) / 100;
                 uint256 toRoyaltyOwner = requiredKndx - treasuryCut;
 
+                // require approval for the full amount                
+                require(
+                    kndxToken.allowance(from, address(this)) >= requiredKndx,
+                    "Insufficient allowance for royalty transfer"
+                );
+
                 require(
                     kndxToken.transferFrom(from, konduxTreasury, treasuryCut),
                     "Royalty treasury cut failed"
@@ -468,7 +493,7 @@ contract Kondux is
                     "Royalty transfer failed"
                 );
             }
-        }
+        } 
     }
 
 
