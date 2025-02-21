@@ -528,18 +528,32 @@ contract Kondux is
         uint256 extractedValue;
 
         for (uint8 i = startIndex; i < endIndex; i++) {
-            /* solhint-disable no-inline-assembly */
             assembly {
-                let bytePos := sub(31, i) // Reverse index for big-endian
+                // Big-endian byte position in the 256-bit DNA
+                let bytePos := sub(31, i)
                 let shiftAmount := mul(8, bytePos)
+                
+                // Extract the single byte from 'originalValue'
                 let extractedByte := and(shr(shiftAmount, originalValue), 0xff)
-                let adjustedShiftAmount := mul(8, sub(i, startIndex))
-                extractedValue := or(extractedValue, shl(adjustedShiftAmount, extractedByte))
+
+                // If we want the extracted result to remain in big-endian order,
+                // we match the logic in _writeGen:
+                //   'i = startIndex' => highest position in the final extractedValue
+                //   'i = endIndex - 1' => lowest position
+                // So the offset within 'extractedValue' is: 
+                //   8 * ( (endIndex - 1) - i )
+                let adjustedShiftAmount := mul(8, sub(sub(endIndex, 1), i))
+
+                extractedValue := or(
+                    extractedValue,
+                    shl(adjustedShiftAmount, extractedByte)
+                )
             }
-            /* solhint-enable no-inline-assembly */
         }
+
         return int256(extractedValue);
     }
+
 
     /**
      * @notice Writes generation data for a specific token.
