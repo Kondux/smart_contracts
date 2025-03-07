@@ -44,3 +44,4 @@ jobs:
         npx hardhat test ./test/kNFTFactoryCreation.test.js
         npx hardhat test ./test/KonduxTokenBasedMinter.test.js
         npx hardhat test ./test/MockERC20Deployment.test.js
+        npx hardhat test ./test/konduxTieredPayments.test.js
