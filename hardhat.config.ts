@@ -1,4 +1,3 @@
-// import "hardhat";
 import '@nomicfoundation/hardhat-ignition';
 import "@nomicfoundation/hardhat-chai-matchers";
 // import "@openzeppelin/hardhat-upgrades";
@@ -11,6 +10,7 @@ import "hardhat-gas-reporter";
 import '@nomicfoundation/hardhat-ethers'
 // import '@nomicfoundation/hardhat-chai-matchers'
 import "@nomicfoundation/hardhat-ignition-ethers";
+// import "@nomicfoundation/hardhat-toolbox";
 import { resolve } from "path";
 import { config as dotenvConfig } from "dotenv";
 import { HardhatUserConfig } from "hardhat/config";
@@ -122,6 +122,7 @@ const config: HardhatUserConfig = {
           url: getChainRPC("mainnet"),
           blockNumber: 21088919
         },
+        initialBaseFeePerGas: 0
         
     },   
     mainnet: getChainConfig("mainnet"),
@@ -256,6 +257,18 @@ const config: HardhatUserConfig = {
           optimizer: {
             enabled: true,
             runs: 800,
+          },
+        },
+      },
+      {
+        version: "0.8.28",
+        settings: {
+          metadata: {
+            bytecodeHash: "none",
+          },
+          optimizer: {
+            enabled: true,
+            runs: 100,
           },
         },
       }
