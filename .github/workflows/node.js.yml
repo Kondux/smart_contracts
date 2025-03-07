@@ -9,15 +9,14 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        node-version: [18.x]
+        node-version: [20.x]
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3 
+      uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
@@ -31,13 +30,10 @@ jobs:
         echo REPORT_GAS=${{ secrets.REPORT_GAS }} >> .env
         echo SNOWTRACE_API_KEY=${{ secrets.SNOWTRACE_API_KEY }} >> .env
         echo TOKEN_OWNER_PK=${{ secrets.TOKEN_OWNER_PK }} >> .env        
-    - name: Update npm dependencies
+    - name: Install dependencies
+      run: npm ci
+    - name: Run tests
       run: |
-        npm install -g npm@latest
-        npm update
-    - name: npm install, build and test
-      run: |
-        npm ci
         export NODE_OPTIONS=--max_old_space_size=4096       
         npx hardhat test ./test/Kondux.test.js
         npx hardhat test ./test/kNFTFactoryCreation.test.js
