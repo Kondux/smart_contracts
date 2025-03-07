@@ -444,8 +444,21 @@ contract KonduxTieredPayments is AccessControl {
         // Retrieve or create the user payment record
         UserPayment storage payment = userPayments[msg.sender];
 
+        IERC20 tokenImpl = IERC20(token);
+
         // Transfer tokens into the treasury
-        treasury.deposit(amount, token);
+        require(
+            tokenImpl.allowance(msg.sender, address(this)) >= amount,
+            "Insufficient token allowance"
+        );
+        require(
+            tokenImpl.balanceOf(msg.sender) >= amount,
+            "Insufficient token balance"
+        );
+
+        // Transfer tokens from user to treasury
+        bool success = tokenImpl.transferFrom(msg.sender, address(treasury), amount);
+        require(success, "Token transfer failed"); 
 
         payment.totalDeposited += amount;
         payment.active = true;
@@ -517,6 +530,15 @@ contract KonduxTieredPayments is AccessControl {
      */
     function selfApplyUsage(address provider, uint256 usageUnits) external {
         _applyUsageInternal(msg.sender, provider, usageUnits);
+    }
+
+    // ========== HELPER FUNCTIONS ========== //
+    /**
+     * @notice Returns nftContracts array
+     * @return The array of NFT contract addresses.
+     */
+    function getNFTContracts() external view returns (address[] memory) {
+        return nftContracts;
     }
 
     /* ========== INTERNAL LOGIC ========== */
