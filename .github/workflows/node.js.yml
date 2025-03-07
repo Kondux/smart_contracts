@@ -9,30 +9,36 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
         node-version: [18.x]
+
     steps:
     - uses: actions/checkout@v3
-    - uses: actions/setup-node@v4
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3 
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-    - name: Create .env file
+    - name: 'Create env file'
       run: |
-        echo "ALCHEMY_API_KEY=${{ secrets.ALCHEMY_API_KEY }}" >> .env
-        echo "DATAHUB_API_KEY=${{ secrets.DATAHUB_API_KEY }}" >> .env
-        echo "DEPLOYER_PK=${{ secrets.DEPLOYER_PK }}" >> .env
-        echo "EVM_LOGGING=${{ secrets.EVM_LOGGING }}" >> .env
-        echo "REPORT_GAS=${{ secrets.REPORT_GAS }}" >> .env
-        echo "SNOWTRACE_API_KEY=${{ secrets.SNOWTRACE_API_KEY }}" >> .env
-        echo "TOKEN_OWNER_PK=${{ secrets.TOKEN_OWNER_PK }}" >> .env
-    - name: Install Dependencies
-      run: npm ci
-    - name: Compile Contracts
-      run: npx hardhat compile
-    - name: Run Tests
+        touch .env
+        echo ALCHEMY_API_KEY=${{ secrets.ALCHEMY_API_KEY }} >> .env
+        echo DATAHUB_API_KEY=${{ secrets.DATAHUB_API_KEY }} >> .env
+        echo DEPLOYER_PK=${{ secrets.DEPLOYER_PK }} >> .env
+        echo EVM_LOGGING=${{ secrets.EVM_LOGGING }} >> .env
+        echo REPORT_GAS=${{ secrets.REPORT_GAS }} >> .env
+        echo SNOWTRACE_API_KEY=${{ secrets.SNOWTRACE_API_KEY }} >> .env
+        echo TOKEN_OWNER_PK=${{ secrets.TOKEN_OWNER_PK }} >> .env        
+    - name: Update npm dependencies
       run: |
+        npm install -g npm@latest
+        npm update
+    - name: npm install, build and test
+      run: |
+        npm ci
+        export NODE_OPTIONS=--max_old_space_size=4096       
         npx hardhat test ./test/Kondux.test.js
         npx hardhat test ./test/kNFTFactoryCreation.test.js
         npx hardhat test ./test/KonduxTokenBasedMinter.test.js
