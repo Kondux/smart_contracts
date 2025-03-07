@@ -20,6 +20,8 @@ contract ReentrancyAttacker {
             minter.publicMint();
         }
     }
+    
+    receive() external payable {}
 
     function attack() external payable {
         require(msg.value >= 1 ether, "Need at least 1 ETH to attack");
