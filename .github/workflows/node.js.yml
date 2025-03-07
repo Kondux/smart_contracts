@@ -15,26 +15,30 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
+
     - name: 'Create env file'
       run: |
-        touch .env
-        echo ALCHEMY_API_KEY=${{ secrets.ALCHEMY_API_KEY }} >> .env
-        echo DATAHUB_API_KEY=${{ secrets.DATAHUB_API_KEY }} >> .env
-        echo DEPLOYER_PK=${{ secrets.DEPLOYER_PK }} >> .env
-        echo EVM_LOGGING=${{ secrets.EVM_LOGGING }} >> .env
-        echo REPORT_GAS=${{ secrets.REPORT_GAS }} >> .env
-        echo SNOWTRACE_API_KEY=${{ secrets.SNOWTRACE_API_KEY }} >> .env
-        echo TOKEN_OWNER_PK=${{ secrets.TOKEN_OWNER_PK }} >> .env        
+        echo "ALCHEMY_API_KEY=${{ secrets.ALCHEMY_API_KEY }}" >> .env
+        echo "DATAHUB_API_KEY=${{ secrets.DATAHUB_API_KEY }}" >> .env
+        echo "DEPLOYER_PK=${{ secrets.DEPLOYER_PK }}" >> .env
+        echo "EVM_LOGGING=${{ secrets.EVM_LOGGING }}" >> .env
+        echo "REPORT_GAS=${{ secrets.REPORT_GAS }}" >> .env
+        echo "SNOWTRACE_API_KEY=${{ secrets.SNOWTRACE_API_KEY }}" >> .env
+        echo "TOKEN_OWNER_PK=${{ secrets.TOKEN_OWNER_PK }}" >> .env        
+
     - name: Install dependencies
       run: npm ci
-    - name: Run tests
+
+    - name: Run Hardhat tests with increased memory
+      env:
+        NODE_OPTIONS: --max-old-space-size=8192
       run: |
-        export NODE_OPTIONS=--max_old_space_size=4096       
         npx hardhat test ./test/Kondux.test.js
         npx hardhat test ./test/kNFTFactoryCreation.test.js
         npx hardhat test ./test/KonduxTokenBasedMinter.test.js
