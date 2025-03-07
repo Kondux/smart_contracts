@@ -17,7 +17,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18.x]
+        node-version: [22.x]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
@@ -41,7 +41,10 @@ jobs:
     - name: npm install, build and test
       run: |
         npm ci
-        npx hardhat test
+        npx hardhat test ./test/Kondux.test.js
+        npx hardhat test ./test/kNFTFactoryCreation.test.js
+        npx hardhat test ./test/KonduxTokenBasedMinter.test.js
+        npx hardhat test ./test/MockERC20Deployment.test.js
         
   # deploy:
   #   runs-on: ubuntu-latest
