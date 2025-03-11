@@ -1,4 +1,5 @@
 const { expect } = require("chai");
+const { MaxUint256 } = require("ethers");
 const { ethers, network } = require("hardhat");
 
 describe("KonduxTieredPayments", function () {
@@ -35,7 +36,7 @@ describe("KonduxTieredPayments", function () {
     await usageOracle.waitForDeployment();
 
     // Deploy a dummy NFT contract that grants balance to users.
-    const NFTMock = await ethers.getContractFactory("KonduxERC721kNFT", owner);
+    const NFTMock = await ethers.getContractFactory("MockKondux", owner);
     mockNFT = await NFTMock.deploy();
     await mockNFT.waitForDeployment(); 
 
@@ -47,7 +48,7 @@ describe("KonduxTieredPayments", function () {
     // Deploy KonduxTieredPayments contract.
     const KonduxTieredPayments = await ethers.getContractFactory("KonduxTieredPayments");
     const acceptedStablecoins = [await token.getAddress()];
-    console.log("Accepted stablecoins: ", acceptedStablecoins);
+    // console.log("Accepted stablecoins: ", acceptedStablecoins);
     const lockPeriod = 3600; // 1 hour
     payments = await KonduxTieredPayments.deploy(
       await treasury.getAddress(),
@@ -58,18 +59,18 @@ describe("KonduxTieredPayments", function () {
     );
     await payments.waitForDeployment(); 
 
-    console.log("KonduxTieredPayments deployed to: ", await payments.getAddress());
+    // console.log("KonduxTieredPayments deployed to: ", await payments.getAddress());
 
     // Set usage oracle & NFT contracts in payments
     await payments.connect(governor).setUsageOracle(await usageOracle.getAddress());
-    console.log("UsageOracle set to: ", await payments.usageOracle());
+    // console.log("UsageOracle set to: ", await payments.usageOracle());
 
     await payments.connect(governor).setNFTContracts([await mockNFT.getAddress()]);    
-    console.log("NFT contracts set to: ", await payments.getNFTContracts());
+    // console.log("NFT contracts set to: ", await payments.getNFTContracts());
 
     // Give provider an initial registration with fallback rate = 3 and no custom royalty so default 1% applies.
     await payments.connect(provider).registerProvider(0, 3);
-    console.log("Provider registered: ", await payments.getProviderInfo(await provider.getAddress()));
+    // console.log("Provider registered: ", await payments.getProviderInfo(await provider.getAddress()));
 
     // Set provider tiers.
     // Tier structure: tier1: cumulative 100 units at cost=1, tier2: cumulative 200 units at cost=2.
@@ -92,7 +93,7 @@ describe("KonduxTieredPayments", function () {
     // then deposit to treasury
     await payments.connect(user).deposit(await token.getAddress(), ONE_TOKEN * (300n)); // deposit 300 tokens
 
-    console.log("User deposit confirmed: ", await payments.getUserPayment(await user.getAddress()));
+    // console.log("User deposit confirmed: ", await payments.getUserPayment(await user.getAddress()));
   });
 
   describe("Tiered usage computation", function () {
@@ -111,7 +112,14 @@ describe("KonduxTieredPayments", function () {
       
       // Use UPDATER_ROLE (simulate by granting it to owner for testing)
       await payments.connect(governor).grantRole(await payments.UPDATER_ROLE(), owner.address);
-      await payments.connect(owner).applyUsage(provider.address, 150);
+
+      // Mint tokens to user and deposit to cover usage.
+      await token.connect(user).faucet();
+      await token.connect(user).approve(await payments.getAddress(), MaxUint256);
+      // User makes a deposit to cover usage.
+      await payments.connect(user).deposit(await token.getAddress(), 200);
+      
+      await payments.connect(owner).applyUsage(user.address, provider.address, 150);
       
       // Check event and balances.
       // Get updated user payment record.
@@ -119,10 +127,10 @@ describe("KonduxTieredPayments", function () {
       expect(userPayment.totalUsed).to.equal(200);
       
       const providerBalance = await payments.getProviderBalance(provider.address);
-      expect(providerBalance).to.equal(providerBalanceBefore.add(198));
+      expect(providerBalance).to.equal(providerBalanceBefore + 198n);
 
       const royaltyBalance = await payments.getKonduxRoyaltyBalance();
-      expect(royaltyBalance).to.equal(royaltyBefore.add(2));
+      expect(royaltyBalance).to.equal(royaltyBefore + 2n);
     });
 
     it("should bill exactly on threshold usage", async function () {
@@ -130,21 +138,35 @@ describe("KonduxTieredPayments", function () {
       // Expected cost = 100 * 1 = 100, with royalty = 1% of 100 =1.
       await payments.connect(provider).registerProvider(0, 3); // re-register provider
       await payments.connect(governor).grantRole(await payments.UPDATER_ROLE(), owner.address);
-      await payments.connect(owner).applyUsage(provider.address, 100);
+
+      // Mint tokens to user and deposit to cover usage.
+      await token.connect(user).faucet();
+      await token.connect(user).approve(await payments.getAddress(), MaxUint256);
+
+      // User makes a deposit to cover usage.      
+      await payments.connect(user).deposit(await token.getAddress(), 100);
+
+      await payments.connect(owner).applyUsage(user.address, provider.address, 100);
       
       const userPayment = await payments.getUserPayment(user.address);
       expect(userPayment.totalUsed).to.equal(100);
       
       const providerBalance = await payments.getProviderBalance(provider.address);
-      expect(providerBalance).to.equal(100 - 1); // 99
+      expect(providerBalance).to.equal(99); // 99 after deduction of royalty
     });
   });
 
   describe("Time-lock and withdrawals", function () {
     it("should revert withdrawal before lock expires and allow after", async function () {
+      // Add token as reserve asset in treasury.
+      await treasury.connect(owner).setPermission(2, await token.getAddress(), true);
+
+      // Allow payments contract to withdraw tokens from treasury
+      await treasury.connect(owner).setPermission(1, await payments.getAddress(), true);
+
       // Try withdrawUnused immediately should revert.
       await expect(
-        payments.connect(user).withdrawUnused(token.address)
+        payments.connect(user).withdrawUnused(await token.getAddress())
       ).to.be.revertedWith("Deposit still locked");
 
       // Increase time by lockPeriod + 1 second.
@@ -153,9 +175,9 @@ describe("KonduxTieredPayments", function () {
 
       // No usage applied yet, so leftover should equal deposit.
       const paymentBefore = await payments.getUserPayment(user.address);
-      expect(paymentBefore.totalDeposited).to.equal(ONE_TOKEN.mul(300));
+      expect(paymentBefore.totalDeposited).to.equal(ONE_TOKEN * 300n);
       // Perform withdrawal. Since no usage, this should succeed.
-      await payments.connect(user).withdrawUnused(token.address);
+      await payments.connect(user).withdrawUnused(await token.getAddress());
       // After withdrawal, payment record becomes consumed.
       const paymentAfter = await payments.getUserPayment(user.address);
       expect(paymentAfter.totalDeposited).to.equal(paymentAfter.totalUsed);
@@ -165,7 +187,17 @@ describe("KonduxTieredPayments", function () {
   describe("NFT discount", function () {
     it("should apply NFT discount if user holds NFT", async function () {
       // Mint an NFT for user so that _userHasAnyNFT returns true.
-      await mockNFT.connect(owner).mint(user.address);
+      await mockNFT.connect(owner).safeMint(user.address, 0);
+
+      // check if user has NFT by calling mockNFT contract
+      const userOwnsNFT = await mockNFT.connect(user).balanceOf(user.address);
+      expect(userOwnsNFT).to.equal(1);
+
+      // set mockNFT as NFT contract in payments
+      await payments.connect(governor).setNFTContracts([await mockNFT.getAddress()]);
+
+      // set NFT discount to 20% (2000 BPS)
+      await payments.connect(governor).setNFTDiscountBps(2000);
       
       // Apply usage that normally would cost a small amount.
       // For this test, we simulate tiers with a low cost so discount can wipe out the charge.
@@ -177,7 +209,18 @@ describe("KonduxTieredPayments", function () {
       
       // Apply 10 usage units:
       await payments.connect(governor).grantRole(await payments.UPDATER_ROLE(), owner.address);
-      await payments.connect(owner).applyUsage(provider.address, 10);
+
+      // Mint tokens to user and deposit to cover usage.
+      await token.connect(user).faucet();
+      await token.connect(user).approve(await payments.getAddress(), MaxUint256);
+      // User makes a deposit to cover usage.
+      await payments.connect(user).deposit(await token.getAddress(), 10);
+
+      // check if user has NFT
+      const userHasNFT = await payments.connect(user).userHasAnyNFT(user.address);
+      expect(userHasNFT).to.be.true;
+
+      await payments.connect(owner).applyUsage(user.address, provider.address, 10);
       const userPayment = await payments.getUserPayment(user.address);
       // Expected base cost = 10*1 = 10; discount = 10*20% = 2; discountedCost = 8.
       expect(userPayment.totalUsed).to.equal(8);
@@ -188,11 +231,12 @@ describe("KonduxTieredPayments", function () {
       await payments.connect(governor).setNFTDiscountBps(10000); // 100% discount
 
       // Mint an NFT for user.
-      await mockNFT.connect(owner).mint(user.address);
+      await mockNFT.connect(owner).safeMint(user.address, 0);
+      await payments.connect(governor).setNFTContracts([await mockNFT.getAddress()]);
 
       await payments.connect(governor).grantRole(await payments.UPDATER_ROLE(), owner.address);
       // Apply any usage. Since cost becomes 0, usage is not applied.
-      await expect(payments.connect(owner).applyUsage(provider.address, 50))
+      await expect(payments.connect(owner).applyUsage(user.address, provider.address, 50))
         .to.emit(payments, "UsageApplied")
         .withArgs(user.address, provider.address, 0, 0);
 
@@ -204,9 +248,15 @@ describe("KonduxTieredPayments", function () {
 
   describe("Oracle usage override", function () {
     it("should use external oracle usage if higher than local", async function () {
+      // Add token as reserve asset in treasury.
+      await treasury.connect(owner).setPermission(2, await token.getAddress(), true);
+
+      // Set payment contract to withdraw from treasury.
+      await treasury.connect(owner).setPermission(1, await payments.getAddress(), true);
+      
       // Apply some usage locally.
       await payments.connect(governor).grantRole(await payments.UPDATER_ROLE(), owner.address);
-      await payments.connect(owner).applyUsage(provider.address, 50); // local usage cost 50
+      await payments.connect(owner).applyUsage(user.address, provider.address, 50); // local usage cost 50
 
       // Set the oracle to return a higher usage value.
       await usageOracle.setUsage(user.address, 80);
@@ -218,7 +268,7 @@ describe("KonduxTieredPayments", function () {
       // Now withdrawing unused funds – contract compares local totalUsed (50) with oracle (80)
       // Remaining deposit = deposit - oracle usage = 300 - 80 = 220.
       // Withdrawal should be processed with oracle usage.
-      await payments.connect(user).withdrawUnused(token.address);
+      await payments.connect(user).withdrawUnused(await token.getAddress());
       const paymentAfter = await payments.getUserPayment(user.address);
       expect(paymentAfter.totalDeposited).to.equal(paymentAfter.totalUsed);
       // Actually, the unused funds withdrawn equals deposit - finalUsage.

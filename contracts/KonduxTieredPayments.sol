@@ -513,14 +513,15 @@ contract KonduxTieredPayments is AccessControl {
 
     /**
      * @notice Called by an authorized UPDATER_ROLE (or user themselves) to apply usage to a provider.
+     * @param user The user paying for usage.
      * @param provider The provider receiving the micropayment for usage.
      * @param usageUnits The number of usage units to apply.
      */
-    function applyUsage(address provider, uint256 usageUnits)
+    function applyUsage(address user, address provider, uint256 usageUnits)
         external
         onlyRole(UPDATER_ROLE)
     {
-        _applyUsageInternal(msg.sender, provider, usageUnits);
+        _applyUsageInternal(user, provider, usageUnits);
     }
 
     /**
@@ -662,6 +663,15 @@ contract KonduxTieredPayments is AccessControl {
     }
 
     /* ========== VIEW FUNCTIONS ========== */
+
+    /**
+     * @notice Returns whether the user holds at least one NFT from the listed contracts.
+     * @param user The user being checked.  
+     * @return True if user holds at least one NFT from any contract in `nftContracts`.
+     */
+    function userHasAnyNFT(address user) external view returns (bool) {
+        return _userHasAnyNFT(user);
+    }
 
     /**
      * @notice Returns whether the user's deposit is still locked.

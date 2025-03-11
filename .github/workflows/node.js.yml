@@ -39,9 +39,4 @@ jobs:
     - name: Run Hardhat tests with increased memory
       env:
         NODE_OPTIONS: --max-old-space-size=8192
-      run: |
-        npx hardhat test ./test/Kondux.test.js
-        npx hardhat test ./test/kNFTFactoryCreation.test.js
-        npx hardhat test ./test/KonduxTokenBasedMinter.test.js
-        npx hardhat test ./test/MockERC20Deployment.test.js
-        npx hardhat test ./test/konduxTieredPayments.test.js
+      run: npm run test
