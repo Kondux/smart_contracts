@@ -82,8 +82,8 @@ contract KonduxTieredPayments is AccessControl {
     // Treasury contract where all funds will be deposited
     ITreasury public treasury;
 
-    // Allowed stablecoins
-    mapping(address => bool) public stablecoinAccepted;
+    // Allowed token
+    address public token;
 
     // Tracks each user's deposit & usage
     mapping(address => UserPayment) public userPayments;
@@ -182,20 +182,26 @@ contract KonduxTieredPayments is AccessControl {
      */
     event RoyaltyWithdrawn(address indexed token, uint256 amount);
 
+    /**
+     * @notice Emitted when a provider unregisters.
+     * @param provider The provider address.
+     */
+    event ProviderUnregistered(address indexed provider);
+
     /* ========== CONSTRUCTOR ========== */
 
     /**
      * @notice Sets up roles, the treasury, stablecoins, lock period, and Kondux royalty receiver.
      * @param _treasury Address of the deployed Treasury contract.
      * @param governor Address to be granted the GOVERNOR_ROLE.
-     * @param _acceptedStablecoins List of stablecoins initially accepted.
+     * @param _tokenAccepted Token initially accepted.
      * @param _lockPeriod The initial lock period for deposits in seconds.
      * @param _konduxRoyaltyAddress The default address that receives royalties if not overridden by provider.
      */
     constructor(
         address _treasury,
         address governor,
-        address[] memory _acceptedStablecoins,
+        address _tokenAccepted,
         uint256 _lockPeriod,
         address _konduxRoyaltyAddress
     ) {
@@ -210,34 +216,21 @@ contract KonduxTieredPayments is AccessControl {
         lockPeriod = _lockPeriod;
         konduxRoyaltyAddress = _konduxRoyaltyAddress;
 
-        // Mark initial stablecoins as accepted
-        for (uint256 i = 0; i < _acceptedStablecoins.length; i++) {
-            stablecoinAccepted[_acceptedStablecoins[i]] = true;
-        }
-    }
-
-    /* ========== MODIFIERS ========== */
-
-    /**
-     * @dev Checks that a token is a stablecoin accepted by the contract.
-     */
-    modifier onlyAcceptedStablecoin(address token) {
-        require(stablecoinAccepted[token], "Stablecoin not accepted");
-        _;
+        token = _tokenAccepted;
+        
     }
 
     /* ========== GOVERNOR-ONLY CONFIGURATION ========== */
 
     /**
-     * @notice Add or remove a stablecoin from the accepted list.
-     * @param token The stablecoin address.
-     * @param accepted True if it is accepted, false if not.
+     * @notice Add or remove a token from the accepted list.
+     * @param _token The token address. 
      */
-    function setStablecoinAccepted(address token, bool accepted)
+    function setTokenAccepted(address _token)
         external
         onlyRole(GOVERNOR_ROLE)
     {
-        stablecoinAccepted[token] = accepted;
+        token = _token; // Update the accepted token
     }
 
     /**
@@ -336,13 +329,16 @@ contract KonduxTieredPayments is AccessControl {
         ProviderInfo storage info = providers[msg.sender];
         require(info.registered, "Provider not registered");
 
+        providerWithdraw(); // Withdraw any accumulated balance
+
         info.registered = false;
         info.royaltyBps = 0;
         info.fallbackRate = 0;
 
         // Optionally remove their tiers if you'd like
         delete providerTiers[msg.sender];
-        // Not emitting an event for unregistration, but you could do so.
+        
+        emit ProviderUnregistered(msg.sender);
     }
 
     /**
@@ -386,12 +382,8 @@ contract KonduxTieredPayments is AccessControl {
 
     /**
      * @notice Withdraw the provider's accumulated balance (earnings) from the Treasury.
-     * @param token The stablecoin to withdraw.
      */
-    function providerWithdraw(address token)
-        external
-        onlyAcceptedStablecoin(token)
-    {
+    function providerWithdraw() public {
         uint256 balance = providerBalances[msg.sender];
         require(balance > 0, "No balance to withdraw");
         require(providers[msg.sender].registered, "Not a registered provider");
@@ -407,11 +399,9 @@ contract KonduxTieredPayments is AccessControl {
 
     /**
      * @notice Withdraw all accumulated default royalties (from providers using 0 BPS) to konduxRoyaltyAddress.
-     * @param token The stablecoin to withdraw.
      */
-    function withdrawRoyalty(address token)
+    function withdrawRoyalty()
         external
-        onlyAcceptedStablecoin(token)
     {
         require(msg.sender == konduxRoyaltyAddress, "Only Kondux can withdraw royalty");
         uint256 balance = konduxRoyaltyBalance;
@@ -432,21 +422,19 @@ contract KonduxTieredPayments is AccessControl {
     /**
      * @notice Deposit stablecoins for usage, locked until `lockPeriod` expires.
      * @dev User must have approved the treasury to transfer 'amount' of 'token' first.
-     * @param token The accepted stablecoin address.
      * @param amount The amount of stablecoins to deposit.
      */
-    function deposit(address token, uint256 amount)
+    function deposit(uint256 amount)
         external
-        onlyAcceptedStablecoin(token)
     {
         require(amount > 0, "Deposit must be > 0");
 
         // Retrieve or create the user payment record
         UserPayment storage payment = userPayments[msg.sender];
 
-        IERC20 tokenImpl = IERC20(token);
+        IERC20 tokenImpl = IERC20(token); // Use the accepted token
 
-        // Transfer tokens into the treasury
+        // Transfer tokens into the treasury 
         require(
             tokenImpl.allowance(msg.sender, address(this)) >= amount,
             "Insufficient token allowance"
@@ -464,16 +452,14 @@ contract KonduxTieredPayments is AccessControl {
         payment.active = true;
         payment.depositTime = block.timestamp;
 
-        emit DepositMade(msg.sender, token, amount);
+        emit DepositMade(msg.sender, token, amount); 
     }
 
     /**
      * @notice Withdraw any unused tokens after verifying usage and ensuring lock has matured.
-     * @param token The stablecoin address to withdraw.
      */
-    function withdrawUnused(address token)
+    function withdrawUnused()
         external
-        onlyAcceptedStablecoin(token)
     {
         UserPayment storage payment = userPayments[msg.sender];
         require(payment.active, "No active deposit");
@@ -506,7 +492,7 @@ contract KonduxTieredPayments is AccessControl {
         treasury.withdraw(leftover, token);
         IERC20(token).transfer(msg.sender, leftover);
 
-        emit UnusedWithdrawn(msg.sender, token, leftover);
+        emit UnusedWithdrawn(msg.sender, token, leftover); 
     }
 
     /* ========== TIERED USAGE FUNCTIONS ========== */
@@ -638,6 +624,9 @@ contract KonduxTieredPayments is AccessControl {
             }
 
             cost += unitsToCharge * tiers[i].costPerUnit;
+            // don't let the remaining usage go negative, using require statement
+            require(remaining >= unitsToCharge, "Remaining usage cannot go negative"); 
+
             remaining -= unitsToCharge;
         }
 
