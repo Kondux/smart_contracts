@@ -62,7 +62,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
         await konduxTokenBasedMinter.waitForDeployment();
 
         const konduxTokenBasedMinterAddress = await konduxTokenBasedMinter.getAddress();
-        console.log("KonduxTokenBasedMinter deployed to:", konduxTokenBasedMinterAddress);
+        // console.log("KonduxTokenBasedMinter deployed to:", konduxTokenBasedMinterAddress);
 
         // Transfer ETH to the minter contract for testing emergencyWithdrawETH
         await adminSigner.sendTransaction({
@@ -682,7 +682,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
             // Calculate tokensRequired using the contract's logic
             // Since _calculateTokenAmount is internal, replicate the calculation here
             let tokensRequired = (ethAmount * reserveToken) / reserveETH;
-            console.log("tokensRequired: ", tokensRequired);
+            // console.log("tokensRequired: ", tokensRequired);
 
             // Transfer tokens to the user from the token holder
             await network.provider.request({
@@ -712,7 +712,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
 
             // Capture the user's initial token balance
             const initialUserBalance = await paymentToken.balanceOf(userAddress);
-            console.log("initialUserBalance: ", initialUserBalance.toString());
+            // console.log("initialUserBalance: ", initialUserBalance.toString());
 
             // Unpause the contract
             await konduxTokenBasedMinter.connect(adminSigner).setPaused(false);
@@ -732,11 +732,11 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
 
             // Capture the user's final token balance
             const finalUserBalance = await paymentToken.balanceOf(userAddress);
-            console.log("finalUserBalance: ", finalUserBalance.toString());
+            // console.log("finalUserBalance: ", finalUserBalance.toString());
 
             // Verify that tokens have been transferred to the treasury
             const tokensTransferred = initialUserBalance - finalUserBalance;
-            console.log("tokensTransferred: ", tokensTransferred);
+            // console.log("tokensTransferred: ", tokensTransferred);
             expect(tokensTransferred).to.equal(tokensRequired);
 
             // Verify that NFTs have been minted to the user
@@ -999,7 +999,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
 
             // Capture the user's initial token balance
             const initialUserBalance = await paymentToken.balanceOf(userAddress);
-            console.log("initialUserBalance: ", initialUserBalance.toString());
+            // console.log("initialUserBalance: ", initialUserBalance.toString());
             
             // Unpause the contract
             await konduxTokenBasedMinter.connect(adminSigner).setPaused(false);  
@@ -1019,7 +1019,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
 
             // Capture the user's final token balance
             const finalUserBalance = await paymentToken.balanceOf(userAddress);
-            console.log("finalUserBalance: ", finalUserBalance.toString());
+            // console.log("finalUserBalance: ", finalUserBalance.toString());
 
             // Verify that tokens have been transferred to the treasury
             const tokensTransferred = initialUserBalance - finalUserBalance;
