@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
+
 /**
  * @title External Treasury Interface
  * @notice Minimal interface for calling the Treasury contract.
@@ -20,16 +21,24 @@ interface ITreasury {
 /**
  * @title External Usage Oracle
  * @notice This interface can be implemented by a Chainlink oracle or custom usage tracker.
+ * @dev The oracle should return the total usage for a given user and provider.
  */
 interface IUsageOracle {
-    function getUsage(address user) external view returns (uint256);
+    /**
+     * @notice Returns the total usage for a given user and provider.
+     * @param provider The provider address.
+     * @param user The user address.
+     * @return The total usage for the user and provider.
+     */
+    function getUsage(address provider, address user) external view returns (uint256);
 }
 
 /**
  * @title KonduxTieredPayments
  * @dev A flexible micropayment contract that:
  *  - Allows any user to deposit stablecoins with time-lock
- *  - Allows providers to register with tier-based pricing and a custom royalty
+ *  - Allows providers to register with tier-based pricing and a custom royalty rate
+ *  - Allows providers to set or update their tier array
  *  - Deducts usage cost across multiple tiers
  *  - Applies optional NFT-based discounts
  *  - Routes the provider’s share to their balance and the royalty to Kondux
@@ -121,6 +130,14 @@ contract KonduxTieredPayments is AccessControl {
 
     /* ========== EVENTS ========== */
 
+    /**
+     * @notice Emitted when a provider sets or updates their Chainlink oracle.
+     * @param provider The provider address.
+     * @param oracle The Chainlink oracle address.
+     */
+    event OracleSet(address indexed provider, address oracle);
+
+
     /** 
      * @notice Emitted when a user deposits stablecoins. 
      * @param user The user depositing.
@@ -211,6 +228,7 @@ contract KonduxTieredPayments is AccessControl {
 
         _grantRole(DEFAULT_ADMIN_ROLE, governor);
         _grantRole(GOVERNOR_ROLE, governor);
+        _grantRole(UPDATER_ROLE, governor);
 
         treasury = ITreasury(_treasury);
         lockPeriod = _lockPeriod;
@@ -458,7 +476,7 @@ contract KonduxTieredPayments is AccessControl {
     /**
      * @notice Withdraw any unused tokens after verifying usage and ensuring lock has matured.
      */
-    function withdrawUnused()
+    function withdrawUnused(address provider)
         external
     {
         UserPayment storage payment = userPayments[msg.sender];
@@ -468,7 +486,7 @@ contract KonduxTieredPayments is AccessControl {
         // Optionally check usage from an external oracle
         uint256 externalUsage = 0;
         if (address(usageOracle) != address(0)) {
-            externalUsage = usageOracle.getUsage(msg.sender);
+            externalUsage = usageOracle.getUsage(provider, msg.sender);
         }
 
         // The higher of local totalUsed or external usage is final
@@ -723,4 +741,7 @@ contract KonduxTieredPayments is AccessControl {
     function getKonduxRoyaltyBalance() external view returns (uint256) {
         return konduxRoyaltyBalance;
     }
+
+    
+
 }
