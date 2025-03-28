@@ -25,12 +25,11 @@ interface ITreasury {
  */
 interface IUsageOracle {
     /**
-     * @notice Returns the total usage for a given user and provider.
-     * @param provider The provider address.
+     * @notice Returns the total usage for a given user.
      * @param user The user address.
-     * @return The total usage for the user and provider.
+     * @return The total usage for the user.
      */
-    function getUsage(address provider, address user) external view returns (uint256);
+    function getUsage(address user) external view returns (uint256);
 }
 
 /**
@@ -476,7 +475,7 @@ contract KonduxTieredPayments is AccessControl {
     /**
      * @notice Withdraw any unused tokens after verifying usage and ensuring lock has matured.
      */
-    function withdrawUnused(address provider)
+    function withdrawUnused()
         external
     {
         UserPayment storage payment = userPayments[msg.sender];
@@ -486,7 +485,7 @@ contract KonduxTieredPayments is AccessControl {
         // Optionally check usage from an external oracle
         uint256 externalUsage = 0;
         if (address(usageOracle) != address(0)) {
-            externalUsage = usageOracle.getUsage(provider, msg.sender);
+            externalUsage = usageOracle.getUsage(msg.sender);
         }
 
         // The higher of local totalUsed or external usage is final

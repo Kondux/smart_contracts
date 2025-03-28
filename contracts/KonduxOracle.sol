@@ -3,16 +3,15 @@ pragma solidity ^0.8.19;
 
 /**
  * @title IUsageOracle
- * @notice This interface requires the oracle to return total usage for a user+provider pair.
+ * @notice Now has only getUsage(address user).
  */
 interface IUsageOracle {
     /**
-     * @notice Returns the total usage for a given user and provider.
-     * @param provider The provider address.
+     * @notice Returns the total usage for a given user (all providers combined).
      * @param user The user address.
-     * @return The total usage for the user and provider.
+     * @return The total usage for the user.
      */
-    function getUsage(address provider, address user) external view returns (uint256);
+    function getUsage(address user) external view returns (uint256);
 }
 
 /**
@@ -24,44 +23,30 @@ import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/shared/access/Confir
 
 /**
  * @title KonduxOracle
- * @dev A Chainlink Functions-based oracle that implements the IUsageOracle interface.
+ * @dev A Chainlink Functions-based oracle that implements the new single-argument IUsageOracle (per user).
  *
- * It stores usage in a double-mapping: usageByProviderUser[provider][user].
- * When you want to update usage for (provider,user), you call `requestUsageFor()`.
- * After the DON calls `fulfillRequest` with the new usage, it is stored on-chain.
- * KonduxTieredPayments can then call getUsage(provider,user) to retrieve it.
+ * - We store total usage in usageByUser[user].
+ * - We no longer track a provider dimension. The usage is presumably for "all providers" combined.
+ * - We have a single request function, requestUsageForUser, which calls out to the Chainlink Functions DON
+ *   to get the user's new usage value. Then we store it on-chain in usageByUser[user].
  */
 contract KonduxOracle is FunctionsClient, ConfirmedOwner, IUsageOracle {
     using FunctionsRequest for FunctionsRequest.Request;
 
-    // Maps (provider => (user => usageValue))
-    mapping(address => mapping(address => uint256)) public usageByProviderUser;
+    // usageByUser[user] = total usage for that user
+    mapping(address => uint256) public usageByUser;
 
-    // Each request must store which (provider, user) it is updating
-    struct ProviderUserPair {
-        address provider;
-        address user;
-    }
+    // Each request must store which user is being updated
+    mapping(bytes32 => address) public requestIdToUser;
 
-    // Track which (provider,user) each request ID corresponds to
-    mapping(bytes32 => ProviderUserPair) public requestIdToProviderUser;
-
-    // We no longer store lastResponse / lastError in contract storage
-    // to reduce local variable usage in fulfillRequest. If you want them,
-    // you can re-add them carefully or rely on events.
-
-    // For reference / debugging:
-    // bytes32 public lastRequestId;
-
-    // --------- EVENTS ---------
-    event RequestSent(bytes32 indexed requestId, address indexed provider, address indexed user);
+    // Events
+    event RequestSent(bytes32 indexed requestId, address indexed user);
     event RequestFulfilled(bytes32 indexed requestId, bytes response, bytes err);
-    event UsageUpdated(address indexed provider, address indexed user, uint256 newUsage);
+    event UsageUpdated(address indexed user, uint256 newUsage);
 
-    // --------- CONSTRUCTOR ---------
-    /**
-     * @param functionsRouter The address of the Chainlink Functions Router (see Chainlink docs).
-     */
+    // -------------------------------------------------------------------------
+    // CONSTRUCTOR
+    // -------------------------------------------------------------------------
     constructor(address functionsRouter)
         FunctionsClient(functionsRouter)
         ConfirmedOwner(msg.sender)
@@ -71,21 +56,18 @@ contract KonduxOracle is FunctionsClient, ConfirmedOwner, IUsageOracle {
     // 1) REQUEST USAGE FROM OFF-CHAIN (CHAINLINK FUNCTIONS)
     // -------------------------------------------------------------------------
     /**
-     * @notice Builds and sends a Chainlink Functions request to update usage for (provider,user).
-     * @param _provider The provider address.
-     * @param _user The user address.
-     * @param source JavaScript source code that returns usage as a string (e.g. "123").
-     * @param args String arguments (if needed).
-     * @param bytesArgs Bytes arguments (if needed).
-     * @param secretsUrlsOrSlot If you're using encrypted or DON-hosted secrets, pass them here.
-     * @param subscriptionId The subscription ID used to pay for Chainlink Functions calls.
+     * @notice Builds and sends a Chainlink Functions request to update usage for a user.
+     * @param user The user address.
+     * @param source Inline JavaScript source code that returns usage as a string (e.g. "123").
+     * @param args Optional string arguments for the JS code.
+     * @param bytesArgs Optional bytes arguments for the JS code.
+     * @param secretsUrlsOrSlot Optional reference to secrets. (Encrypted or DON-hosted)
+     * @param subscriptionId The subscription ID (Chainlink Functions).
      * @param gasLimit The maximum gas for the request fulfillment.
      * @param donId The DON ID (job ID) to run.
-     * @return requestId The Chainlink Functions request ID.
      */
-    function requestUsageFor(
-        address _provider,
-        address _user,
+    function requestUsageForUser(
+        address user,
         string calldata source,
         string[] calldata args,
         bytes[] calldata bytesArgs,
@@ -94,9 +76,9 @@ contract KonduxOracle is FunctionsClient, ConfirmedOwner, IUsageOracle {
         uint32 gasLimit,
         bytes32 donId
     ) external onlyOwner returns (bytes32 requestId) {
-        require(_provider != address(0), "Invalid provider"); 
-        require(_user != address(0), "Invalid user");
+        require(user != address(0), "Invalid user");
 
+        // Build the request
         FunctionsRequest.Request memory req;
         req.initializeRequestForInlineJavaScript(source);
 
@@ -110,20 +92,13 @@ contract KonduxOracle is FunctionsClient, ConfirmedOwner, IUsageOracle {
             req.setBytesArgs(bytesArgs);
         }
 
-        requestId = _sendRequest(
-            req.encodeCBOR(),
-            subscriptionId,
-            gasLimit,
-            donId
-        );
+        // Send request
+        requestId = _sendRequest(req.encodeCBOR(), subscriptionId, gasLimit, donId);
 
-        requestIdToProviderUser[requestId] = ProviderUserPair({
-            provider: _provider,
-            user: _user
-        });
+        // Map the request ID to the user
+        requestIdToUser[requestId] = user;
 
-        emit RequestSent(requestId, _provider, _user);
-
+        emit RequestSent(requestId, user);
         return requestId;
     }
 
@@ -135,13 +110,13 @@ contract KonduxOracle is FunctionsClient, ConfirmedOwner, IUsageOracle {
         bytes memory response,
         bytes memory err
     ) internal override {
-        ProviderUserPair memory pair = requestIdToProviderUser[requestId];
-        if (pair.provider == address(0) || pair.user == address(0)) {
+        address user = requestIdToUser[requestId];
+        if (user == address(0)) {
             revert("Unknown requestId");
         }
 
-        // Clear out the storage for that request ID if you want to
-        delete requestIdToProviderUser[requestId];
+        // Optionally clear out the storage for that request ID
+        delete requestIdToUser[requestId];
 
         emit RequestFulfilled(requestId, response, err);
 
@@ -150,29 +125,28 @@ contract KonduxOracle is FunctionsClient, ConfirmedOwner, IUsageOracle {
             revert(string(err));
         }
 
-        // No local variable "newUsage" needed; parse and store directly
-        usageByProviderUser[pair.provider][pair.user] = _bytesToUint(response);
+        // Parse usage from the response (ASCII digits => uint256)
+        uint256 newUsage = _bytesToUint(response);
 
-        emit UsageUpdated(
-            pair.provider,
-            pair.user,
-            usageByProviderUser[pair.provider][pair.user]
-        );
+        // Update usageByUser
+        usageByUser[user] = newUsage;
+
+        emit UsageUpdated(user, newUsage);
     }
 
     // -------------------------------------------------------------------------
     // IUsageOracle Implementation
     // -------------------------------------------------------------------------
     /**
-     * @notice Returns the total usage for (provider, user) as stored on-chain.
+     * @notice Returns the total usage for a given user.
      */
-    function getUsage(address provider, address user)
+    function getUsage(address user)
         external
         view
         override
         returns (uint256)
     {
-        return usageByProviderUser[provider][user];
+        return usageByUser[user];
     }
 
     // -------------------------------------------------------------------------
