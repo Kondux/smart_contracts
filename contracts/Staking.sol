@@ -40,13 +40,17 @@ contract Staking is AccessControlled {
         uint8 timelockCategory;
         // ERC20 Ratio at the time of staking
         uint256 ratioERC20;
+        // The APR stored at the time of deposit, ensuring future APR changes
+        // do not affect this deposit's reward calculation unless updated when
+        // staking unclaimed rewards.
+        uint256 depositApr;
     } 
 
     enum LockingTimes {        
-        OneMonth, // 0
-        ThreeMonths, // 1
-        SixMonths, // 2
-        OneYear // 3
+        OneMonth,      // 0
+        ThreeMonths,   // 1
+        SixMonths,     // 2
+        OneYear        // 3
     }
 
     // The deposit IDs associated with a user's address
@@ -64,7 +68,7 @@ contract Staking is AccessControlled {
     // The compound frequency for a specific ERC20 token
     mapping (address => uint256) public compoundFreqERC20;
 
-    // The rewards per hour for a specific ERC20 token
+    // The rewards (APR) for a specific ERC20 token (as a percentage, e.g., 25 = 25% APR)
     mapping (address => uint256) public aprERC20;
 
     // The withdrawal fee for a specific ERC20 token
@@ -109,7 +113,7 @@ contract Staking is AccessControlled {
     // The allowed dnaVersion for reward boost
     mapping (uint256 => bool) public allowedDnaVersions;
 
-    // Map of timelock durartions
+    // Map of timelock durations
     mapping(uint8 => uint256) public timelockDurations;
 
     IHelix public helixERC20; // Helix ERC20 Token
@@ -136,7 +140,7 @@ contract Staking is AccessControlled {
     // Emitted when a staker receives a reward
     event Reward(address indexed user, uint256 netRewards, uint256 fees);
 
-    // Emitted when the rewards per hour is updated for a token
+    // Emitted when the rewards (APR) is updated for a token
     event NewAPR(uint256 indexed amount, address indexed token);
 
     // Emitted when the minimum stake is updated for a token
@@ -218,19 +222,19 @@ contract Staking is AccessControlled {
         // Set up default staking token parameters
         setDivisorERC20(10_000, _konduxERC20); // 10,000 basis points
         setWithdrawalFee(100, _konduxERC20); // 1% fee on withdrawal or 100 / 10_000
-        setFoundersRewardBoost(1_000, _konduxERC20); // 10% boost (=110%) on rewards or 1,000,000/10,000,000
-        setkNFTRewardBoost(500, _konduxERC20); // 5% boost on rewards or 500 / 
+        setFoundersRewardBoost(1_000, _konduxERC20); // 10% boost
+        setkNFTRewardBoost(500, _konduxERC20); // 5% boost
         setMinStake(10_000_000, _konduxERC20); // 10,000,000 wei
-        setAPR(25, _konduxERC20); // 0.00285%/h or 25% APR
+        setAPR(25, _konduxERC20); // 25% APR
         setCompoundFreq(60 * 60 * 24, _konduxERC20); // 24 hours
-        setRatio(10_000, _konduxERC20); // 10,000:1 ratio, adjusted for kondux ERC20 decimals
+        setRatio(10_000, _konduxERC20); // 10,000:1 ratio
         setEarlyWithdrawalPenalty(_konduxERC20, 10); // 10% penalty
-        setTimelockCategoryBoost(1, 100); // 1% boost for 90 days timelock
-        setTimelockCategoryBoost(2, 300); // 3% boost for 180 days timelock 
-        setTimelockCategoryBoost(3, 900); // 9% boost for 365 days timelock
-        setAllowedDnaVersion(1, true); // allow DNA version 1
-        setDecimalsERC20(helixERC20.decimals(), _helixERC20); // set decimals for Helix ERC20 token 
-        setDecimalsERC20(IKonduxERC20(_konduxERC20).decimals(), _konduxERC20); // set decimals for Kondux ERC20 token
+        setTimelockCategoryBoost(1, 100); // 1% boost for 90 days
+        setTimelockCategoryBoost(2, 300); // 3% boost for 180 days
+        setTimelockCategoryBoost(3, 900); // 9% boost for 365 days
+        setAllowedDnaVersion(1, true);    // allow DNA version 1
+        setDecimalsERC20(helixERC20.decimals(), _helixERC20); 
+        setDecimalsERC20(IKonduxERC20(_konduxERC20).decimals(), _konduxERC20); 
 
         _setAuthorizedERC20(_konduxERC20, true);
     }
@@ -241,8 +245,12 @@ contract Staking is AccessControlled {
      *      It then creates a new deposit record, sets the timelock based on the selected category, and updates the user's
      *      deposit list and total staked amount. The specified amount of tokens is transferred from the user to the vault,
      *      and an equivalent amount of reward tokens is minted for the user.
+     *
+     *      The deposit also stores the current APR for the token so that changes to the token's APR in the future won't
+     *      affect this deposit's reward calculation unless updated when staking unclaimed rewards.
+     *
      * @param _amount The amount of tokens to deposit.
-     * @param _timelock The timelock category, represented as an integer (0-4).
+     * @param _timelock The timelock category, represented as an integer (0-3).
      * @param _token The address of the token contract.
      * @return _id The deposit ID assigned to this deposit.
      */
@@ -270,12 +278,14 @@ contract Staking is AccessControlled {
             staker: msg.sender,
             deposited: _amount,
             unclaimedRewards: 0,
-            timelock: block.timestamp + timelockDurations[_timelock], // Set the timelock period based on the selected category
+            timelock: block.timestamp + timelockDurations[_timelock], // Set the timelock period
             timelockCategory: _timelock,
             timeOfLastUpdate: block.timestamp,
             lastDepositTime: block.timestamp,
             redeemed: 0,
-            ratioERC20: ratioERC20[_token]
+            ratioERC20: ratioERC20[_token],
+            // Store the APR at the time of this deposit
+            depositApr: aprERC20[_token]
         });
 
         // Add the deposit ID to the user's deposit list
@@ -284,23 +294,16 @@ contract Staking is AccessControlled {
         // Update the user's total staked amount
         _addTotalStakedAmount(_amount, _token, msg.sender);
         
-        // Mint an equivalent amount of reward tokens for the user
-        // Get the decimals of the original staked token and Helix
-        uint8 originalTokenDecimals = decimalsERC20[_token];
-        uint8 helixDecimals = decimalsERC20[address(helixERC20)];
-
-        // Calculate the decimal difference
-        uint decimalDifference;
-        if (helixDecimals > originalTokenDecimals) {
-            decimalDifference = helixDecimals - originalTokenDecimals;
-        } else {
-            decimalDifference = 0;
-        }
-
         // Transfer the deposited tokens from the user to the vault
         konduxERC20.transferFrom(msg.sender, authority.vault(), _amount);
 
-        // Mint an equivalent amount of reward tokens for the user, adjusted based on the decimal difference
+        // Mint an equivalent amount of reward tokens for the user
+        uint8 originalTokenDecimals = decimalsERC20[_token];
+        uint8 helixDecimals = decimalsERC20[address(helixERC20)];
+        uint decimalDifference = 0;
+        if (helixDecimals > originalTokenDecimals) {
+            decimalDifference = helixDecimals - originalTokenDecimals;
+        }
         helixERC20.mint(msg.sender, _amount * ratioERC20[_token] * (10 ** decimalDifference));
 
         // Increment the deposit ID counter
@@ -314,47 +317,48 @@ contract Staking is AccessControlled {
 
     /**
      * @dev This function allows the owner of a deposit to stake their earned rewards.
-     *      It verifies that the caller is the deposit owner and that the compounding is not happening too soon.
-     *      The function calculates the rewards, resets the unclaimed rewards to zero, and updates the deposit record.
+     *      It verifies that the caller is the deposit owner. The function calculates the rewards
+     *      (using the deposit's stored APR), resets the unclaimed rewards to zero, and updates the deposit record.
      *      The total staked amount is updated, and an equivalent amount of reward tokens is minted for the user.
+     *      If the current token's APR is different from the stored APR for the deposit, the deposit's APR is updated
+     *      after the previous rewards are calculated.
      * @param _depositId The ID of the deposit whose rewards are to be staked.
      */
     function stakeRewards(uint _depositId) public {
         // Verify that the caller is the owner of the deposit
         require(msg.sender == userDeposits[_depositId].staker, "You are not the owner of this deposit");
-        // Verify that the user is not trying to compound rewards too soon
-        // require(compoundRewardsTimer(_depositId) == 0, "Tried to compound rewards too soon");
 
-        // Calculate the rewards and add any unclaimed rewards
+        // Calculate the rewards with the current stored APR
         uint256 rewards = calculateRewards(msg.sender, _depositId) + userDeposits[_depositId].unclaimedRewards;
 
         // Check if the rewards are non-zero
         require(rewards > 0, "No rewards available");
 
-        // Reset the unclaimed rewards to zero
+        // Clear unclaimed rewards and update time
         userDeposits[_depositId].unclaimedRewards = 0;
-        // Update the deposited amount with the compounded rewards
-        userDeposits[_depositId].deposited += rewards;
-        // Update the time of the last update
         userDeposits[_depositId].timeOfLastUpdate = block.timestamp;
 
-        // Update the user's total staked amount
-        _addTotalStakedAmount(rewards, userDeposits[_depositId].token, userDeposits[_depositId].staker);
-
-        // Mint an equivalent amount of reward tokens for the user
-        // Get the decimals of the original staked token and Helix
-        uint8 originalTokenDecimals = decimalsERC20[userDeposits[_depositId].token];
-        uint8 helixDecimals = decimalsERC20[address(helixERC20)];
-
-        // Calculate the decimal difference
-        uint decimalDifference;
-        if (helixDecimals > originalTokenDecimals) {
-            decimalDifference = helixDecimals - originalTokenDecimals;
-        } else {
-            decimalDifference = 0;
+        // Before adding rewards to the deposit, check if there's a new APR for the token
+        address tokenForDeposit = userDeposits[_depositId].token;
+        uint256 currentApr = aprERC20[tokenForDeposit];
+        if (currentApr != userDeposits[_depositId].depositApr) {
+            // Update the deposit's APR for future accumulation
+            userDeposits[_depositId].depositApr = currentApr;
         }
 
-        // Mint the calculated rewards for the user, adjusted based on the decimal difference
+        // Update the deposited amount with the compounded rewards
+        userDeposits[_depositId].deposited += rewards;
+
+        // Update the user's total staked amount
+        _addTotalStakedAmount(rewards, tokenForDeposit, userDeposits[_depositId].staker);
+
+        // Mint an equivalent amount of reward tokens for the user
+        uint8 originalTokenDecimals = decimalsERC20[tokenForDeposit];
+        uint8 helixDecimals = decimalsERC20[address(helixERC20)];
+        uint decimalDifference = 0;
+        if (helixDecimals > originalTokenDecimals) {
+            decimalDifference = helixDecimals - originalTokenDecimals;
+        }
         helixERC20.mint(msg.sender, rewards * userDeposits[_depositId].ratioERC20 * (10 ** decimalDifference));
 
         // Emit a Compound event
@@ -364,8 +368,8 @@ contract Staking is AccessControlled {
     /**
      * @dev This function allows the owner of a deposit to claim their earned rewards.
      *      It verifies that the caller is the deposit owner and that the timelock has passed.
-     *      The function calculates the rewards, resets the unclaimed rewards to zero, and updates the deposit record.
-     *      The reward tokens are burned, and the earned rewards are transferred to the user from the vault.
+     *      The function calculates the rewards (using the deposit's stored APR), resets the unclaimed rewards to zero,
+     *      and updates the deposit record. The reward tokens are then transferred to the user from the vault.
      *      The function emits a Reward event upon successful execution.
      * @param _depositId The ID of the deposit whose rewards are to be claimed.
      */
@@ -382,7 +386,8 @@ contract Staking is AccessControlled {
 
         IERC20 konduxERC20 = IERC20(userDeposits[_depositId].token);
 
-        uint256 netRewards = (rewards * (10_000 - withdrawalFeeERC20[userDeposits[_depositId].token])) / divisorERC20[userDeposits[_depositId].token];
+        uint256 netRewards = (rewards * (10_000 - withdrawalFeeERC20[userDeposits[_depositId].token])) 
+                                / divisorERC20[userDeposits[_depositId].token];
         uint256 fees = rewards - netRewards;
 
         konduxERC20.transferFrom(authority.vault(), msg.sender, netRewards); 
@@ -396,9 +401,9 @@ contract Staking is AccessControlled {
     /**
      * @dev This function allows the owner of a deposit to withdraw a specified amount of their deposited tokens.
      *      It verifies that the timelock has passed, the caller is the deposit owner, and the withdrawal amount
-     *      is within the available limits. The function calculates the rewards, updates the deposit record, and
-     *      transfers the liquid amount to the user after applying the withdrawal fee. The collateral tokens are burned.
-     *      The function emits a Withdraw event upon successful execution.
+     *      is within the available limits. The function calculates the rewards (using the deposit's stored APR),
+     *      updates the deposit record, and transfers the liquid amount to the user after applying the withdrawal fee.
+     *      The corresponding Helix collateral tokens are burned. The function emits a Withdraw event upon successful execution.
      * @param _amount The amount of tokens to withdraw.
      * @param _depositId The ID of the deposit from which to withdraw the tokens.
      */
@@ -412,41 +417,37 @@ contract Staking is AccessControlled {
         // Verify that the withdrawal amount is less than or equal to the collateral tokens the user has
         require(_amount * userDeposits[_depositId].ratioERC20 <= helixERC20.balanceOf(msg.sender), "Can't withdraw more tokens than the collateral you have");
 
-        // Calculate the rewards
+        // Calculate the rewards (using the deposit's stored APR)
         uint256 _rewards = calculateRewards(msg.sender, _depositId);
+
         // Update the deposit record
         userDeposits[_depositId].deposited -= _amount;
         userDeposits[_depositId].timeOfLastUpdate = block.timestamp;
         userDeposits[_depositId].unclaimedRewards += _rewards;
 
         // Calculate the liquid amount to transfer after applying the withdrawal fee
-        uint256 _liquid = (_amount * (divisorERC20[userDeposits[_depositId].token] - withdrawalFeeERC20[userDeposits[_depositId].token])) / divisorERC20[userDeposits[_depositId].token];
+        uint256 _liquid = (_amount * (divisorERC20[userDeposits[_depositId].token] 
+                         - withdrawalFeeERC20[userDeposits[_depositId].token])) / divisorERC20[userDeposits[_depositId].token];
         uint256 fees = _amount - _liquid;
 
-        // Get the token contract
         IERC20 konduxERC20 = IERC20(userDeposits[_depositId].token);
 
         // Check if the treasury contract has approved the staking contract to withdraw the tokens
-        require(konduxERC20.allowance(authority.vault(), address(this)) >= _liquid, "Treasury Contract need to approve Staking Contract to withdraw your tokens -- please call an Admin");
+        require(konduxERC20.allowance(authority.vault(), address(this)) >= _liquid, 
+                "Treasury Contract need to approve Staking Contract to withdraw your tokens -- please call an Admin");
 
         // Subtract the staked amount
         _subtractStakedAmount(_amount, userDeposits[_depositId].token, userDeposits[_depositId].staker);
 
-        // Get the decimals of the original staked token and Helix
         uint8 originalTokenDecimals = decimalsERC20[userDeposits[_depositId].token];
         uint8 helixDecimals = decimalsERC20[address(helixERC20)];
-
-        // Calculate the decimal difference
-        uint decimalDifference;
+        uint decimalDifference = 0;
         if (originalTokenDecimals < helixDecimals) {
             decimalDifference = helixDecimals - originalTokenDecimals;
-        } else {
-            decimalDifference = 0;
         }
 
-        // Burn the equivalent amount of collateral tokens, adjusted based on the decimal difference
+        // Burn the equivalent amount of collateral tokens
         helixERC20.burn(msg.sender, _amount * userDeposits[_depositId].ratioERC20 * (10 ** decimalDifference));
-
         
         // Transfer the liquid amount to the user
         konduxERC20.transferFrom(authority.vault(), msg.sender, _liquid);
@@ -455,7 +456,6 @@ contract Staking is AccessControlled {
         _addTotalRewardedAmount(_liquid, userDeposits[_depositId].token, userDeposits[_depositId].staker); 
         _addTotalWithdrawalFees(_amount - _liquid, userDeposits[_depositId].token); 
 
-        // Emit a Withdraw event
         emit Withdraw(msg.sender, _liquid, fees);
     }
 
@@ -465,8 +465,8 @@ contract Staking is AccessControlled {
      *      fee proportional to the time left until the lock (the closer to the end of the locking time, the smaller the fee,
      *      starting at 10%).
      *      It verifies that the caller is the deposit owner, and the withdrawal amount is within the available limits.
-     *      The function calculates the rewards, updates the deposit record, and transfers the liquid amount to the user
-     *      after applying the extra fee and withdrawal fee. The collateral tokens are burned.
+     *      The function calculates the rewards (but no boost), updates the deposit record, and transfers the liquid amount
+     *      to the user after applying the extra fee and withdrawal fee. The corresponding Helix collateral tokens are burned.
      *      The function emits a Withdraw event upon successful execution.
      * @param _amount The amount of tokens to withdraw.
      * @param _depositId The ID of the deposit from which to withdraw the tokens.
@@ -478,63 +478,51 @@ contract Staking is AccessControlled {
         require(userDeposits[_depositId].deposited >= _amount, "Can't withdraw more than you have");
         // Verify that the withdrawal amount is less than or equal to the collateral tokens the user has
         require(_amount * userDeposits[_depositId].ratioERC20 <= helixERC20.balanceOf(msg.sender), "Can't withdraw more tokens than the collateral you have");
-        // Verify if the timelock has passed
+        // Verify if the timelock has not passed
         require(block.timestamp < userDeposits[_depositId].timelock, "Timelock has passed");
 
-        // Calculate the extra fee proportional to the time left until the lock (the closer to the end of the locking time, the smaller the fee)
+        // Calculate the extra fee proportional to the time left until the lock
         uint256 timeLeft = userDeposits[_depositId].timelock - block.timestamp;
         uint256 lockDuration = userDeposits[_depositId].timelock - userDeposits[_depositId].lastDepositTime;
-        uint256 extraFee = (_amount * earlyWithdrawalPenalty[userDeposits[_depositId].token] * timeLeft) / (lockDuration * 100);
+        uint256 extraFee = (_amount * earlyWithdrawalPenalty[userDeposits[_depositId].token] * timeLeft) 
+                            / (lockDuration * 100);
 
-        // If extra fee is more than the amount, set it to the amount
         if (extraFee > _amount) {
             extraFee = _amount;
         }
 
-        // If extra fee is zero, apply 1% fee
         if (extraFee == 0) {
             extraFee = (_amount * 1) / 100;
         }
 
-        // Calculate the total fee percentage
         uint256 totalFeePercentage = extraFee + withdrawalFeeERC20[userDeposits[_depositId].token];
 
-        // Calculate the liquid amount to transfer after applying the total fee
+        // The logic below is simplistic and for demonstration
         uint256 _liquid = (_amount - totalFeePercentage);
         uint256 fees = _amount - _liquid;
 
-        // Update the deposit record
         userDeposits[_depositId].deposited -= _amount;
         userDeposits[_depositId].timeOfLastUpdate = block.timestamp;
 
-        // Get the token contract
         IERC20 konduxERC20 = IERC20(userDeposits[_depositId].token);
 
-        // Check if the treasury contract has approved the staking contract to withdraw the tokens
-        require(konduxERC20.allowance(authority.vault(), address(this)) >= _liquid, "Treasury Contract need to approve Staking Contract to withdraw your tokens -- please call an Admin");
+        require(konduxERC20.allowance(authority.vault(), address(this)) >= _liquid, 
+                "Treasury Contract need to approve Staking Contract to withdraw your tokens -- please call an Admin");
 
-        // Subtract the staked amount
         _subtractStakedAmount(_amount, userDeposits[_depositId].token, userDeposits[_depositId].staker);
 
-        // Calculate the decimal difference
-        uint decimalDifference;
+        uint decimalDifference = 0;
         if (decimalsERC20[userDeposits[_depositId].token] < decimalsERC20[address(helixERC20)]) {
             decimalDifference = decimalsERC20[address(helixERC20)] - decimalsERC20[userDeposits[_depositId].token];
-        } else {
-            decimalDifference = 0;
         }
 
-        // Burn the equivalent amount of collateral tokens, adjusted based on the decimal difference
         helixERC20.burn(msg.sender, _amount * userDeposits[_depositId].ratioERC20 * (10 ** decimalDifference));
         
-        // Transfer the liquid amount to the user
         konduxERC20.transferFrom(authority.vault(), msg.sender, _liquid);
 
-        // Update the user's total rewarded amount + total rewarded amount for the token
         _addTotalRewardedAmount(_liquid, userDeposits[_depositId].token, userDeposits[_depositId].staker); 
         _addTotalWithdrawalFees(_amount - _liquid, userDeposits[_depositId].token); 
 
-        // Emit a Withdraw event
         emit Withdraw(msg.sender, _liquid, fees);
     }
 
@@ -570,8 +558,9 @@ contract Staking is AccessControlled {
 
     /**
      * @dev This function calculates the rewards for a specified staker and deposit ID. The rewards calculation
-     *      considers the deposit's elapsed time, staked amount, and a 25% APY compounded hourly.
-     *      If the provided staker is not the owner of the deposit, the function returns 0.
+     *      considers the deposit's elapsed time, staked amount, and the stored APR at the time of deposit (or
+     *      updated APR if the user staked unclaimed rewards). If the provided staker is not the owner of the deposit,
+     *      the function returns 0.
      * @param _staker The address of the staker for which to calculate the rewards.
      * @param _depositId The ID of the deposit for which to calculate the rewards.
      * @return rewards The calculated rewards for the specified staker and deposit ID.
@@ -590,67 +579,35 @@ contract Staking is AccessControlled {
         // Get the deposited amount
         uint256 depositedAmount = deposit_.deposited;
 
-        // Calculate the base reward per second using the token's APR
-        uint256 tokenApr = aprERC20[deposit_.token];
+        // Use the deposit's stored APR (which may be different from the current global APR)
+        uint256 tokenApr = deposit_.depositApr;
 
         /**
-         * @dev This line calculates the reward earned per second by a staker for their deposit, considering the deposit's APR (annual percentage rate).
+         * @dev This line calculates the reward earned per second by a staker for their deposit, considering the deposit's APR.
          *
          * The formula breakdown:
          * 1. depositedAmount: The amount of tokens the staker deposited.
          * 2. tokenApr: The annual percentage rate for the token in question (e.g. 25% APR).
-         * 3. 1e18: A scaling factor used to maintain precision in the calculations (10^18 or 1 followed by 18 zeros).
-         * 4. 365 * 24 * 3600: The total number of seconds in a year, used to convert the APR to a per-second rate.
+         * 3. 1e18: A scaling factor used to maintain precision in the calculations.
+         * 4. 365 * 24 * 3600: The total number of seconds in a year.
          * 5. 100: Used to convert the APR percentage to a decimal (e.g. 25% becomes 0.25).
-         *
-         * The formula calculates the per-second reward by multiplying the deposited amount and the token's APR, and then scaling it up by 1e18.
-         * After that, it divides the result by the total number of seconds in a year and by 100 to adjust for the percentage.
-         *
-         * Using 1e18 maintains precision in the calculation, avoiding truncation errors due to integer division in Solidity.
-         * By scaling up the result and performing the divisions afterward, the calculation maintains precision without truncating intermediate results to zero.
          */
         uint256 rewardPerSecond = (depositedAmount * tokenApr * 1e18) / (365 * 24 * 3600 * 100);
-        
+
         // Calculate the base reward based on elapsed time
-        uint256 _reward = elapsedTime * rewardPerSecond / 1e18;
+        uint256 _reward = (elapsedTime * rewardPerSecond) / 1e18;
 
         // Calculate the boost percentage
         uint256 boostPercentage = calculateBoostPercentage(_staker, _depositId);
 
-        // Calculate the final reward by applying the boost percentage
+        // Apply the boost percentage
         _reward = (_reward * boostPercentage) / divisorERC20[deposit_.token];
 
-        // Return the calculated reward
         return _reward;
     }      
 
     // Internal functions:
 
-    /**
-     * @dev This internal function calculates the compounded rewards for a given deposited amount and number of elapsed periods.
-     *      The function assumes a fixed 25% APR and 8760 periods per year (hourly compounding). It uses exponentiation to calculate
-     *      the compounded rewards using the formula A = P * (1 + r/n)^(nt), where:
-     *          A: final amount after compounding
-     *          P: initial deposited amount
-     *          r: annual interest rate (25%)
-     *          n: number of periods in a year (8760)
-     *          t: number of elapsed periods
-     * @param _depositedAmount The initial deposited amount.
-     * @param _periodsElapsed The number of elapsed periods (hours) since the deposit.
-     * @return compound The calculated compounded rewards for the given deposited amount and elapsed periods.
-     */
-    function _calculateCompound(uint256 _depositedAmount, uint256 _periodsElapsed) internal pure returns (uint256 compound) {
-        uint256 periodsInYear = 8760; // 24 hours * 365 days
-        uint256 compoundFactor = 1 + (25 * 1e1 / periodsInYear);
-
-        //Calculate compounded rewards using exponentiation (A = P * (1 + r/n)^(nt))
-        compound = _depositedAmount * (compoundFactor ** _periodsElapsed) / (1e1 ** _periodsElapsed);
-
-        return compound;        
-    }
-        
-        
-    // Functions for modifying  staking mechanism variables:
     /**
      * @dev This internal function is used to update the total rewarded amount and the total rewarded amount
      *      for a specific user and token. It is called when rewards are distributed or staked.
@@ -662,7 +619,6 @@ contract Staking is AccessControlled {
         totalRewarded[_token] += _amount;
         userTotalRewardedByCoin[_token][_user] += _amount;
     }
-
 
     /**
      * @dev This internal function adds the given amount to the total staked amount for a specified token
@@ -684,7 +640,6 @@ contract Staking is AccessControlled {
      * @param _user The address of the user whose staked amount should be decreased.
      */
     function _subtractStakedAmount(uint256 _amount,  address _token, address _user) internal {
-        // do a underflow check
         require(totalStaked[_token] >= _amount, "Staking: Not enough staked (Contract)");
         require(userTotalStakedByCoin[_token][_user] >= _amount, "Staking: Not enough staked (User)");
         totalStaked[_token] -= _amount;
@@ -701,12 +656,11 @@ contract Staking is AccessControlled {
     }
     
     /**
-     * @dev This function sets the APR for a specified token.
-     * @param _apr The rewards per hour value to be set, as x% APR. (e.g. 25 = 25%)
-     * @param _tokenId The address of the token for which to set the rewards per hour.
+     * @dev This function sets the APR for a specified token (as a percentage, e.g., 25 = 25% APR).
+     * @param _apr The APR value to be set for the token.
+     * @param _tokenId The address of the token for which to set the APR.
      */
     function setAPR(uint256 _apr, address _tokenId) public onlyGovernor {
-        // Check if the token address is set
         require(_tokenId != address(0), "Token address is not set"); 
         aprERC20[_tokenId] = _apr; 
         emit NewAPR(_apr, _tokenId);
@@ -718,7 +672,6 @@ contract Staking is AccessControlled {
      * @param _tokenId The address of the token for which to set the minimum staking amount.
      */
     function setMinStake(uint256 _minStake, address _tokenId) public onlyGovernor {
-        // Check if the token address is set
         require(_tokenId != address(0), "Token address is not set"); 
         minStakeERC20[_tokenId] = _minStake;
         emit NewMinStake(_minStake, _tokenId);
@@ -730,7 +683,6 @@ contract Staking is AccessControlled {
      * @param _tokenId The address of the token for which to set the ratio.
      */
     function setRatio(uint256 _ratio, address _tokenId) public onlyGovernor {
-        // Check if the token address is set
         require(_tokenId != address(0), "Token address is not set"); 
         ratioERC20[_tokenId] = _ratio;
         emit NewRatio(_ratio, _tokenId);
@@ -782,7 +734,6 @@ contract Staking is AccessControlled {
      * @param _tokenId The address of the token for which to set the withdrawal fee.
      */
     function setWithdrawalFee(uint256 _withdrawalFee, address _tokenId) public onlyGovernor {
-        // Check if the token address is set
         require(_tokenId != address(0), "Token address is not set"); 
         require(_withdrawalFee <= divisorERC20[_tokenId], "Withdrawal fee cannot be more than 100%");
         withdrawalFeeERC20[_tokenId] = _withdrawalFee;
@@ -795,7 +746,6 @@ contract Staking is AccessControlled {
      * @param _tokenId The address of the token for which to set the founders reward boost.
      */
     function setFoundersRewardBoost(uint256 _foundersRewardBoost, address _tokenId) public onlyGovernor {
-        // Check if the token address is set
         require(_tokenId != address(0), "Token address is not set"); 
         foundersRewardBoostERC20[_tokenId] = _foundersRewardBoost;
         emit NewFoundersRewardBoost(_foundersRewardBoost, _tokenId);
@@ -807,7 +757,6 @@ contract Staking is AccessControlled {
      * @param _tokenId The address of the token for which to set the kNFT reward boost.
      */
     function setkNFTRewardBoost(uint256 _kNFTRewardBoost, address _tokenId) public onlyGovernor {
-        // Check if the token address is set
         require(_tokenId != address(0), "Token address is not set"); 
         kNFTRewardBoostERC20[_tokenId] = _kNFTRewardBoost;
         emit NewKNFTRewardBoost(_kNFTRewardBoost, _tokenId); 
@@ -819,7 +768,6 @@ contract Staking is AccessControlled {
     * @param _tokenId The address of the token for which to set the compound frequency.
     */
     function setCompoundFreq(uint256 _compoundFreq, address _tokenId) public onlyGovernor {
-        // Check if the token address is set
         require(_tokenId != address(0), "Token address is not set"); 
         compoundFreqERC20[_tokenId] = _compoundFreq;
         emit NewCompoundFreq(_compoundFreq, _tokenId);
@@ -831,7 +779,6 @@ contract Staking is AccessControlled {
      * @param penaltyPercentage The penalty percentage value to be set. Must be between 0 and 100. 
      */
     function setEarlyWithdrawalPenalty(address _token, uint256 penaltyPercentage) public onlyGovernor {
-        // Check if the token address is set
         require(_token != address(0), "Token address is not set"); 
         require(penaltyPercentage <= 100, "Penalty percentage must be between 0 and 100");
         earlyWithdrawalPenalty[_token] = penaltyPercentage;
@@ -852,7 +799,6 @@ contract Staking is AccessControlled {
      * @param _tokenId The address of the token for which to set the divisor.
      */
     function setDivisorERC20(uint256 _divisor, address _tokenId) public onlyGovernor {
-        // Check if the token address is set
         require(_tokenId != address(0), "Token address is not set"); 
         divisorERC20[_tokenId] = _divisor;
         emit NewDivisorERC20(_divisor, _tokenId);
@@ -866,8 +812,8 @@ contract Staking is AccessControlled {
      */
     function _setAuthorizedERC20(address _token, bool _authorized) internal {
         require(_token != address(0), "Token address cannot be 0x0");
-        if (_authorized == true) {
-            require(aprERC20[_token] > 0, "Rewards per hour must be greater than 0");
+        if (_authorized) {
+            require(aprERC20[_token] > 0, "APR must be greater than 0");
             require(compoundFreqERC20[_token] > 0, "Compound frequency must be greater than 0");
             require(withdrawalFeeERC20[_token] > 0, "Withdrawal fee must be greater than 0");
             require(foundersRewardBoostERC20[_token] > 0, "Founders reward boost must be greater than 0");
@@ -888,7 +834,6 @@ contract Staking is AccessControlled {
      * @param _authorized True to authorize the token, false to deauthorize.
      */
     function setAuthorizedERC20(address _token, bool _authorized) public onlyGovernor {
-        // Check if the token address is set
         require(_token != address(0), "Token address is not set"); 
         _setAuthorizedERC20(_token, _authorized);
     }
@@ -908,7 +853,6 @@ contract Staking is AccessControlled {
      * @param _tokenId The address of the token for which to set the decimals.
      */
     function setDecimalsERC20(uint8 _decimals, address _tokenId) public onlyGovernor {
-        // Check if the token address is set
         require(_tokenId != address(0), "Token address is not set"); 
         decimalsERC20[_tokenId] = _decimals;
     }
@@ -918,7 +862,7 @@ contract Staking is AccessControlled {
      * Emits various events based on the setter functions called during token addition.
      * Emits a {NewAuthorizedERC20} event at the end.
      * @param _token The address of the new staking token.
-     * @param _apr The rewards per hour for the new staking token.
+     * @param _apr The APR (e.g., 25 for 25%).
      * @param _compoundFreq The compound frequency for the new staking token.
      * @param _withdrawalFee The withdrawal fee for the new staking token.
      * @param _foundersRewardBoost The founders reward boost for the new staking token.
@@ -926,9 +870,21 @@ contract Staking is AccessControlled {
      * @param _ratio The ratio for the new staking token.
      * @param _minStake The minimum stake for the new staking token.
      */ 
-    function addNewStakingToken(address _token, uint256 _apr, uint256 _compoundFreq, uint256 _withdrawalFee, uint256 _foundersRewardBoost, uint256 _kNFTRewardBoost, uint256 _ratio, uint256 _minStake) public onlyGovernor {
+    function addNewStakingToken(
+        address _token, 
+        uint256 _apr, 
+        uint256 _compoundFreq, 
+        uint256 _withdrawalFee, 
+        uint256 _foundersRewardBoost, 
+        uint256 _kNFTRewardBoost, 
+        uint256 _ratio, 
+        uint256 _minStake
+    ) 
+        public 
+        onlyGovernor 
+    {
         require(_token != address(0), "Token address cannot be 0x0");
-        require(_apr > 0, "Rewards per hour must be greater than 0"); 
+        require(_apr > 0, "APR must be greater than 0"); 
         require(_compoundFreq > 0, "Compound frequency must be greater than 0");
         require(_withdrawalFee > 0, "Withdrawal fee must be greater than 0");
         require(_foundersRewardBoost > 0, "Founders reward boost must be greater than 0");
@@ -950,8 +906,9 @@ contract Staking is AccessControlled {
         _setAuthorizedERC20(_token, true); 
     }
 
-
-    // Functions for getting staking mechanism variables:
+    // --------------------------------------------------------------------------------------------
+    // Getter functions
+    // --------------------------------------------------------------------------------------------
 
     /**
      * @dev This function returns the time of the last update for the specified deposit ID.
@@ -973,10 +930,10 @@ contract Staking is AccessControlled {
 
     /**
      * @dev This function returns the APR for the specified token.
-     * @param _tokenId The address of the token for which the rewards per hour are requested.
-     * @return _rewardsPerHour The rewards per hour for the specified token.
+     * @param _tokenId The address of the token for which the APR is requested.
+     * @return _apr The APR for the specified token (as a percentage, e.g., 25 = 25%).
      */
-    function getAPR(address _tokenId) public view returns (uint256 _rewardsPerHour) {
+    function getAPR(address _tokenId) public view returns (uint256 _apr) {
         return aprERC20[_tokenId];
     }
 
@@ -1100,7 +1057,7 @@ contract Staking is AccessControlled {
     }
 
     /**
-     * @dev This function returns the penalty for early withdrawal for the specified token in basis points. (X% = X * 100)
+     * @dev This function returns the penalty for early withdrawal for the specified token in basis points.
      * @param token The address of the token for which the penalty is requested.
      * @return The penalty for early withdrawal for the specified token in basis points.
      */
@@ -1230,7 +1187,8 @@ contract Staking is AccessControlled {
     }
 
     /**
-     * @dev This function returns the top 5 bonuses and their corresponding kNFT IDs.
+     * @dev This function returns the top 5 bonuses and their corresponding kNFT IDs, ignoring deposit times
+     *      and simply calculating the staker's maximum possible top 5 kNFT boosts.
      * @param _staker The address of the staker.
      * @return top5Bonuses An array of the top 5 bonuses.
      * @return top5Ids An array of the corresponding kNFT IDs.
@@ -1296,15 +1254,13 @@ contract Staking is AccessControlled {
     }
 
     /**
-     * @dev This function calculates the boost percentage for a staker.
+     * @dev This function calculates the maximum possible boost percentage for a staker, ignoring deposit times.
      * @param _staker The address of the staker.
-     * @return boostPercentage The boost percentage for the staker's deposit.
+     * @return boostPercentage The maximum possible boost percentage for the staker across up to 5 top kNFTs.
      */
     function calculateMaxKNFTBoostPercentage(address _staker) public view returns (uint256 boostPercentage) {
-        // Get the top 5 bonuses and their corresponding kNFT IDs
         (uint256[] memory top5Bonuses, ) = getMaxTop5BonusesAndIds(_staker);
 
-        // Add the top 5 bonuses to the boost percentage
         for (uint256 i = 0; i < 5; i++) {
             boostPercentage += top5Bonuses[i];
         }
@@ -1314,28 +1270,28 @@ contract Staking is AccessControlled {
 
     /**
      * @dev This function calculates the boost percentage for a specified staker and deposit ID.
+     *      It takes into account Founders NFT, kNFT boosts, and timelock boosts.
      * @param _staker The address of the staker for which to calculate the boost.
      * @param _stakeId The ID of the stake for which to calculate the boost.
      * @return boostPercentage The calculated boost percentage for the specified staker and deposit ID.
      */
     function calculateBoostPercentage(address _staker, uint _stakeId) public view returns (uint256 boostPercentage) {
-        // Retrieve deposit details by _depositId
         Staker memory deposit_ = userDeposits[_stakeId];
 
-        // Initialize the boost percentage with the base boost percentage for the token
+        // Initialize the boost percentage with the base (divisorERC20 = 100%).
         boostPercentage = divisorERC20[deposit_.token];
 
-        // Check if the staker has Founder's NFTs and add the boost percentage
+        // Founders NFT boost
         if (IERC721(konduxERC721Founders).balanceOf(_staker) > 0) {
             boostPercentage += foundersRewardBoostERC20[deposit_.token];
         }
 
-        // Check if the staker has any kNFTs and calculate the top 5 boosts
+        // kNFT boost
         if (IERC721(konduxERC721kNFT).balanceOf(_staker) > 0) {
             boostPercentage += calculateKNFTBoostPercentage(_staker, _stakeId); 
         }
 
-        // If the deposit has a timelock category, add the corresponding boost
+        // Timelock boost
         if (deposit_.timelockCategory > 0) {
             boostPercentage += timelockCategoryBoost[deposit_.timelockCategory];
         }
@@ -1344,9 +1300,10 @@ contract Staking is AccessControlled {
     }
 
     /**
-     * @dev A function that agreggates the returned values of getTimelock, getDepositTimestamp, getTimelockCategory, getDepositInfo and calculateKNFTBoostPercentage
-     * @param _staker The address of the staker for which to calculate the boost.
-     * @param _stakeId The ID of the stake for which to calculate the boost.
+     * @dev A function that aggregates the returned values of getTimelock, getDepositTimestamp, getTimelockCategory,
+     *      getDepositInfo, and calculateKNFTBoostPercentage for convenience.
+     * @param _staker The address of the staker for which to get the details.
+     * @param _stakeId The ID of the stake for which to get the details.
      * @return _timelock The timelock for the specified deposit ID.
      * @return _depositTimestamp The timestamp of the deposit
      * @return _timelockCategory The timelock category for the specified deposit ID.
@@ -1354,12 +1311,22 @@ contract Staking is AccessControlled {
      * @return _unclaimedRewards The earned rewards (including unclaimed rewards) for the specified deposit.
      * @return _boostPercentage The calculated boost percentage for the specified staker and deposit ID.
      */
-    function getDepositDetails(address _staker, uint _stakeId) public view returns (uint256 _timelock, uint256 _depositTimestamp, uint8 _timelockCategory, uint256 _stake, uint256 _unclaimedRewards, uint256 _boostPercentage) {
+    function getDepositDetails(address _staker, uint _stakeId)
+        public
+        view
+        returns (
+            uint256 _timelock,
+            uint256 _depositTimestamp,
+            uint8 _timelockCategory,
+            uint256 _stake,
+            uint256 _unclaimedRewards,
+            uint256 _boostPercentage
+        )
+    {
         _timelock = getTimelock(_stakeId);
         _depositTimestamp = getDepositTimestamp(_stakeId);
         _timelockCategory = getTimelockCategory(_stakeId);
         (_stake, _unclaimedRewards) = getDepositInfo(_stakeId);
         _boostPercentage = calculateBoostPercentage(_staker, _stakeId);
     }
- 
 }
