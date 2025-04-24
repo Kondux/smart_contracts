@@ -17,6 +17,15 @@ contract KonduxERC721kNFT is Ownable, ERC721Enumerable, ERC721Burnable {
         _mint(msg.sender, counter);
     }
 
+    function safeMint(address to, uint256 dna) public {
+        counter++;
+        _mint(to, counter);
+    }
+
+    function getCounter() public view returns (uint256) {
+        return counter;
+    }
+
      /**
      * @dev Returns true if this contract implements the interface defined by
      * `interfaceId`. See the corresponding Solidity interface to learn more
