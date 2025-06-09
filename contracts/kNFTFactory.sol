@@ -145,7 +145,8 @@ contract kNFTFactory is AccessControl {
             WETH,                  // WETH address
             KNDX,                  // KNDX token
             address(foundersPass), // Founder’s Pass contract
-            authority.vault()      // treasury for 1% cut
+            authority.vault(),     // treasury for 1% cut
+            0                       // infinite supply
         );
 
         // (3) Transfer roles from the factory to msg.sender

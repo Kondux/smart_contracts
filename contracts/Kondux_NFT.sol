@@ -14,6 +14,7 @@ import "@openzeppelin/contracts/interfaces/IERC4906.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./interfaces/IUniswapV2Pair.sol";
+import "./interfaces/IERC4907.sol";
 
 /**
  * @title Kondux
@@ -26,7 +27,8 @@ contract Kondux is
     ERC721Burnable,
     ERC721Royalty,
     AccessControl,
-    IERC4906
+    IERC4906,
+    IERC4907
 {
     // -------------------- Roles & Events -------------------- //
 
@@ -68,8 +70,20 @@ contract Kondux is
     /// @dev If `true`, we take 1% of the royalty for the treasury, 99% goes to the NFT’s royalty owner
     bool public treasuryFeeEnabled = true;
 
+    // -------------------- EIP-4907 Toggle -------------------- //
+
+    /**
+     * @notice If this is `false`, EIP-4907 functionality is disabled.
+     *         - `setUser` will revert
+     *         - `userOf` and `userExpires` will return default values
+     *         - We do not declare support for 0xad092b5c in `supportsInterface`.
+     */
+    bool public eip4907Enabled = true;
+
     // -------------------- Core NFT State -------------------- //
 
+    /// @dev Maximum mintable supply. If `maxSupply` is 0, supply is infinite.
+    uint256 public maxSupply;
     string public baseURI;
     uint96 public denominator;       // for ERC721Royalty usage (optional)
     bool public freeMinting;        // if true, anyone can mint (else only MINTER_ROLE)
@@ -93,6 +107,19 @@ contract Kondux is
      */
     mapping(uint256 => uint256) public royaltyETHWei;
 
+    /**
+     * @dev User information for the ERC4907 interface.
+     *     This struct contains the user address and the expiration time of the user role.
+     *     The user role allows a specific address to use the NFT for a limited time.
+     */
+    struct UserInfo {
+        address user;   // address of the user role
+        uint64 expires; // UNIX timestamp when the user role expires
+    }
+
+    /// @dev Mapping from token ID to user information for the ERC4907 interface.
+    mapping(uint256 => UserInfo) private _users;
+
     // -------------------- Constructor -------------------- //
 
     /**
@@ -104,6 +131,7 @@ contract Kondux is
      * @param _kndx          KNDX token address
      * @param _foundersPass  Founder pass NFT
      * @param _treasury      Kondux treasury address
+     * @param _maxSupply    Set a maximum supply limit. 0 => infinite supply
      */
     constructor(
         string memory _name,
@@ -112,7 +140,8 @@ contract Kondux is
         address _weth,
         address _kndx,
         address _foundersPass,
-        address _treasury
+        address _treasury,
+        uint256 _maxSupply
     )
         ERC721(_name, _symbol)
     {
@@ -127,6 +156,7 @@ contract Kondux is
         KNDX = _kndx;
         foundersPass = IERC721(_foundersPass);
         konduxTreasury = _treasury;
+        maxSupply = _maxSupply;
 
         // optional defaults
         denominator = 10000;
@@ -178,6 +208,15 @@ contract Kondux is
      */
     function setTreasuryFeeEnabled(bool _enabled) external onlyAdmin {
         treasuryFeeEnabled = _enabled;
+    }
+
+    /**
+     * @notice Enables or disables the EIP-4907 functionality.
+     * @dev This function can only be called by an admin. If disabled, it will revert calls to setUser and return default values for userOf and userExpires.
+     * @param enabled A boolean value indicating whether EIP-4907 functionality should be enabled (true) or disabled (false).
+     */
+    function setEip4907Enabled(bool enabled) external onlyAdmin {
+        eip4907Enabled = enabled;
     }
 
     /**
@@ -280,6 +319,9 @@ contract Kondux is
      * @return tokenId The identifier of the minted token.
      */
     function safeMint(address to, uint256 dna) public onlyMinter returns (uint256) {
+        // If maxSupply is set (non-zero), enforce it
+        require(maxSupply == 0 || _tokenIdCounter < maxSupply, "Max supply reached");
+
         uint256 tokenId = _tokenIdCounter++;
         _setDna(tokenId, dna);
 
@@ -300,6 +342,24 @@ contract Kondux is
      */
     function setDna(uint256 _tokenID, uint256 _dna) public onlyDnaModifier {
         _setDna(_tokenID, _dna);
+    }
+
+    /**
+     * @notice Batch update DNA for multiple tokens in a gas-optimized manner.
+     * @param tokenIDs The array of token IDs to update.
+     * @param dnas The corresponding array of DNA values to set.
+     */
+    function batchSetDna(uint256[] calldata tokenIDs, uint256[] calldata dnas) external onlyDnaModifier {
+        uint256 len = tokenIDs.length;
+        require(len == dnas.length, "kNFT: array length mismatch");
+        for (uint256 i = 0; i < len; ) {
+            uint256 tokenId = tokenIDs[i];
+            uint256 dna = dnas[i];
+            indexDna[tokenId] = dna;
+            emit DnaChanged(tokenId, dna);
+            emit MetadataUpdate(tokenId);
+            unchecked { ++i; }
+        }
     }
 
     /**
@@ -357,7 +417,7 @@ contract Kondux is
             return "";
         }
         return string(abi.encodePacked(baseURI, Strings.toString(tokenId)));
-    }
+    }   
 
     // -------------------- getKndxForEth (Uniswap) -------------------- //
 
@@ -436,11 +496,22 @@ contract Kondux is
         bool isMint = (from == address(0));
         bool isBurn = (to == address(0));
 
+        // Enforce royalty
         if (!isMint && !isBurn && royaltyEnforcementEnabled) {
             _enforceRoyalty(from, tokenId);
         }
 
+        // Now perform the actual update
         prevOwner = super._update(to, tokenId, auth);
+
+        // If it is a true transfer (from != to, ignoring mints/burns), clear user info
+        if (!isMint && !isBurn && from != to) {
+            // Clear EIP-4907 user info upon a normal transfer
+            if (_users[tokenId].user != address(0)) {
+                delete _users[tokenId];
+                emit UpdateUser(tokenId, address(0), 0);
+            }
+        }
     }
 
     /**
@@ -469,6 +540,7 @@ contract Kondux is
             require(requiredKndx > 0, "Royalty calc failed");
 
             IERC20 kndxToken = IERC20(KNDX);
+    
             if (treasuryFeeEnabled) {
                 uint256 treasuryCut = (requiredKndx * 1) / 100;
                 uint256 toRoyaltyOwner = requiredKndx - treasuryCut;
@@ -666,8 +738,13 @@ contract Kondux is
         override(ERC721, ERC721Enumerable, ERC721Royalty, AccessControl, IERC165)
         returns (bool)
     {
-        // EIP-4906 interface ID is 0x49064906
-        return (interfaceId == 0x49064906) || super.supportsInterface(interfaceId);
+        // EIP-4906 (metadata update) => 0x49064906
+        // EIP-4907 (rentals)         => 0xad092b5c
+        return
+            interfaceId == 0x49064906 ||
+             // Only claim 4907 support if enabled
+            (eip4907Enabled && interfaceId == 0xad092b5c) ||
+            super.supportsInterface(interfaceId);
     }
 
     /**
@@ -690,6 +767,53 @@ contract Kondux is
     function emitBatchMetadataUpdate(uint256 fromTokenId, uint256 toTokenId) external onlyAdmin {
         require(fromTokenId <= toTokenId, "kNFT: invalid range");
         emit BatchMetadataUpdate(fromTokenId, toTokenId);
+    }
+
+    // -------------------- EIP-4907: setUser, userOf, userExpires -------------------- //
+
+    /**
+     * @notice Set or update the user address and its expiration for a token.
+     * @dev This function is part of EIP-4907. It can be `public` or `external`.
+     *      Reverts if `tokenId` does not exist or if caller is not owner/approved.
+     * @param tokenId The token whose user data is being changed
+     * @param user The new user address (zero means no user)
+     * @param expires Unix timestamp of the expiration date for the user
+     */
+    function setUser(uint256 tokenId, address user, uint64 expires) external override {
+        // Standard EIP-4907 pattern: owner or approved can set the user role
+        // require owner or authorized
+        address owner = _ownerOf(tokenId);
+        require(owner != address(0), "ERC4907: nonexistent token");
+        require(user != address(0), "ERC4907: user cannot be zero address");
+        // Check if the caller is the owner or has approval
+        // This is a common pattern in ERC721 to check ownership or approval
+        require(_ownerOf(tokenId) == msg.sender || _isAuthorized(_ownerOf(tokenId), msg.sender, tokenId), "ERC4907: not owner nor approved");
+
+        _users[tokenId].user = user;
+        _users[tokenId].expires = expires;
+        emit UpdateUser(tokenId, user, expires);
+    }
+
+    /**
+     * @notice Get the user address of a token (if any).
+     * @dev Returns address(0) if no user or user is expired.
+     * @param tokenId The token to query for user info.
+     */
+    function userOf(uint256 tokenId) public view override returns (address) {
+        if (!eip4907Enabled) return address(0);
+        if (block.timestamp <= _users[tokenId].expires) {
+            return _users[tokenId].user;
+        }
+        return address(0);
+    }
+
+    /**
+     * @notice Get the expiration timestamp of the current user role.
+     * @dev Returns 0 if no user is set.
+     * @param tokenId The token to query for user expiration.
+    */
+    function userExpires(uint256 tokenId) public view override returns (uint256) {
+        return _users[tokenId].expires;
     }
 
     // -------------------- Emergency Withdrawal -------------------- //
