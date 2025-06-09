@@ -106,6 +106,10 @@ describe("Staking Contract Tests", function () {
       await konduxToken.allowance(TREASURY_ADDRESS, staking.getAddress())
     ).to.be.eq(ethers.MaxUint256);
 
+    // 11) Set Staking contract as a minter and burner for Helix
+    await helixToken.setRole(ethers.keccak256(ethers.toUtf8Bytes("MINTER_ROLE")), staking.getAddress(), true);
+    await helixToken.setRole(ethers.keccak256(ethers.toUtf8Bytes("BURNER_ROLE")), staking.getAddress(), true);
+
     return {
       staking,
       governorSigner,
@@ -169,90 +173,59 @@ describe("Staking Contract Tests", function () {
     expect(boostPercentage).to.be.eql(10000n); // e.g. 10500 if exactly 5%
   });
 
-  /**
-   * 02) "Should stake 10_000_000 tokens, advance time and get first reward"
-   */
-  it("Should stake 10_000_000 tokens, advance time and get first reward", async () => {
+  
+  it("Should stake 10_000_000 tokens, advance time (30+ days) and get first reward", async () => {
     const { staking, tokenHolderSigner } = await loadFixture(deployStakingFixture);
 
-    // 1) Stake from the token holder
-    const depositTx = await staking.connect(tokenHolderSigner).deposit(
-      STAKE_AMOUNT, // 10_000_000
-      0,            // e.g. 1-month timelock (index 0)
-      KONDUX_ERC20_ADDRESS
-    );
-    await depositTx.wait();
+    await staking.connect(tokenHolderSigner).deposit(STAKE_AMOUNT, 0, KONDUX_ERC20_ADDRESS);
+    // Must wait at least 30 days for timelock=0 to pass
+    await time.increase(31 * 24 * 60 * 60);
 
-    // 2) Advance time (e.g., 7 days)
-    await time.increase(60 * 60 * 24 * 7);
-
-    // 3) Claim the reward
     const depositIds = await staking.getDepositIds(tokenHolderSigner.address);
-    const firstDepositId = depositIds[0];
-    await staking.connect(tokenHolderSigner).claimRewards(firstDepositId);
+    await staking.connect(tokenHolderSigner).claimRewards(depositIds[0]);
 
-    // 4) Validate results 
-    //    - userTotalRewardedByCoin should have increased, 
-    //    - unclaimedRewards should be 0, etc.
     const totalRewarded = await staking.userTotalRewardedByCoin(KONDUX_ERC20_ADDRESS, tokenHolderSigner.address);
     expect(totalRewarded).to.be.gt(0);
   });
 
-  /**
-   * 03) "Should stake 10_000_000 tokens, advance time and withdraw 10_000"
-   */
-  it("Should stake 10_000_000 tokens, advance time and withdraw 10_000", async () => {
+   it("Should stake 10_000_000 tokens, advance time, withdraw 10_000", async () => {
     const { staking, tokenHolderSigner } = await loadFixture(deployStakingFixture);
 
-    // 1) Stake
-    await staking.connect(tokenHolderSigner).deposit(
-      STAKE_AMOUNT,
-      0,
-      KONDUX_ERC20_ADDRESS
-    );
+    await staking.connect(tokenHolderSigner).deposit(STAKE_AMOUNT, 0, KONDUX_ERC20_ADDRESS);
+    // wait 31 days
+    await time.increase(31 * 24 * 60 * 60);
 
-    // 2) Advance time
-    await time.increase(60 * 60 * 24 * 7);
-
-    // 3) Withdraw 10_000
     const depositIds = await staking.getDepositIds(tokenHolderSigner.address);
-    const firstDepositId = depositIds[0];
-    const withdrawAmount = 10_000n;
+    await staking.connect(tokenHolderSigner).withdraw(10_000n, depositIds[0]);
 
-    await staking.connect(tokenHolderSigner).withdraw(withdrawAmount, firstDepositId);
-
-    // 4) Check that deposit is reduced
-    const depositInfo = await staking.userDeposits(firstDepositId);
-    expect(depositInfo.deposited).to.equal(STAKE_AMOUNT - withdrawAmount);
+    // check deposit
+    const depositStruct = await staking.userDeposits(depositIds[0]);
+    expect(depositStruct.deposited).to.equal(STAKE_AMOUNT - 10_000n);
   });
 
   /**
    * 04) "Should stake 10_000_000 tokens, advance time, add another token,
    *       stake, advance time, withdraw"
    */
-  it("Should stake, advance, stake more, withdraw", async () => {
-    const { staking, tokenHolderSigner, konduxToken } = await loadFixture(deployStakingFixture);
+  it("Should stake, advance, stake more (10_000_000 again), withdraw partial", async () => {
+    const { staking, tokenHolderSigner } = await loadFixture(deployStakingFixture);
 
-    // (Optional) If you have a second token, you'd do the same process:
-    // For the sample, we'll just use the same KONDUX_ERC20 again.
-
-    // 1) First stake
+    // 1) first deposit
     await staking.connect(tokenHolderSigner).deposit(STAKE_AMOUNT, 0, KONDUX_ERC20_ADDRESS);
-    await time.increase(60 * 60 * 24 * 7); // 7 days
+    // wait 31 days
+    await time.increase(31 * 24 * 60 * 60);
 
-    // 2) Second stake
-    await staking.connect(tokenHolderSigner).deposit(STAKE_AMOUNT / 2n, 0, KONDUX_ERC20_ADDRESS);
+    // 2) second deposit (must also be >= 10,000,000 to pass min stake)
+    await staking.connect(tokenHolderSigner).deposit(STAKE_AMOUNT, 0, KONDUX_ERC20_ADDRESS);
 
-    // 3) Advance more time
-    await time.increase(60 * 60 * 24 * 7);
+    // 3) wait 31 days again
+    await time.increase(31 * 24 * 60 * 60);
 
-    // 4) Withdraw partial
     const depositIds = await staking.getDepositIds(tokenHolderSigner.address);
-    // Suppose we withdraw from the second deposit
-    const secondDepositId = depositIds[1];
-    await staking.connect(tokenHolderSigner).withdraw(5_000n, secondDepositId);
-
-    // Validate final deposit amounts, etc.
+    // withdraw partial from second deposit
+    await staking.connect(tokenHolderSigner).withdraw(10_000n, depositIds[1]);
+    const deposit2 = await staking.userDeposits(depositIds[1]);
+    expect(deposit2.deposited).to.equal(STAKE_AMOUNT - 10_000n);
   });
 
   /**
@@ -277,19 +250,15 @@ describe("Staking Contract Tests", function () {
     expect(totalRewarded).to.be.gt(0);
   });
 
-  /**
-   * 06) "Should stake 10_000_000 tokens, advance time 1y and withdraw 10_000"
-   */
   it("Should stake, wait 1y, withdraw partial", async () => {
     const { staking, tokenHolderSigner } = await loadFixture(deployStakingFixture);
 
     await staking.connect(tokenHolderSigner).deposit(STAKE_AMOUNT, 3, KONDUX_ERC20_ADDRESS);
-    await time.increase(365 * 24 * 60 * 60);
+    await time.increase(366 * 24 * 60 * 60);
 
     const depositIds = await staking.getDepositIds(tokenHolderSigner.address);
     await staking.connect(tokenHolderSigner).withdraw(10_000n, depositIds[0]);
-    
-    // check deposit updated
+
     const afterInfo = await staking.userDeposits(depositIds[0]);
     expect(afterInfo.deposited).to.equal(STAKE_AMOUNT - 10_000n);
   });
@@ -316,27 +285,18 @@ describe("Staking Contract Tests", function () {
   it("Should earlyUnstake with penalty", async () => {
     const { staking, tokenHolderSigner } = await loadFixture(deployStakingFixture);
 
-    // 1) Stake with a long timelock (e.g. category 3 => 1 year)
+    // stake with category 3 => 365 days
     await staking.connect(tokenHolderSigner).deposit(STAKE_AMOUNT, 3, KONDUX_ERC20_ADDRESS);
+    // move ~182 days
+    await time.increase(182 * 24 * 60 * 60);
 
-    // 2) Move time forward half
-    // If it's 1 year, half is ~182 days
-    await time.increase(60 * 60 * 24 * 182);
-
-    // 3) earlyUnstake a portion
     const depositIds = await staking.getDepositIds(tokenHolderSigner.address);
-    const depositId = depositIds[0];
     const toWithdraw = 50_000n;
-    await staking.connect(tokenHolderSigner).earlyUnstake(toWithdraw, depositId);
+    await staking.connect(tokenHolderSigner).earlyUnstake(toWithdraw, depositIds[0]);
 
-    // 4) The deposit should be reduced by `toWithdraw`, plus some penalty
-    //    Actually, you only see your real deposit reduced by toWithdraw,
-    //    the penalty is fees withheld. You can test the final amounts, etc.
-    const updated = await staking.userDeposits(depositId);
+    const updated = await staking.userDeposits(depositIds[0]);
     expect(updated.deposited).to.equal(STAKE_AMOUNT - toWithdraw);
-    // Additional checks: totalWithdrawalFees, user balances, etc.
   });
-
   /**
    * 09) "Should stake 10_000_000 tokens, advance time and restake rewards"
    */
@@ -362,23 +322,21 @@ describe("Staking Contract Tests", function () {
   /**
    * 10) "Should stake 10_000_000 tokens, advance time and get multiple rewards"
    */
-  it("Should stake multiple times, claim multiple times", async () => {
+ it("Should stake multiple times, claim multiple times", async () => {
     const { staking, tokenHolderSigner } = await loadFixture(deployStakingFixture);
 
-    // 1) deposit #1
     await staking.connect(tokenHolderSigner).deposit(STAKE_AMOUNT, 0, KONDUX_ERC20_ADDRESS);
-    await time.increase(60 * 60 * 24 * 7);
-    // 2) deposit #2
+    await time.increase(31 * 24 * 60 * 60);
+
     await staking.connect(tokenHolderSigner).deposit(STAKE_AMOUNT, 0, KONDUX_ERC20_ADDRESS);
-    await time.increase(60 * 60 * 24 * 7);
+    await time.increase(31 * 24 * 60 * 60);
 
     const depositIds = await staking.getDepositIds(tokenHolderSigner.address);
-    // claim from deposit #1
+    // claim from deposit #0
     await staking.connect(tokenHolderSigner).claimRewards(depositIds[0]);
-    // claim from deposit #2
+    // claim from deposit #1
     await staking.connect(tokenHolderSigner).claimRewards(depositIds[1]);
 
-    // check user total rewarded is sum of both
     const totalRewarded = await staking.userTotalRewardedByCoin(KONDUX_ERC20_ADDRESS, tokenHolderSigner.address);
     expect(totalRewarded).to.be.gt(0);
   });
@@ -390,48 +348,34 @@ describe("Staking Contract Tests", function () {
    * Rather than re-run them all in code duplication, this shows how you'd
    * do it in a single scenario. We'll do an abbreviated version.
    */
-  it("Re-run scenarios after changing APR, ensuring older deposits keep old APR", async () => {
+   it("Re-run scenarios after changing APR, ensuring older deposits keep old APR", async () => {
     const { staking, tokenHolderSigner, governorSigner } = await loadFixture(deployStakingFixture);
 
-    // 1) deposit with old APR
+    // deposit with old APR=25%
     await staking.connect(tokenHolderSigner).deposit(STAKE_AMOUNT, 0, KONDUX_ERC20_ADDRESS);
+    await time.increase(31 * 24 * 60 * 60);
 
-    // 2) Advance
-    await time.increase(60 * 60 * 24 * 7);
+    // update APR
+    await staking.connect(governorSigner).setAPR(50, KONDUX_ERC20_ADDRESS); 
 
-    // 3) Governor updates global APR
-    await staking.connect(governorSigner).setAPR(50, KONDUX_ERC20_ADDRESS); // new APR = 50% for new deposits
-
-    // 4) deposit with new APR
+    // deposit with new APR=50%
     await staking.connect(tokenHolderSigner).deposit(STAKE_AMOUNT, 0, KONDUX_ERC20_ADDRESS);
+    await time.increase(31 * 24 * 60 * 60);
 
-    // 5) Advance more
-    await time.increase(60 * 60 * 24 * 60); // 30 days
-
-    // 6) Claim from both deposits
     const depositIds = await staking.getDepositIds(tokenHolderSigner.address);
     console.log("Deposit IDs:", depositIds);
-    // deposit #1 has old APR = 25% from constructor
-    // deposit #2 has new APR = 50%
-    // The contract calculates each deposit's rewards with the "depositApr" stored
-    await staking.connect(tokenHolderSigner).claimRewards(Number(depositIds[0]));
-    await staking.connect(tokenHolderSigner).claimRewards(Number(depositIds[1]));
 
-    // 7) Validate that deposit #1 used the old APR and deposit #2 used the new APR,
-    //    by checking userTotalRewardedByCoin or some custom logic. 
-    //    A typical approach is to check `calculateRewards()` for both before claiming
-    //    and compare the ratio. 
-    const oldAPRRewards = await staking.calculateRewards(Number(depositIds[0]));
-    const newAPRRewards = await staking.calculateRewards(Number(depositIds[1]));
-    console.log("Old APR Rewards:", oldAPRRewards, "New APR Rewards:", newAPRRewards);
-    expect(oldAPRRewards).to.be.gt(0);
+    // Just a quick ratio check
+    const oldAPRRewards = await staking.calculateRewards(tokenHolderSigner.address, depositIds[0]);
+    const newAPRRewards = await staking.calculateRewards(tokenHolderSigner.address, depositIds[1]);
+    console.log("Old APR:", oldAPRRewards.toString(), "New APR:", newAPRRewards.toString());
     expect(newAPRRewards).to.be.gt(oldAPRRewards);
 
-    const totalRewards = oldAPRRewards + newAPRRewards;
-    expect(totalRewards).to.be.gt(0);
-    expect(totalRewards).to.be.gt(oldAPRRewards);
-  });
+    // claim from both
+    await staking.connect(tokenHolderSigner).claimRewards(depositIds[0]);
+    await staking.connect(tokenHolderSigner).claimRewards(depositIds[1]);
 
+  });
   /**
    * 12) "Do edge cases testing for all scenarios"
    *
@@ -446,19 +390,24 @@ describe("Staking Contract Tests", function () {
   it("Edge cases test", async () => {
     const { staking, tokenHolderSigner } = await loadFixture(deployStakingFixture);
 
-    // Example: stake less than minStake
+    // stake less than minStake => revert with "Amount below min stake"
     await expect(
       staking.connect(tokenHolderSigner).deposit(1n, 0, KONDUX_ERC20_ADDRESS)
-    ).to.be.revertedWith("Amount smaller than minimimum deposit");
+    ).to.be.revertedWith("Amount below min stake");
 
-    // Example: withdraw more than deposited
+    // deposit normal
     await staking.connect(tokenHolderSigner).deposit(STAKE_AMOUNT, 0, KONDUX_ERC20_ADDRESS);
     const depositIds = await staking.getDepositIds(tokenHolderSigner.address);
 
+    // attempt to withdraw more than staked
+    await time.increase(31 * 24 * 60 * 60);
     await expect(
       staking.connect(tokenHolderSigner).withdraw(STAKE_AMOUNT + 1n, depositIds[0])
     ).to.be.revertedWith("Can't withdraw more than you have");
 
-    // Add other edge cases as needed.
+    // attempt to claim too early => e.g. deposit category 3 => must wait 365 days
+    // skip because we used timelock=0 for simplicity in this test
+
+    // etc...
   });
 });

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.23;
+pragma solidity 0.8.28;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -11,12 +11,74 @@ import "./interfaces/IKondux.sol";
 import "./interfaces/IKonduxERC20.sol";
 import "./types/AccessControlled.sol";
 
+/**
+ * @dev Interface for the Staking V1 contract, allowing us to read user deposit data
+ *      and specifically retrieve the old deposit’s APR via getDepositAPR.
+ */
+interface IStakingV1 {
+    function userDepositsIds(address _user) external view returns (uint256[] memory);
+
+    function userDeposits(uint256 _depositId) 
+        external 
+        view 
+        returns (
+            address token,
+            address staker,
+            uint256 deposited,
+            uint256 redeemed,
+            uint256 timeOfLastUpdate,
+            uint256 lastDepositTime,
+            uint256 unclaimedRewards,
+            uint256 timelock,
+            uint8 timelockCategory,
+            uint256 ratioERC20
+        );
+
+    // New function to fetch the APR that V1 used for this deposit
+    function getDepositAPR(uint256 _depositId) external view returns (uint256);
+
+    function compoundFreqERC20(address _token) external view returns (uint256);
+
+    function aprERC20(address _token) external view returns (uint256);
+
+    function calculateBoostPercentage(address _staker, uint256 _stakeId) external view returns (uint256);
+
+    function calculateKNFTBoostPercentage(address _staker, uint256 _stakeId) external view returns (uint256);
+
+ 
+
+}
+
 contract Staking is AccessControlled {
+
+    // ---------------------------------
+    //  MIGRATION-RELATED VARIABLES
+    // ---------------------------------
+
+    /**
+     * @dev Reference to Staking V1 (the old contract).
+     */
+    IStakingV1 public stakingV1;
+
+    /**
+     * @dev The first deposit ID used exclusively by Staking V2,
+     *      so that any depositId < initialDepositId is recognized as a V1 deposit.
+     */
+    uint256 public initialDepositId;
+
+    /**
+     * @dev Tracks if a V1 deposit ID has been migrated into V2.
+     */
+    mapping (uint256 => bool) public isV1Migrated;
+
+    // ---------------------------------
+    // END MIGRATION-RELATED VARIABLES
+    // ---------------------------------
 
     uint256 private _depositIds;
 
     /**
-     * @dev Struct representing a staker's information.
+     * @dev Struct representing a staker's information in V2.
      */
     struct Staker {
         // The address of the staked token
@@ -31,8 +93,7 @@ contract Staking is AccessControlled {
         uint256 timeOfLastUpdate;
         // The timestamp of the staker's last deposit
         uint256 lastDepositTime;
-        // The accumulated, but unclaimed rewards for the staker. These are calculated
-        // each time a user writes to the contract
+        // The accumulated, but unclaimed rewards
         uint256 unclaimedRewards;
         // The duration of the timelock applied to the staker's deposit
         uint256 timelock;
@@ -40,9 +101,7 @@ contract Staking is AccessControlled {
         uint8 timelockCategory;
         // ERC20 Ratio at the time of staking
         uint256 ratioERC20;
-        // The APR stored at the time of deposit, ensuring future APR changes
-        // do not affect this deposit's reward calculation unless updated when
-        // staking unclaimed rewards.
+        // The APR stored at the time of deposit. We do not auto-update unless user calls stakeRewards().
         uint256 depositApr;
     } 
 
@@ -53,10 +112,10 @@ contract Staking is AccessControlled {
         OneYear        // 3
     }
 
-    // The deposit IDs associated with a user's address
+    // Mapping user => deposit IDs in V2
     mapping(address => uint[]) public userDepositsIds;
 
-    // The Staker struct information associated with a deposit ID
+    // Mapping deposit ID => Staker struct in V2
     mapping(uint => Staker) public userDeposits;
 
     // Indicates whether a specific ERC20 token is authorized for staking
@@ -113,85 +172,37 @@ contract Staking is AccessControlled {
     // The allowed dnaVersion for reward boost
     mapping (uint256 => bool) public allowedDnaVersions;
 
-    // Map of timelock durations
+    // Timelock durations
     mapping(uint8 => uint256) public timelockDurations;
 
-    IHelix public helixERC20; // Helix ERC20 Token
-    IERC721 public konduxERC721Founders; // Kondux ERC721 Founders Token
-    address public konduxERC721kNFT; // Kondux ERC721 kNFT Token
-    ITreasury public treasury; // Treasury Contract
+    IHelix public helixERC20; 
+    IERC721 public konduxERC721Founders; 
+    address public konduxERC721kNFT; 
+    ITreasury public treasury; 
 
     // Events
-    // Emitted when a staker withdraws their rewards
     event Withdraw(address indexed user, uint256 liquidAmount, uint256 fees);
-
-    // Emitted when a staker withdraws all their rewards
     event WithdrawAll(address indexed staker, uint256 amount);
-
-    // Emitted when a staker compounds their rewards
     event Compound(address indexed staker, uint256 amount);
-
-    // Emitted when a staker stakes their tokens
     event Stake(uint indexed id, address indexed staker, address token, uint256 amount);
-
-    // Emitted when a staker unstakes their tokens
     event Unstake(address indexed staker, uint256 amount);
-
-    // Emitted when a staker receives a reward
     event Reward(address indexed user, uint256 netRewards, uint256 fees);
-
-    // Emitted when the rewards (APR) is updated for a token
     event NewAPR(uint256 indexed amount, address indexed token);
-
-    // Emitted when the minimum stake is updated for a token
     event NewMinStake(uint256 indexed amount, address indexed token);
-
-    // Emitted when the compound frequency is updated for a token
     event NewCompoundFreq(uint256 indexed amount, address indexed token);
-
-    // Emitted when the Helix ERC20 token is updated
     event NewHelixERC20(address indexed helixERC20);
-
-    // Emitted when the Kondux ERC721 Founders token is updated
     event NewKonduxERC721Founders(address indexed konduxERC721Founders);
-
-    // Emitted when the Kondux ERC721 kNFT token is updated
     event NewKonduxERC721kNFT(address indexed konduxERC721kNFT);
-
-    // Emitted when the treasury address is updated
     event NewTreasury(address indexed treasury);
-
-    // Emitted when the withdrawal fee is updated for a token
     event NewWithdrawalFee(uint256 indexed amount, address indexed token);
-
-    // Emitted when the founders reward boost is updated for a token
     event NewFoundersRewardBoost(uint256 indexed amount, address indexed token);
-
-    // Emitted when the kNFT reward boost is updated for a token
     event NewKNFTRewardBoost(uint256 indexed amount, address indexed token);
-
-    // Emitted when a token is authorized or deauthorized for staking
     event NewAuthorizedERC20(address indexed token, bool indexed authorized);
-
-    // Emitted when the ratio is updated for a token
     event NewRatio(uint256 indexed amount, address indexed token);
-
-    // Emitted when a new divisor is set for a token
     event NewDivisorERC20(uint256 indexed amount, address indexed token);
- 
 
     /**
-     * @dev Initializes the staking contract with the provided parameters.
-     *
-     * @param _authority The address of the authority contract.
-     * @param _konduxERC20 The address of the Kondux ERC20 token contract.
-     * @param _treasury The address of the treasury contract.
-     * @param _konduxERC721Founders The address of the Kondux ERC721 Founders token contract.
-     * @param _konduxERC721kNFT The address of the Kondux ERC721 kNFT token contract.
-     * @param _helixERC20 The address of the Helix ERC20 token contract.
-     *
-     * The constructor sets up the initial state of the staking contract by initializing contract variables,
-     * setting up default staking token parameters, and authorizing the Kondux ERC20 token for staking.
+     * @dev Constructor sets default parameters for the "primary" token (Kondux ERC20).
      */
     constructor(
         address _authority,
@@ -201,103 +212,170 @@ contract Staking is AccessControlled {
         address _konduxERC721kNFT,
         address _helixERC20
     ) AccessControlled(IAuthority(_authority)) {
-        // Ensure the provided addresses are valid
         require(_konduxERC20 != address(0), "Kondux ERC20 address is not set");
         require(_treasury != address(0), "Treasury address is not set");
         require(_konduxERC721Founders != address(0), "Kondux ERC721 Founders address is not set");
         require(_konduxERC721kNFT != address(0), "Kondux ERC721 kNFT address is not set");
         require(_helixERC20 != address(0), "Helix ERC20 address is not set");
 
-        // Initialize contract variables
         konduxERC721Founders = IERC721(_konduxERC721Founders);
         konduxERC721kNFT = _konduxERC721kNFT;
         helixERC20 = IHelix(_helixERC20);
         treasury = ITreasury(_treasury);
 
-        timelockDurations[0] = 30 days;         // 1 month
-        timelockDurations[1] = 90 days;         // 3 months
-        timelockDurations[2] = 180 days;        // 6 months
-        timelockDurations[3] = 365 days;        // 1 year
+        timelockDurations[0] = 30 days;      
+        timelockDurations[1] = 90 days;      
+        timelockDurations[2] = 180 days;     
+        timelockDurations[3] = 365 days;     
 
-        // Set up default staking token parameters
-        setDivisorERC20(10_000, _konduxERC20); // 10,000 basis points
-        setWithdrawalFee(100, _konduxERC20); // 1% fee on withdrawal or 100 / 10_000
-        setFoundersRewardBoost(1_000, _konduxERC20); // 10% boost
-        setkNFTRewardBoost(500, _konduxERC20); // 5% boost
-        setMinStake(10_000_000, _konduxERC20); // 10,000,000 wei
-        setAPR(25, _konduxERC20); // 25% APR
-        setCompoundFreq(60 * 60 * 24, _konduxERC20); // 24 hours
-        setRatio(10_000, _konduxERC20); // 10,000:1 ratio
-        setEarlyWithdrawalPenalty(_konduxERC20, 10); // 10% penalty
-        setTimelockCategoryBoost(1, 100); // 1% boost for 90 days
-        setTimelockCategoryBoost(2, 300); // 3% boost for 180 days
-        setTimelockCategoryBoost(3, 900); // 9% boost for 365 days
-        setAllowedDnaVersion(1, true);    // allow DNA version 1
+        // Default parameters for your main token
+        setDivisorERC20(10_000, _konduxERC20);
+        setWithdrawalFee(100, _konduxERC20);        
+        setFoundersRewardBoost(1_000, _konduxERC20);
+        setkNFTRewardBoost(500, _konduxERC20);
+        setMinStake(10_000_000, _konduxERC20);
+        setAPR(25, _konduxERC20);
+        setCompoundFreq(60 * 60 * 24, _konduxERC20);
+        setRatio(10_000, _konduxERC20);
+        setEarlyWithdrawalPenalty(_konduxERC20, 10);
+        setTimelockCategoryBoost(1, 100);
+        setTimelockCategoryBoost(2, 300);
+        setTimelockCategoryBoost(3, 900);
+        setAllowedDnaVersion(1, true);
         setDecimalsERC20(helixERC20.decimals(), _helixERC20); 
         setDecimalsERC20(IKonduxERC20(_konduxERC20).decimals(), _konduxERC20); 
 
+        // By default, deposit IDs in V2 start at 0. If you have existing V1 deposit IDs,
+        // call `setInitialDepositId(...)` to avoid overlap.
         _setAuthorizedERC20(_konduxERC20, true);
     }
 
+    // ---------------------------------------------------
+    //               MIGRATION-RELATED
+    // ---------------------------------------------------
+
     /**
-     * @dev This function allows a user to deposit a specified amount of an authorized token with a selected timelock period.
-     *      The function checks the user's token balance, allowance, and the timelock value before proceeding.
-     *      It then creates a new deposit record, sets the timelock based on the selected category, and updates the user's
-     *      deposit list and total staked amount. The specified amount of tokens is transferred from the user to the vault,
-     *      and an equivalent amount of reward tokens is minted for the user.
-     *
-     *      The deposit also stores the current APR for the token so that changes to the token's APR in the future won't
-     *      affect this deposit's reward calculation unless updated when staking unclaimed rewards.
-     *
-     * @param _amount The amount of tokens to deposit.
-     * @param _timelock The timelock category, represented as an integer (0-3).
-     * @param _token The address of the token contract.
-     * @return _id The deposit ID assigned to this deposit.
+     * @dev Set the address of the old Staking V1 contract
      */
+    function setStakingV1Contract(address _v1) external onlyGovernor {
+        require(_v1 != address(0), "Invalid V1 address");
+        stakingV1 = IStakingV1(_v1);
+    }
+
+    /**
+     * @dev Sets the deposit ID from which V2 will start, ensuring V1 deposit IDs are all < initialDepositId.
+     *      If V1’s last deposit ID was 1234, set this to 1235 so we do not overlap.
+     */
+    function setInitialDepositId(uint256 _initialDepositId) external onlyGovernor {
+        require(_depositIds == 0, "V2 deposit IDs already in use");
+        initialDepositId = _initialDepositId;
+        // from now on, new V2 deposits will start at `_initialDepositId`
+        _depositIds = _initialDepositId;
+    }
+
+    /**
+     * @dev Check if deposit is from V1
+     */
+    function _isV1Deposit(uint256 depositId) internal view returns (bool) {
+        return (depositId < initialDepositId);
+    }
+
+    /**
+     * @dev Migrate a deposit from V1 to V2 (pull all fields, including old APR).
+     *      We store the exact old deposit APR in `depositApr`.
+     */
+    function _migrateV1Deposit(uint256 _depositId) internal {
+        require(!isV1Migrated[_depositId], "Already migrated");
+
+        (
+            address token,
+            address staker,
+            uint256 deposited,
+            uint256 redeemed,
+            uint256 timeOfLastUpdate,
+            uint256 lastDepositTime,
+            uint256 unclaimedRewards,
+            uint256 timelock,
+            uint8 timelockCategory,
+            uint256 ratio
+        ) = stakingV1.userDeposits(_depositId);
+
+        // Make sure caller is the staker for that deposit
+        require(msg.sender == staker, "Caller not deposit owner (V1)");
+
+        // Now fetch its old deposit APR from V1
+        uint256 oldDepositApr = stakingV1.getDepositAPR(_depositId);
+
+        // Mark as migrated
+        isV1Migrated[_depositId] = true;
+
+        // Create the deposit in V2 under the same depositId
+        userDeposits[_depositId] = Staker({
+            token: token,
+            staker: staker,
+            deposited: deposited,
+            redeemed: redeemed,
+            timeOfLastUpdate: timeOfLastUpdate,
+            lastDepositTime: lastDepositTime,
+            unclaimedRewards: unclaimedRewards,
+            timelock: timelock,
+            timelockCategory: timelockCategory,
+            ratioERC20: ratio,
+            // Use the old deposit APR to preserve user’s original rate
+            depositApr: oldDepositApr
+        });
+
+        // Add that deposit ID to V2's userDepositsIds
+        userDepositsIds[staker].push(_depositId);
+    }
+
+    /**
+     * @dev Whenever a user calls a function with a depositId from V1, 
+     *      we first check if it's already migrated. If not, we do so.
+     */
+    function _checkAndMigrateV1Deposit(uint256 _depositId) internal {
+        if (_isV1Deposit(_depositId) && !isV1Migrated[_depositId]) {
+            _migrateV1Deposit(_depositId);
+        }
+    }
+
+    // ---------------------------------------------------
+    //               V2 FUNCTIONALITY
+    // ---------------------------------------------------
+
     function deposit(uint256 _amount, uint8 _timelock, address _token) public returns (uint) {
-        // Check if the token address is set
-        require(_token != address(0), "Token address is not set");
-        // Check if the token is authorized for staking
+        require(_token != address(0), "Token address not set");
         require(authorizedERC20[_token], "Token not authorized");
-        // Check if the deposit amount is greater than or equal to the minimum required stake
-        require(_amount >= minStakeERC20[_token], "Amount smaller than minimimum deposit");
+        require(_amount >= minStakeERC20[_token], "Amount below min stake");
         IERC20 konduxERC20 = IERC20(_token);
-        // Check if the user has enough balance to stake the specified amount
-        require(konduxERC20.balanceOf(msg.sender) >= _amount, "Can't stake more than you own");
-        // Check if the user has approved the staking contract to spend the specified amount
+        require(konduxERC20.balanceOf(msg.sender) >= _amount, "Insufficient balance");
         require(konduxERC20.allowance(msg.sender, address(this)) >= _amount, "Allowance not set");
-        // Check if the selected timelock category is valid (between 0 and 3)
         require(_timelock <= 3, "Invalid timelock");
 
-        // Get the current deposit ID
+        // This deposit's new ID from our local counter
         uint _id = _depositIds;
 
-        // Create a new deposit record for the user
         userDeposits[_id] = Staker({
             token: _token,
             staker: msg.sender,
             deposited: _amount,
             unclaimedRewards: 0,
-            timelock: block.timestamp + timelockDurations[_timelock], // Set the timelock period
+            timelock: block.timestamp + timelockDurations[_timelock],
             timelockCategory: _timelock,
             timeOfLastUpdate: block.timestamp,
             lastDepositTime: block.timestamp,
             redeemed: 0,
             ratioERC20: ratioERC20[_token],
-            // Store the APR at the time of this deposit
+            // The APR at the moment of deposit
             depositApr: aprERC20[_token]
         });
 
-        // Add the deposit ID to the user's deposit list
         userDepositsIds[msg.sender].push(_id);
 
-        // Update the user's total staked amount
         _addTotalStakedAmount(_amount, _token, msg.sender);
-        
-        // Transfer the deposited tokens from the user to the vault
         konduxERC20.transferFrom(msg.sender, authority.vault(), _amount);
 
-        // Mint an equivalent amount of reward tokens for the user
+        // Mint Helix collateral
         uint8 originalTokenDecimals = decimalsERC20[_token];
         uint8 helixDecimals = decimalsERC20[address(helixERC20)];
         uint decimalDifference = 0;
@@ -306,53 +384,36 @@ contract Staking is AccessControlled {
         }
         helixERC20.mint(msg.sender, _amount * ratioERC20[_token] * (10 ** decimalDifference));
 
-        // Increment the deposit ID counter
+        // Increment for next deposit
         _depositIds++;
 
-        // Emit a Stake event
         emit Stake(_id, msg.sender, _token, _amount);
-
         return _id;
     }
 
-    /**
-     * @dev This function allows the owner of a deposit to stake their earned rewards.
-     *      It verifies that the caller is the deposit owner. The function calculates the rewards
-     *      (using the deposit's stored APR), resets the unclaimed rewards to zero, and updates the deposit record.
-     *      The total staked amount is updated, and an equivalent amount of reward tokens is minted for the user.
-     *      If the current token's APR is different from the stored APR for the deposit, the deposit's APR is updated
-     *      after the previous rewards are calculated.
-     * @param _depositId The ID of the deposit whose rewards are to be staked.
-     */
     function stakeRewards(uint _depositId) public {
-        // Verify that the caller is the owner of the deposit
-        require(msg.sender == userDeposits[_depositId].staker, "You are not the owner of this deposit");
+        // If deposit is from V1, migrate first
+        _checkAndMigrateV1Deposit(_depositId);
 
-        // Calculate the rewards with the current stored APR
-        uint256 rewards = calculateRewards(msg.sender, _depositId) + userDeposits[_depositId].unclaimedRewards;
+        require(msg.sender == userDeposits[_depositId].staker, "Not deposit owner");
 
-        // Check if the rewards are non-zero
-        require(rewards > 0, "No rewards available");
+        uint256 rewards = calculateRewards(msg.sender, _depositId) 
+                            + userDeposits[_depositId].unclaimedRewards;
+        require(rewards > 0, "No rewards");
 
-        // Clear unclaimed rewards and update time
         userDeposits[_depositId].unclaimedRewards = 0;
         userDeposits[_depositId].timeOfLastUpdate = block.timestamp;
 
-        // Before adding rewards to the deposit, check if there's a new APR for the token
+        // If global APR changed for that token, store new for future
         address tokenForDeposit = userDeposits[_depositId].token;
         uint256 currentApr = aprERC20[tokenForDeposit];
         if (currentApr != userDeposits[_depositId].depositApr) {
-            // Update the deposit's APR for future accumulation
             userDeposits[_depositId].depositApr = currentApr;
         }
 
-        // Update the deposited amount with the compounded rewards
         userDeposits[_depositId].deposited += rewards;
-
-        // Update the user's total staked amount
         _addTotalStakedAmount(rewards, tokenForDeposit, userDeposits[_depositId].staker);
 
-        // Mint an equivalent amount of reward tokens for the user
         uint8 originalTokenDecimals = decimalsERC20[tokenForDeposit];
         uint8 helixDecimals = decimalsERC20[address(helixERC20)];
         uint decimalDifference = 0;
@@ -361,25 +422,18 @@ contract Staking is AccessControlled {
         }
         helixERC20.mint(msg.sender, rewards * userDeposits[_depositId].ratioERC20 * (10 ** decimalDifference));
 
-        // Emit a Compound event
         emit Compound(msg.sender, rewards);
     }
 
-    /**
-     * @dev This function allows the owner of a deposit to claim their earned rewards.
-     *      It verifies that the caller is the deposit owner and that the timelock has passed.
-     *      The function calculates the rewards (using the deposit's stored APR), resets the unclaimed rewards to zero,
-     *      and updates the deposit record. The reward tokens are then transferred to the user from the vault.
-     *      The function emits a Reward event upon successful execution.
-     * @param _depositId The ID of the deposit whose rewards are to be claimed.
-     */
     function claimRewards(uint _depositId) public {
-        require(msg.sender == userDeposits[_depositId].staker, "You are not the owner of this deposit");
+        _checkAndMigrateV1Deposit(_depositId);
+
+        require(msg.sender == userDeposits[_depositId].staker, "Not deposit owner");
         require(block.timestamp >= userDeposits[_depositId].timelock, "Timelock not passed");
 
-        uint256 rewards = calculateRewards(msg.sender, _depositId) + userDeposits[_depositId].unclaimedRewards;
-
-        require(rewards > 0, "You have no rewards");
+        uint256 rewards = calculateRewards(msg.sender, _depositId) 
+                            + userDeposits[_depositId].unclaimedRewards;
+        require(rewards > 0, "No rewards");
 
         userDeposits[_depositId].unclaimedRewards = 0;
         userDeposits[_depositId].timeOfLastUpdate = block.timestamp;
@@ -393,50 +447,36 @@ contract Staking is AccessControlled {
         konduxERC20.transferFrom(authority.vault(), msg.sender, netRewards); 
 
         _addTotalRewardedAmount(netRewards, userDeposits[_depositId].token, userDeposits[_depositId].staker);
-        _addTotalWithdrawalFees(rewards - netRewards, userDeposits[_depositId].token);
+        _addTotalWithdrawalFees(fees, userDeposits[_depositId].token);
 
         emit Reward(msg.sender, netRewards, fees);
     }
 
-    /**
-     * @dev This function allows the owner of a deposit to withdraw a specified amount of their deposited tokens.
-     *      It verifies that the timelock has passed, the caller is the deposit owner, and the withdrawal amount
-     *      is within the available limits. The function calculates the rewards (using the deposit's stored APR),
-     *      updates the deposit record, and transfers the liquid amount to the user after applying the withdrawal fee.
-     *      The corresponding Helix collateral tokens are burned. The function emits a Withdraw event upon successful execution.
-     * @param _amount The amount of tokens to withdraw.
-     * @param _depositId The ID of the deposit from which to withdraw the tokens.
-     */
     function withdraw(uint256 _amount, uint _depositId) public {
-        // Verify that the timelock has passed
-        require(block.timestamp >= userDeposits[_depositId].timelock, "Timelock not passed");
-        // Verify that the caller is the owner of the deposit
-        require(msg.sender == userDeposits[_depositId].staker, "You are not the owner of this deposit");
-        // Verify that the withdrawal amount is within the available limits
-        require(userDeposits[_depositId].deposited >= _amount, "Can't withdraw more than you have");
-        // Verify that the withdrawal amount is less than or equal to the collateral tokens the user has
-        require(_amount * userDeposits[_depositId].ratioERC20 <= helixERC20.balanceOf(msg.sender), "Can't withdraw more tokens than the collateral you have");
+        _checkAndMigrateV1Deposit(_depositId);
 
-        // Calculate the rewards (using the deposit's stored APR)
+        require(block.timestamp >= userDeposits[_depositId].timelock, "Timelock not passed");
+        require(msg.sender == userDeposits[_depositId].staker, "Not deposit owner");
+        require(userDeposits[_depositId].deposited >= _amount, "Exceeds deposit");
+        require(_amount * userDeposits[_depositId].ratioERC20 <= helixERC20.balanceOf(msg.sender),
+                "Not enough collateral");
+
         uint256 _rewards = calculateRewards(msg.sender, _depositId);
 
-        // Update the deposit record
         userDeposits[_depositId].deposited -= _amount;
         userDeposits[_depositId].timeOfLastUpdate = block.timestamp;
         userDeposits[_depositId].unclaimedRewards += _rewards;
 
-        // Calculate the liquid amount to transfer after applying the withdrawal fee
-        uint256 _liquid = (_amount * (divisorERC20[userDeposits[_depositId].token] 
-                         - withdrawalFeeERC20[userDeposits[_depositId].token])) / divisorERC20[userDeposits[_depositId].token];
+        uint256 _liquid = (_amount * 
+                          (divisorERC20[userDeposits[_depositId].token] 
+                           - withdrawalFeeERC20[userDeposits[_depositId].token])) 
+                          / divisorERC20[userDeposits[_depositId].token];
         uint256 fees = _amount - _liquid;
 
         IERC20 konduxERC20 = IERC20(userDeposits[_depositId].token);
+        require(konduxERC20.allowance(authority.vault(), address(this)) >= _liquid,
+                "Treasury must approve withdraw tokens");
 
-        // Check if the treasury contract has approved the staking contract to withdraw the tokens
-        require(konduxERC20.allowance(authority.vault(), address(this)) >= _liquid, 
-                "Treasury Contract need to approve Staking Contract to withdraw your tokens -- please call an Admin");
-
-        // Subtract the staked amount
         _subtractStakedAmount(_amount, userDeposits[_depositId].token, userDeposits[_depositId].staker);
 
         uint8 originalTokenDecimals = decimalsERC20[userDeposits[_depositId].token];
@@ -446,42 +486,25 @@ contract Staking is AccessControlled {
             decimalDifference = helixDecimals - originalTokenDecimals;
         }
 
-        // Burn the equivalent amount of collateral tokens
         helixERC20.burn(msg.sender, _amount * userDeposits[_depositId].ratioERC20 * (10 ** decimalDifference));
         
-        // Transfer the liquid amount to the user
         konduxERC20.transferFrom(authority.vault(), msg.sender, _liquid);
 
-        // Update the user's total rewarded amount + total rewarded amount for the token
         _addTotalRewardedAmount(_liquid, userDeposits[_depositId].token, userDeposits[_depositId].staker); 
-        _addTotalWithdrawalFees(_amount - _liquid, userDeposits[_depositId].token); 
+        _addTotalWithdrawalFees(fees, userDeposits[_depositId].token); 
 
         emit Withdraw(msg.sender, _liquid, fees);
     }
 
-    /**
-     * @dev This function allows the owner of a deposit to withdraw a specified amount of their deposited tokens
-     *      before the timelock has passed. The user is punished by not receiving any reward boosts and paying an extra
-     *      fee proportional to the time left until the lock (the closer to the end of the locking time, the smaller the fee,
-     *      starting at 10%).
-     *      It verifies that the caller is the deposit owner, and the withdrawal amount is within the available limits.
-     *      The function calculates the rewards (but no boost), updates the deposit record, and transfers the liquid amount
-     *      to the user after applying the extra fee and withdrawal fee. The corresponding Helix collateral tokens are burned.
-     *      The function emits a Withdraw event upon successful execution.
-     * @param _amount The amount of tokens to withdraw.
-     * @param _depositId The ID of the deposit from which to withdraw the tokens.
-     */
     function earlyUnstake(uint256 _amount, uint _depositId) public {
-        // Verify that the caller is the owner of the deposit
-        require(msg.sender == userDeposits[_depositId].staker, "You are not the owner of this deposit");
-        // Verify that the withdrawal amount is within the available limits
-        require(userDeposits[_depositId].deposited >= _amount, "Can't withdraw more than you have");
-        // Verify that the withdrawal amount is less than or equal to the collateral tokens the user has
-        require(_amount * userDeposits[_depositId].ratioERC20 <= helixERC20.balanceOf(msg.sender), "Can't withdraw more tokens than the collateral you have");
-        // Verify if the timelock has not passed
-        require(block.timestamp < userDeposits[_depositId].timelock, "Timelock has passed");
+        _checkAndMigrateV1Deposit(_depositId);
 
-        // Calculate the extra fee proportional to the time left until the lock
+        require(msg.sender == userDeposits[_depositId].staker, "Not deposit owner");
+        require(userDeposits[_depositId].deposited >= _amount, "Exceeds deposit");
+        require(_amount * userDeposits[_depositId].ratioERC20 <= helixERC20.balanceOf(msg.sender),
+                "Not enough collateral");
+        require(block.timestamp < userDeposits[_depositId].timelock, "Timelock passed");
+
         uint256 timeLeft = userDeposits[_depositId].timelock - block.timestamp;
         uint256 lockDuration = userDeposits[_depositId].timelock - userDeposits[_depositId].lastDepositTime;
         uint256 extraFee = (_amount * earlyWithdrawalPenalty[userDeposits[_depositId].token] * timeLeft) 
@@ -490,14 +513,11 @@ contract Staking is AccessControlled {
         if (extraFee > _amount) {
             extraFee = _amount;
         }
-
         if (extraFee == 0) {
             extraFee = (_amount * 1) / 100;
         }
 
         uint256 totalFeePercentage = extraFee + withdrawalFeeERC20[userDeposits[_depositId].token];
-
-        // The logic below is simplistic and for demonstration
         uint256 _liquid = (_amount - totalFeePercentage);
         uint256 fees = _amount - _liquid;
 
@@ -505,9 +525,8 @@ contract Staking is AccessControlled {
         userDeposits[_depositId].timeOfLastUpdate = block.timestamp;
 
         IERC20 konduxERC20 = IERC20(userDeposits[_depositId].token);
-
-        require(konduxERC20.allowance(authority.vault(), address(this)) >= _liquid, 
-                "Treasury Contract need to approve Staking Contract to withdraw your tokens -- please call an Admin");
+        require(konduxERC20.allowance(authority.vault(), address(this)) >= _liquid,
+                "Treasury must approve withdraw tokens");
 
         _subtractStakedAmount(_amount, userDeposits[_depositId].token, userDeposits[_depositId].staker);
 
@@ -521,355 +540,270 @@ contract Staking is AccessControlled {
         konduxERC20.transferFrom(authority.vault(), msg.sender, _liquid);
 
         _addTotalRewardedAmount(_liquid, userDeposits[_depositId].token, userDeposits[_depositId].staker); 
-        _addTotalWithdrawalFees(_amount - _liquid, userDeposits[_depositId].token); 
+        _addTotalWithdrawalFees(fees, userDeposits[_depositId].token); 
 
         emit Withdraw(msg.sender, _liquid, fees);
     }
 
-    /**
-     * @dev This function allows the owner of a deposit to withdraw a specified amount of their deposited tokens
-     *      and claim their earned rewards in a single transaction. It calls the withdraw and claimRewards functions.
-     * @param _amount The amount of tokens to withdraw.
-     * @param _depositId The ID of the deposit from which to withdraw the tokens and claim the rewards.
-     */
     function withdrawAndClaim(uint256 _amount, uint _depositId) public {
         withdraw(_amount, _depositId);
         claimRewards(_depositId);
     }
 
-    /**
-     * @dev This function returns the remaining time until the next allowed compounding action for a given deposit ID.
-     *      It calculates the remaining time based on the compound frequency for the deposited token.
-     *      If the timer has already passed, it returns 0.
-     * @param _depositId The ID of the deposit for which to return the compound timer.
-     * @return remainingTime The remaining time until the next allowed compounding action in seconds.
-     */
     function compoundRewardsTimer(uint _depositId) public view returns (uint256 remainingTime) {
-        uint256 lastUpdateTime = userDeposits[_depositId].timeOfLastUpdate;
-        uint256 compoundFrequency = compoundFreqERC20[userDeposits[_depositId].token];
+        if (_isV1Deposit(_depositId) && !isV1Migrated[_depositId]) {
+            // 1. Read deposit data from V1
+            (
+                address token,
+                /* staker */,
+                /* deposited */,
+                /* redeemed */,
+                uint256 timeOfLastUpdate,
+                /* lastDepositTime */,
+                /* unclaimedRewards */,
+                /* timelock */,
+                /* timelockCategory */,
+                /* ratioERC20 */
+            ) = stakingV1.userDeposits(_depositId);
 
-        if (block.timestamp >= lastUpdateTime + compoundFrequency) {
-            return 0;
+            // 2. Read the compound frequency from V1’s public mapping
+            uint256 freq = stakingV1.compoundFreqERC20(token);
+
+            // 3. Calculate how many seconds remain until next compound
+            if (block.timestamp >= timeOfLastUpdate + freq) {
+                return 0;
+            }
+            return (timeOfLastUpdate + freq) - block.timestamp;
+
+        } else {
+            // Deposit is already migrated or is originally V2
+            uint256 lastUpdateTime = userDeposits[_depositId].timeOfLastUpdate;
+            address token = userDeposits[_depositId].token;
+            uint256 freq = compoundFreqERC20[token];
+
+            if (block.timestamp >= lastUpdateTime + freq) {
+                return 0;
+            }
+            return (lastUpdateTime + freq) - block.timestamp;
         }
-
-        remainingTime = (lastUpdateTime + compoundFrequency) - block.timestamp;
-        return remainingTime;
     }
 
-    /**
-     * @dev This function calculates the rewards for a specified staker and deposit ID. The rewards calculation
-     *      considers the deposit's elapsed time, staked amount, and the stored APR at the time of deposit (or
-     *      updated APR if the user staked unclaimed rewards). If the provided staker is not the owner of the deposit,
-     *      the function returns 0.
-     * @param _staker The address of the staker for which to calculate the rewards.
-     * @param _depositId The ID of the deposit for which to calculate the rewards.
-     * @return rewards The calculated rewards for the specified staker and deposit ID.
-     */
-    function calculateRewards(address _staker, uint _depositId) public view returns (uint256 rewards) {
-        // Retrieve deposit details by _depositId
-        Staker memory deposit_ = userDeposits[_depositId];
 
-        // Check if the staker is the owner of the deposit; if not, return 0
+
+    function calculateRewards(address _staker, uint _depositId) public view returns (uint256 rewards) {
+        // -----------------------------------------
+        // 1) CHECK IF IT'S A V1 DEPOSIT (UNMIGRATED)
+        // -----------------------------------------
+        if (_isV1Deposit(_depositId) && !isV1Migrated[_depositId]) {
+            // We fetch data from V1’s userDeposits(...) 
+            (
+                address token,
+                address staker,
+                uint256 deposited,
+                /* redeemed */,
+                uint256 timeOfLastUpdate,
+                /* lastDepositTime */,
+                /* unclaimedRewards */,
+                /* timelock */,
+                /* timelockCategory */,
+                /* ratioERC20 */
+            ) = stakingV1.userDeposits(_depositId);
+
+            // Ensure the caller is the owner
+            if (staker != _staker) {
+                return 0;
+            }
+
+            // V1 uses a per-token APR in aprERC20
+            uint256 _tokenApr = stakingV1.aprERC20(token); 
+
+            // Calculate elapsed time
+            uint256 _elapsedTime = block.timestamp - timeOfLastUpdate;
+
+            // The standard reward formula: 
+            //   rewardPerSecond = (deposited * APR) / (seconds per year * 100)
+            //   totalRewards    = rewardPerSecond * elapsedTime
+            //
+            // We use 1e18 for scaling to avoid truncation, same as in your V2 logic.
+            uint256 _rewardPerSecond = (deposited * _tokenApr * 1e18) / (365 * 24 * 3600 * 100);
+            uint256 __reward = (_elapsedTime * _rewardPerSecond) / 1e18;  
+
+            // For demonstration, we do NOT apply any boosts for unmigrated V1 deposits 
+            // (since that logic may differ in V1). 
+            // If you want to replicate V1’s boost logic, you’d read from V1 or do a fallback.
+
+            return __reward; 
+        }
+
+        // -----------------------------
+        // 2) IF ALREADY MIGRATED OR V2
+        // -----------------------------
+        Staker memory deposit_ = userDeposits[_depositId];
         if (deposit_.staker != _staker) {
             return 0;
         }
 
-        // Calculate the elapsed time since the last update
+        // Normal V2 logic:
         uint256 elapsedTime = block.timestamp - deposit_.timeOfLastUpdate;
-        // Get the deposited amount
         uint256 depositedAmount = deposit_.deposited;
-
-        // Use the deposit's stored APR (which may be different from the current global APR)
         uint256 tokenApr = deposit_.depositApr;
 
-        /**
-         * @dev This line calculates the reward earned per second by a staker for their deposit, considering the deposit's APR.
-         *
-         * The formula breakdown:
-         * 1. depositedAmount: The amount of tokens the staker deposited.
-         * 2. tokenApr: The annual percentage rate for the token in question (e.g. 25% APR).
-         * 3. 1e18: A scaling factor used to maintain precision in the calculations.
-         * 4. 365 * 24 * 3600: The total number of seconds in a year.
-         * 5. 100: Used to convert the APR percentage to a decimal (e.g. 25% becomes 0.25).
-         */
-        uint256 rewardPerSecond = (depositedAmount * tokenApr * 1e18) / (365 * 24 * 3600 * 100);
+        uint256 rewardPerSecond = (depositedAmount * tokenApr * 1e18) 
+                                / (365 * 24 * 3600 * 100);
 
-        // Calculate the base reward based on elapsed time
         uint256 _reward = (elapsedTime * rewardPerSecond) / 1e18;
 
-        // Calculate the boost percentage
+        // Apply V2’s boosts (Founders NFT, kNFT, timelock).
         uint256 boostPercentage = calculateBoostPercentage(_staker, _depositId);
-
-        // Apply the boost percentage
         _reward = (_reward * boostPercentage) / divisorERC20[deposit_.token];
 
         return _reward;
-    }      
+    }
 
-    // Internal functions:
 
-    /**
-     * @dev This internal function is used to update the total rewarded amount and the total rewarded amount
-     *      for a specific user and token. It is called when rewards are distributed or staked.
-     * @param _amount The amount of tokens to add to the total rewarded and user's total rewarded.
-     * @param _token The address of the token contract.
-     * @param _user The address of the user receiving the rewards.
-     */
+    // ---------------------------------
+    // Internal bookkeeping
+    // ---------------------------------
+
     function _addTotalRewardedAmount(uint256 _amount, address _token, address _user) internal {
         totalRewarded[_token] += _amount;
         userTotalRewardedByCoin[_token][_user] += _amount;
     }
 
-    /**
-     * @dev This internal function adds the given amount to the total staked amount for a specified token
-     *      and increases the staked amount for the user by the same amount.
-     * @param _amount The amount to add to the total staked amount and user's staked amount.
-     * @param _token The address of the token for which to update the staked amount.
-     * @param _user The address of the user whose staked amount should be increased.
-     */
     function _addTotalStakedAmount(uint256 _amount, address _token, address _user) internal {
         totalStaked[_token] += _amount;
         userTotalStakedByCoin[_token][_user] += _amount;
     }
 
-    /**
-     * @dev This internal function subtracts the given amount from the total staked amount for a specified token
-     *      and decreases the staked amount for the user by the same amount.
-     * @param _amount The amount to subtract from the total staked amount and user's staked amount.
-     * @param _token The address of the token for which to update the staked amount.
-     * @param _user The address of the user whose staked amount should be decreased.
-     */
     function _subtractStakedAmount(uint256 _amount,  address _token, address _user) internal {
-        require(totalStaked[_token] >= _amount, "Staking: Not enough staked (Contract)");
-        require(userTotalStakedByCoin[_token][_user] >= _amount, "Staking: Not enough staked (User)");
+        require(totalStaked[_token] >= _amount, "Not enough staked (Contract)");
+        require(userTotalStakedByCoin[_token][_user] >= _amount, "Not enough staked (User)");
         totalStaked[_token] -= _amount;
         userTotalStakedByCoin[_token][_user] -= _amount;
     }
 
-    /**
-     * @dev This internal function adds the given amount to the total withdrawal fees for a specified token.
-     * @param _amount The amount to add to the total withdrawal fees.
-     * @param _token The address of the token for which to update the withdrawal fees.
-     */
     function _addTotalWithdrawalFees(uint256 _amount, address _token) internal {
         totalWithdrawalFees[_token] += _amount;
     }
-    
-    /**
-     * @dev This function sets the APR for a specified token (as a percentage, e.g., 25 = 25% APR).
-     * @param _apr The APR value to be set for the token.
-     * @param _tokenId The address of the token for which to set the APR.
-     */
+
+    // ---------------------------------
+    //     GOVERNANCE SETTERS
+    // ---------------------------------
+
     function setAPR(uint256 _apr, address _tokenId) public onlyGovernor {
-        require(_tokenId != address(0), "Token address is not set"); 
+        require(_tokenId != address(0), "Token not set"); 
         aprERC20[_tokenId] = _apr; 
         emit NewAPR(_apr, _tokenId);
     }
 
-    /**
-     * @dev This function sets the minimum staking amount for a specified token.
-     * @param _minStake The minimum staking amount to be set, in wei.
-     * @param _tokenId The address of the token for which to set the minimum staking amount.
-     */
     function setMinStake(uint256 _minStake, address _tokenId) public onlyGovernor {
-        require(_tokenId != address(0), "Token address is not set"); 
+        require(_tokenId != address(0), "Token not set"); 
         minStakeERC20[_tokenId] = _minStake;
         emit NewMinStake(_minStake, _tokenId);
     }
 
-    /**
-     * @dev This function sets the ratio for a specified ERC20 token.
-     * @param _ratio The ratio value to be set.
-     * @param _tokenId The address of the token for which to set the ratio.
-     */
     function setRatio(uint256 _ratio, address _tokenId) public onlyGovernor {
-        require(_tokenId != address(0), "Token address is not set"); 
+        require(_tokenId != address(0), "Token not set"); 
         ratioERC20[_tokenId] = _ratio;
         emit NewRatio(_ratio, _tokenId);
     }
 
-    /**
-     * @dev This function sets the address of the Helix ERC20 contract.
-     * @param _helix The address of the Helix ERC20 contract.
-     */
     function setHelixERC20(address _helix) public onlyGovernor {
-        require(_helix != address(0), "Helix address cannot be 0x0");
+        require(_helix != address(0), "Helix cannot be 0x0");
         helixERC20 = IHelix(_helix);
         emit NewHelixERC20(_helix);
     }
 
-    /**
-     * @dev This function sets the address of the konduxERC721Founders contract.
-     * @param _konduxERC721Founders The address of the konduxERC721Founders contract.
-     */
     function setKonduxERC721Founders(address _konduxERC721Founders) public onlyGovernor {
-        require(_konduxERC721Founders != address(0), "Founders address cannot be 0x0");
+        require(_konduxERC721Founders != address(0), "Founders cannot be 0x0");
         konduxERC721Founders = IERC721(_konduxERC721Founders);
         emit NewKonduxERC721Founders(_konduxERC721Founders);
     }
 
-    /**
-     * @dev This function sets the address of the konduxERC721kNFT contract.
-     * @param _konduxERC721kNFT The address of the konduxERC721kNFT contract.
-     */
     function setKonduxERC721kNFT(address _konduxERC721kNFT) public onlyGovernor {
-        require(_konduxERC721kNFT != address(0), "kNFT address cannot be 0x0");
+        require(_konduxERC721kNFT != address(0), "kNFT cannot be 0x0");
         konduxERC721kNFT = _konduxERC721kNFT;
         emit NewKonduxERC721kNFT(_konduxERC721kNFT);
     }
 
-    /**
-     * @dev This function sets the address of the Treasury contract.
-     * @param _treasury The address of the Treasury contract.
-     */
     function setTreasury(address _treasury) public onlyGovernor {
-        require(_treasury != address(0), "Treasury address cannot be 0x0");
+        require(_treasury != address(0), "Treasury cannot be 0x0");
         treasury = ITreasury(_treasury);
         emit NewTreasury(_treasury);
     }
 
-    /**
-     * @dev This function sets the withdrawal fee for a specified token.
-     * @param _withdrawalFee The withdrawal fee value to be set.
-     * @param _tokenId The address of the token for which to set the withdrawal fee.
-     */
     function setWithdrawalFee(uint256 _withdrawalFee, address _tokenId) public onlyGovernor {
-        require(_tokenId != address(0), "Token address is not set"); 
-        require(_withdrawalFee <= divisorERC20[_tokenId], "Withdrawal fee cannot be more than 100%");
+        require(_tokenId != address(0), "Token not set"); 
+        require(_withdrawalFee <= divisorERC20[_tokenId], "Fee > 100%");
         withdrawalFeeERC20[_tokenId] = _withdrawalFee;
         emit NewWithdrawalFee(_withdrawalFee, _tokenId); 
     }
 
-    /**
-     * @dev This function sets the founders reward boost for a specified token.
-     * @param _foundersRewardBoost The founders reward boost value to be set.
-     * @param _tokenId The address of the token for which to set the founders reward boost.
-     */
     function setFoundersRewardBoost(uint256 _foundersRewardBoost, address _tokenId) public onlyGovernor {
-        require(_tokenId != address(0), "Token address is not set"); 
+        require(_tokenId != address(0), "Token not set"); 
         foundersRewardBoostERC20[_tokenId] = _foundersRewardBoost;
         emit NewFoundersRewardBoost(_foundersRewardBoost, _tokenId);
     }
 
-    /**
-     * @dev This function sets the kNFT reward boost for a specified token.
-     * @param _kNFTRewardBoost The kNFT reward boost value to be set.
-     * @param _tokenId The address of the token for which to set the kNFT reward boost.
-     */
     function setkNFTRewardBoost(uint256 _kNFTRewardBoost, address _tokenId) public onlyGovernor {
-        require(_tokenId != address(0), "Token address is not set"); 
+        require(_tokenId != address(0), "Token not set"); 
         kNFTRewardBoostERC20[_tokenId] = _kNFTRewardBoost;
         emit NewKNFTRewardBoost(_kNFTRewardBoost, _tokenId); 
     }
 
-    /**
-    * @dev This function sets the compound frequency for a specified token.
-    * @param _compoundFreq The compound frequency value to be set.
-    * @param _tokenId The address of the token for which to set the compound frequency.
-    */
     function setCompoundFreq(uint256 _compoundFreq, address _tokenId) public onlyGovernor {
-        require(_tokenId != address(0), "Token address is not set"); 
+        require(_tokenId != address(0), "Token not set"); 
         compoundFreqERC20[_tokenId] = _compoundFreq;
         emit NewCompoundFreq(_compoundFreq, _tokenId);
     }
 
-    /**
-     * @dev This function sets the penalty percentage for early withdrawal of a specified token.
-     * @param _token The address of the token for which to set the penalty percentage.
-     * @param penaltyPercentage The penalty percentage value to be set. Must be between 0 and 100. 
-     */
     function setEarlyWithdrawalPenalty(address _token, uint256 penaltyPercentage) public onlyGovernor {
-        require(_token != address(0), "Token address is not set"); 
-        require(penaltyPercentage <= 100, "Penalty percentage must be between 0 and 100");
+        require(_token != address(0), "Token not set"); 
+        require(penaltyPercentage <= 100, "Penalty must be <= 100%");
         earlyWithdrawalPenalty[_token] = penaltyPercentage;
     }  
 
-    /**
-     * @dev This function sets the timelock category boost for a specified category.
-     * @param _category The category for which to set the boost.
-     * @param _boost The boost value to be set.
-     */
     function setTimelockCategoryBoost(uint _category, uint256 _boost) public onlyGovernor {
         timelockCategoryBoost[_category] = _boost;
     }
 
-    /**
-     * @dev This function sets the divisor for a specified token.
-     * @param _divisor The divisor value to be set.
-     * @param _tokenId The address of the token for which to set the divisor.
-     */
     function setDivisorERC20(uint256 _divisor, address _tokenId) public onlyGovernor {
-        require(_tokenId != address(0), "Token address is not set"); 
+        require(_tokenId != address(0), "Token not set"); 
         divisorERC20[_tokenId] = _divisor;
         emit NewDivisorERC20(_divisor, _tokenId);
     }
 
-    /**
-     * @dev This internal function sets whether an ERC20 token is authorized as a staking currency.
-     * Emits a {NewAuthorizedERC20} event.
-     * @param _token The address of the token to be authorized or deauthorized.
-     * @param _authorized True to authorize the token, false to deauthorize.
-     */
     function _setAuthorizedERC20(address _token, bool _authorized) internal {
-        require(_token != address(0), "Token address cannot be 0x0");
+        require(_token != address(0), "Token cannot be 0x0");
         if (_authorized) {
-            require(aprERC20[_token] > 0, "APR must be greater than 0");
-            require(compoundFreqERC20[_token] > 0, "Compound frequency must be greater than 0");
-            require(withdrawalFeeERC20[_token] > 0, "Withdrawal fee must be greater than 0");
-            require(foundersRewardBoostERC20[_token] > 0, "Founders reward boost must be greater than 0");
-            require(kNFTRewardBoostERC20[_token] > 0, "kNFT reward boost must be greater than 0");
-            require(ratioERC20[_token] > 0, "Ratio must be greater than 0");
-            require(minStakeERC20[_token] > 0, "Minimum stake must be greater than 0");
-            require(divisorERC20[_token] > 0, "Divisor must be greater than 0");
-            require(IERC20(_token).totalSupply() > 0, "Token total supply must be greater than 0");
+            require(aprERC20[_token] > 0, "APR=0");
+            require(compoundFreqERC20[_token] > 0, "compoundFreq=0");
+            require(withdrawalFeeERC20[_token] > 0, "withdrawalFee=0");
+            require(foundersRewardBoostERC20[_token] > 0, "foundersRewardBoost=0");
+            require(kNFTRewardBoostERC20[_token] > 0, "kNFTRewardBoost=0");
+            require(ratioERC20[_token] > 0, "ratio=0");
+            require(minStakeERC20[_token] > 0, "minStake=0");
+            require(divisorERC20[_token] > 0, "divisor=0");
+            require(IERC20(_token).totalSupply() > 0, "No supply");
         }
         authorizedERC20[_token] = _authorized;
         emit NewAuthorizedERC20(_token, _authorized);
     }
 
-    /**
-     * @dev This function sets whether an ERC20 token is authorized as a staking currency.
-     * Emits a {NewAuthorizedERC20} event.
-     * @param _token The address of the token to be authorized or deauthorized.
-     * @param _authorized True to authorize the token, false to deauthorize.
-     */
     function setAuthorizedERC20(address _token, bool _authorized) public onlyGovernor {
-        require(_token != address(0), "Token address is not set"); 
+        require(_token != address(0), "Token not set"); 
         _setAuthorizedERC20(_token, _authorized);
     }
 
-    /**
-     * @dev This function sets the version of dna that is allowed to be used for reward bonus
-     * @param _dnaVersion The dna version to be set.
-     * @param _allowed True to allow the dna version, false to disallow.
-     */
     function setAllowedDnaVersion(uint256 _dnaVersion, bool _allowed) public onlyGovernor {
         allowedDnaVersions[_dnaVersion] = _allowed;
     }
 
-    /**
-     * @dev This function sets the decimals of a specified token.
-     * @param _decimals The decimals value to be set.
-     * @param _tokenId The address of the token for which to set the decimals.
-     */
     function setDecimalsERC20(uint8 _decimals, address _tokenId) public onlyGovernor {
-        require(_tokenId != address(0), "Token address is not set"); 
+        require(_tokenId != address(0), "Token not set"); 
         decimalsERC20[_tokenId] = _decimals;
     }
 
-    /**
-     * @dev This function adds a new staking token with its parameters.
-     * Emits various events based on the setter functions called during token addition.
-     * Emits a {NewAuthorizedERC20} event at the end.
-     * @param _token The address of the new staking token.
-     * @param _apr The APR (e.g., 25 for 25%).
-     * @param _compoundFreq The compound frequency for the new staking token.
-     * @param _withdrawalFee The withdrawal fee for the new staking token.
-     * @param _foundersRewardBoost The founders reward boost for the new staking token.
-     * @param _kNFTRewardBoost The kNFT reward boost for the new staking token.
-     * @param _ratio The ratio for the new staking token.
-     * @param _minStake The minimum stake for the new staking token.
-     */ 
     function addNewStakingToken(
         address _token, 
         uint256 _apr, 
@@ -883,15 +817,15 @@ contract Staking is AccessControlled {
         public 
         onlyGovernor 
     {
-        require(_token != address(0), "Token address cannot be 0x0");
-        require(_apr > 0, "APR must be greater than 0"); 
-        require(_compoundFreq > 0, "Compound frequency must be greater than 0");
-        require(_withdrawalFee > 0, "Withdrawal fee must be greater than 0");
-        require(_foundersRewardBoost > 0, "Founders reward boost must be greater than 0");
-        require(_kNFTRewardBoost > 0, "kNFT reward boost must be greater than 0");
-        require(_ratio > 0, "Ratio must be greater than 0");
-        require(_minStake > 0, "Minimum stake must be greater than 0");
-        require(IERC20(_token).totalSupply() > 0, "Token total supply must be greater than 0");
+        require(_token != address(0), "Token=0");
+        require(_apr > 0, "APR=0"); 
+        require(_compoundFreq > 0, "compoundFreq=0");
+        require(_withdrawalFee > 0, "withdrawalFee=0");
+        require(_foundersRewardBoost > 0, "foundersRewardBoost=0");
+        require(_kNFTRewardBoost > 0, "kNFTRewardBoost=0");
+        require(_ratio > 0, "ratio=0");
+        require(_minStake > 0, "minStake=0");
+        require(IERC20(_token).totalSupply() > 0, "No supply");
 
         setDivisorERC20(10_000, _token);
         setFoundersRewardBoost(_foundersRewardBoost, _token);
@@ -906,270 +840,284 @@ contract Staking is AccessControlled {
         _setAuthorizedERC20(_token, true); 
     }
 
-    // --------------------------------------------------------------------------------------------
-    // Getter functions
-    // --------------------------------------------------------------------------------------------
+    // ---------------------------------
+    //          VIEW FUNCTIONS
+    // ---------------------------------
 
     /**
-     * @dev This function returns the time of the last update for the specified deposit ID.
-     * @param _depositId The ID of the deposit for which the time of the last update is requested.
-     * @return _timeOfLastUpdate The time of the last update for the specified deposit ID.
+     * @dev Return all deposit IDs for a user, merging V1 + V2.
+     *      V1 deposits appear if the user had them. 
      */
+    function getDepositIds(address _user) public view returns (uint256[] memory) {
+        // V2 IDs
+        uint256[] memory v2Ids = userDepositsIds[_user];
+
+        if (address(stakingV1) == address(0)) {
+            return v2Ids;
+        }
+
+        // V1 IDs
+        uint256[] memory v1Ids = stakingV1.userDepositsIds(_user);
+
+        // Merge them
+        uint256 totalLen = v2Ids.length + v1Ids.length;
+        uint256[] memory allIds = new uint256[](totalLen);
+        uint256 i;
+
+        for (; i < v1Ids.length; i++) {
+            allIds[i] = v1Ids[i];
+        }
+        for (uint256 j = 0; j < v2Ids.length; j++) {
+            allIds[i + j] = v2Ids[j];
+        }
+        return allIds;
+    }
+
     function getTimeOfLastUpdate(uint _depositId) public view returns (uint256 _timeOfLastUpdate) {
+        if (_isV1Deposit(_depositId) && !isV1Migrated[_depositId]) {
+            (
+                , 
+                ,
+                ,
+                ,
+                uint256 timeOfLastUpdate,
+                ,
+                ,
+                ,
+                ,
+                
+            ) = stakingV1.userDeposits(_depositId);
+            return timeOfLastUpdate;
+        }
         return userDeposits[_depositId].timeOfLastUpdate;
     }
 
-    /**
-     * @dev This function returns the staked amount for the specified deposit ID.
-     * @param _depositId The ID of the deposit for which the staked amount is requested.
-     * @return _deposited The staked amount for the specified deposit ID.
-     */
     function getStakedAmount(uint _depositId) public view returns (uint256 _deposited) {
+        if (_isV1Deposit(_depositId) && !isV1Migrated[_depositId]) {
+            (
+                , 
+                ,
+                uint256 deposited,
+                ,
+                ,
+                ,
+                ,
+                ,
+                ,
+                
+            ) = stakingV1.userDeposits(_depositId);
+            return deposited;
+        }
         return userDeposits[_depositId].deposited;
     }
 
-    /**
-     * @dev This function returns the APR for the specified token.
-     * @param _tokenId The address of the token for which the APR is requested.
-     * @return _apr The APR for the specified token (as a percentage, e.g., 25 = 25%).
-     */
     function getAPR(address _tokenId) public view returns (uint256 _apr) {
         return aprERC20[_tokenId];
     }
 
-    /**
-     * @dev This function returns the Founder's reward boost for the specified token.
-     * @param _tokenId The address of the token for which the Founder's reward boost is requested.
-     * @return _foundersRewardBoost The Founder's reward boost for the specified token.
-     */
     function getFoundersRewardBoost(address _tokenId) public view returns (uint256 _foundersRewardBoost) {
         return foundersRewardBoostERC20[_tokenId];
     }
 
-    /**
-     * @dev This function returns the kNFT reward boost for the specified token.
-     * @param _tokenId The address of the token for which the kNFT reward boost is requested.
-     * @return _kNFTRewardBoost The kNFT reward boost for the specified token.
-     */
     function getkNFTRewardBoost(address _tokenId) public view returns (uint256 _kNFTRewardBoost) {
         return kNFTRewardBoostERC20[_tokenId];
     }
 
-    /**
-     * @dev This function returns the minimum stake for the specified token.
-     * @param _tokenId The address of the token for which the minimum stake is requested.
-     * @return _minStake The minimum stake for the specified token.
-     */
     function getMinStake(address _tokenId) public view returns (uint256 _minStake) {
         return minStakeERC20[_tokenId];
     }
 
-    /**
-     * @dev This function returns the timelock category for the specified deposit ID.
-     * @param _depositId The ID of the deposit for which the timelock category is requested.
-     * @return _timelockCategory The timelock category for the specified deposit ID.
-     */
     function getTimelockCategory(uint _depositId) public view returns (uint8 _timelockCategory) {
+        if (_isV1Deposit(_depositId) && !isV1Migrated[_depositId]) {
+            (
+                , 
+                ,
+                ,
+                ,
+                ,
+                ,
+                ,
+                ,
+                uint8 category,
+                
+            ) = stakingV1.userDeposits(_depositId);
+            return category;
+        }
         return userDeposits[_depositId].timelockCategory;
     }
 
-    /**
-     * @dev This function returns the timelock for the specified deposit ID.
-     * @param _depositId The ID of the deposit for which the timelock is requested.
-     * @return _timelock The timelock for the specified deposit ID.
-     */
     function getTimelock(uint _depositId) public view returns (uint256 _timelock) {
+        if (_isV1Deposit(_depositId) && !isV1Migrated[_depositId]) {
+            (
+                , 
+                ,
+                ,
+                ,
+                ,
+                ,
+                ,
+                uint256 tl,
+                ,
+                
+            ) = stakingV1.userDeposits(_depositId);
+            return tl;
+        }
         return userDeposits[_depositId].timelock;
     }
 
-    /**
-     * @dev This function returns the deposit IDs for the specified user.
-     * @param _user The address of the user for which the deposit IDs are requested.
-     * @return An array of deposit IDs for the specified user.
-     */
-    function getDepositIds(address _user) public view returns (uint256[] memory) {
-        return userDepositsIds[_user];
-    }
-
-    /**
-     * @dev This function returns the withdrawal fee for the specified token.
-     * @param _tokenId The address of the token for which the withdrawal fee is requested.
-     * @return _withdrawalFee The withdrawal fee for the specified token.
-     */
     function getWithdrawalFee(address _tokenId) public view returns (uint256 _withdrawalFee) {
         return withdrawalFeeERC20[_tokenId]; 
     }
 
-    /**
-     * @dev This function returns the total amount staked for a specific token.
-     * @param _token The address of the token contract.
-     * @return _totalStaked The total amount staked for the given token.
-     */
     function getTotalStaked(address _token) public view returns (uint256 _totalStaked) {
         return totalStaked[_token];
     }
 
-    /**
-     * @dev This function returns the total amount staked by a specific user for a specific token.
-     * @param _user The address of the user.
-     * @param _token The address of the token contract.
-     * @return _totalStaked The total amount staked by the user for the given token.
-     */
     function getUserTotalStakedByCoin(address _user, address _token) public view returns (uint256 _totalStaked) {
         return userTotalStakedByCoin[_token][_user];
     }
 
-    /**
-     * @dev This function returns the total rewards earned for a specific token.
-     * @param _token The address of the token contract.
-     * @return _totalRewards The total rewards earned for the given token.
-     */
     function getTotalRewards(address _token) public view returns (uint256 _totalRewards) {
         return totalRewarded[_token];
     }
 
-    /**
-     * @dev This function returns the total rewards earned by a specific user for a specific token.
-     * @param _user The address of the user.
-     * @param _token The address of the token contract.
-     * @return _totalRewards The total rewards earned by the user for the given token.
-     */
     function getUserTotalRewardsByCoin(address _user, address _token) public view returns (uint256 _totalRewards) {
         return userTotalRewardedByCoin[_token][_user]; 
     }
 
-    /**
-     * @dev This function returns the total withdrawal fees for a specific token.
-     * @param _token The address of the token contract.
-     * @return _totalWithdrawalFees The total withdrawal fees for the given token.
-     */
     function getTotalWithdrawalFees(address _token) public view returns (uint256 _totalWithdrawalFees) {
         return totalWithdrawalFees[_token];
     }
 
-    /**
-     * @dev This function returns the timestamp of the deposit with the specified ID.
-     * @param _depositId The id of the deposit for which the timestamp is requested.
-     * @return _depositTimestamp The timestamp of the deposit
-     */
     function getDepositTimestamp(uint _depositId) public view returns (uint256 _depositTimestamp) {
+        if (_isV1Deposit(_depositId) && !isV1Migrated[_depositId]) {
+            (
+                , 
+                ,
+                ,
+                ,
+                ,
+                uint256 lastDepositTime,
+                ,
+                ,
+                ,
+                
+            ) = stakingV1.userDeposits(_depositId);
+            return lastDepositTime;
+        }
         return userDeposits[_depositId].lastDepositTime; 
     }
 
-    /**
-     * @dev This function returns the penalty for early withdrawal for the specified token in basis points.
-     * @param token The address of the token for which the penalty is requested.
-     * @return The penalty for early withdrawal for the specified token in basis points.
-     */
     function getEarlyWithdrawalPenalty(address token) public view returns (uint256) {
         return earlyWithdrawalPenalty[token];
     }
 
-    /**
-     * @dev This function returns the timelock category boost for the specified category.
-     * @param _category The category for which the timelock category boost is requested.
-     * @return The timelock category boost for the specified category.
-     */
     function getTimelockCategoryBoost(uint _category) public view returns (uint256) {
         return timelockCategoryBoost[_category];
     }
 
-    /**
-     * @dev This function returns the divisor for the specified token.
-     * @param _token The address of the token for which the divisor is requested.
-     * @return The divisor for the specified token.
-     */
     function getDivisorERC20(address _token) public view returns (uint256) {
         return divisorERC20[_token];
     }
 
-    /**
-     * @dev This function returns the permission of usage of a dna version as boost.
-     * @param _dnaVersion The dna version for which the permission is requested.
-     * @return The permission of usage of a dna version as boost
-     */
     function getAllowedDnaVersion(uint256 _dnaVersion) public view returns (bool) {
         return allowedDnaVersions[_dnaVersion];
     }
 
     /**
-     * @dev This function retrieves the deposit information for a given deposit ID. It returns the staked amount
-     *      and the earned rewards (including unclaimed rewards) for the specified deposit.
-     * @param _depositId The ID of the deposit for which to retrieve the information.
-     * @return _stake The staked amount for the specified deposit.
-     * @return _unclaimedRewards The earned rewards (including unclaimed rewards) for the specified deposit.
+     * @dev For an unmigrated V1 deposit, we show partial data. For a V2 deposit, 
+     *      we calculate new rewards plus unclaimed.
      */
     function getDepositInfo(uint _depositId) public view returns (uint256 _stake, uint256 _unclaimedRewards) {
+        if (_isV1Deposit(_depositId) && !isV1Migrated[_depositId]) {
+            (
+                ,
+                address staker,
+                uint256 deposited,
+                ,
+                ,
+                ,
+                uint256 unclaimed,
+                ,
+                ,
+                
+            ) = stakingV1.userDeposits(_depositId);
+
+            _stake = deposited;
+            // We'll only show unclaimed if the caller is the staker, to mirror V2 logic
+            if (staker == msg.sender) {
+                _unclaimedRewards = unclaimed;
+            } else {
+                _unclaimedRewards = 0;
+            }
+            return (_stake, _unclaimedRewards);
+        }
         _stake = userDeposits[_depositId].deposited;  
-        _unclaimedRewards = calculateRewards(msg.sender, _depositId) + userDeposits[_depositId].unclaimedRewards;
+        _unclaimedRewards = calculateRewards(msg.sender, _depositId) 
+                            + userDeposits[_depositId].unclaimedRewards;
         return (_stake, _unclaimedRewards);  
     }
 
-    /**
-     * @dev This function returns the decimals for the specified token.
-     * @param _token The address of the token for which the decimals are requested.
-     * @return The decimals for the specified token.
-     */
     function getDecimalsERC20(address _token) public view returns (uint8) {
         return decimalsERC20[_token];
     }
 
-    /**
-     * @dev This function returns the ratio for the specified token.
-     * @param _token The address of the token for which the ratio is requested.
-     * @return The ratio for the specified token.
-     */
     function getRatioERC20(address _token) public view returns (uint256) {
         return ratioERC20[_token];
     }
 
-    /**
-     * @dev This function returns the ratio for the specified deposit.
-     * @param _depositId The ID of the deposit for which to retrieve the information.
-     * @return The ratio for the specified deposit.
-     */
     function getDepositRatioERC20(uint256 _depositId) public view returns (uint256) {
+        if (_isV1Deposit(_depositId) && !isV1Migrated[_depositId]) {
+            (
+                ,
+                ,
+                ,
+                ,
+                ,
+                ,
+                ,
+                ,
+                ,
+                uint256 ratio
+            ) = stakingV1.userDeposits(_depositId);
+            return ratio;
+        }
         return userDeposits[_depositId].ratioERC20;
     }   
 
-    /**
-     * @dev This function returns the top 5 bonuses and their corresponding kNFT IDs.
-     * @param _staker The address of the staker.
-     * @param _stakeId The ID of the deposit for which to calculate the boost percentage.
-     * @return top5Bonuses An array of the top 5 bonuses.
-     * @return top5Ids An array of the corresponding kNFT IDs.
-     */
-    function getTop5BonusesAndIds(address _staker, uint256 _stakeId) public view returns (uint256[] memory top5Bonuses, uint256[] memory top5Ids) {
+    function getTop5BonusesAndIds(address _staker, uint256 _stakeId) 
+        public 
+        view 
+        returns (uint256[] memory top5Bonuses, uint256[] memory top5Ids) 
+    {
+        // If deposit is not migrated from V1, skip logic or replicate
+        if (_isV1Deposit(_stakeId) && !isV1Migrated[_stakeId]) {
+            return (new uint256[](5), new uint256[](5));
+        }
+
         uint256 kNFTBalance = IERC721(konduxERC721kNFT).balanceOf(_staker);
 
-        // Initialize arrays to store the top 5 bonuses and their corresponding kNFT IDs
         top5Bonuses = new uint256[](5);
         top5Ids = new uint256[](5);
 
-        // Iterate through the staker's kNFTs
         for (uint256 i = 0; i < kNFTBalance; i++) {
             uint256 tokenId = IERC721Enumerable(konduxERC721kNFT).tokenOfOwnerByIndex(_staker, i);
 
-            // if the user's kNFT was received after the deposit date, continue
+            // If user's kNFT was received after deposit date, skip
             if (IKondux(konduxERC721kNFT).getTransferDate(tokenId) > userDeposits[_stakeId].lastDepositTime) {
                 continue;
             }
 
-            // Get the kNFT's DNA version and check if it's allowed
             int256 dnaVersion = IKondux(konduxERC721kNFT).readGen(tokenId, 0, 1);
             if (!allowedDnaVersions[uint256(dnaVersion)]) { 
                 continue;
             }
 
-            // Get the kNFT's boost value and multiply it by 100 to get a percentage
             int256 dnaBoost = IKondux(konduxERC721kNFT).readGen(tokenId, 1, 2) * 100;
-
-            // Clamp the boost value to 0 if it's negative
             if (dnaBoost < 0) {
                 dnaBoost = 0;
             }
 
-            // Update the top 5 bonuses array with the current kNFT boost
             for (uint256 j = 0; j < 5; j++) {
                 if (uint256(dnaBoost) > top5Bonuses[j]) {
                     uint256 temp = top5Bonuses[j];
@@ -1186,39 +1134,28 @@ contract Staking is AccessControlled {
         return (top5Bonuses, top5Ids);
     }
 
-    /**
-     * @dev This function returns the top 5 bonuses and their corresponding kNFT IDs, ignoring deposit times
-     *      and simply calculating the staker's maximum possible top 5 kNFT boosts.
-     * @param _staker The address of the staker.
-     * @return top5Bonuses An array of the top 5 bonuses.
-     * @return top5Ids An array of the corresponding kNFT IDs.
-     */
-    function getMaxTop5BonusesAndIds(address _staker) public view returns (uint256[] memory top5Bonuses, uint256[] memory top5Ids) {
+    function getMaxTop5BonusesAndIds(address _staker) 
+        public 
+        view 
+        returns (uint256[] memory top5Bonuses, uint256[] memory top5Ids) 
+    {
         uint256 kNFTBalance = IERC721(konduxERC721kNFT).balanceOf(_staker);
-
-        // Initialize arrays to store the top 5 bonuses and their corresponding kNFT IDs
         top5Bonuses = new uint256[](5);
         top5Ids = new uint256[](5);
 
-        // Iterate through the staker's kNFTs
         for (uint256 i = 0; i < kNFTBalance; i++) {
             uint256 tokenId = IERC721Enumerable(konduxERC721kNFT).tokenOfOwnerByIndex(_staker, i);
 
-            // Get the kNFT's DNA version and check if it's allowed
             int256 dnaVersion = IKondux(konduxERC721kNFT).readGen(tokenId, 0, 1);
             if (!allowedDnaVersions[uint256(dnaVersion)]) { 
                 continue;
             }
 
-            // Get the kNFT's boost value and multiply it by 100 to get a percentage
             int256 dnaBoost = IKondux(konduxERC721kNFT).readGen(tokenId, 1, 2) * 100;
-
-            // Clamp the boost value to 0 if it's negative
             if (dnaBoost < 0) {
                 dnaBoost = 0;
             }
 
-            // Update the top 5 bonuses array with the current kNFT boost
             for (uint256 j = 0; j < 5; j++) {
                 if (uint256(dnaBoost) > top5Bonuses[j]) {
                     uint256 temp = top5Bonuses[j];
@@ -1235,81 +1172,66 @@ contract Staking is AccessControlled {
         return (top5Bonuses, top5Ids);
     }
 
-    /**
-     * @dev This function calculates the boost percentage for a staker's deposit.
-     * @param _staker The address of the staker.
-     * @param _stakeId The ID of the deposit for which to calculate the boost percentage.
-     * @return boostPercentage The boost percentage for the staker's deposit.
-     */
     function calculateKNFTBoostPercentage(address _staker, uint256 _stakeId) public view returns (uint256 boostPercentage) {
-        // Get the top 5 bonuses and their corresponding kNFT IDs
-        (uint256[] memory top5Bonuses, ) = getTop5BonusesAndIds(_staker, _stakeId);
+        if (_isV1Deposit(_stakeId) && !isV1Migrated[_stakeId]) {
+            // We call V1’s version
+            return stakingV1.calculateKNFTBoostPercentage(_staker, _stakeId); 
+        }
 
-        // Add the top 5 bonuses to the boost percentage
+        (uint256[] memory top5Bonuses, ) = getTop5BonusesAndIds(_staker, _stakeId);
         for (uint256 i = 0; i < 5; i++) {
             boostPercentage += top5Bonuses[i];
         }
-
         return boostPercentage;
     }
 
-    /**
-     * @dev This function calculates the maximum possible boost percentage for a staker, ignoring deposit times.
-     * @param _staker The address of the staker.
-     * @return boostPercentage The maximum possible boost percentage for the staker across up to 5 top kNFTs.
-     */
     function calculateMaxKNFTBoostPercentage(address _staker) public view returns (uint256 boostPercentage) {
         (uint256[] memory top5Bonuses, ) = getMaxTop5BonusesAndIds(_staker);
-
         for (uint256 i = 0; i < 5; i++) {
             boostPercentage += top5Bonuses[i];
         }
-
         return boostPercentage;
     }
 
     /**
-     * @dev This function calculates the boost percentage for a specified staker and deposit ID.
-     *      It takes into account Founders NFT, kNFT boosts, and timelock boosts.
-     * @param _staker The address of the staker for which to calculate the boost.
-     * @param _stakeId The ID of the stake for which to calculate the boost.
-     * @return boostPercentage The calculated boost percentage for the specified staker and deposit ID.
+     * @dev Returns the total boost % combining Founders NFT, kNFT, timelock, etc.  
+     *      If deposit is in V1, we call V1’s `calculateBoostPercentage` directly 
+     *      (which presumably also does the Founders/kNFT/timelock logic).
+     *      Once migrated or originally V2, we do your V2 logic.
      */
     function calculateBoostPercentage(address _staker, uint _stakeId) public view returns (uint256 boostPercentage) {
+        // If deposit is recognized as a V1 deposit and not migrated yet:
+        if (_isV1Deposit(_stakeId) && !isV1Migrated[_stakeId]) {
+            // We call V1’s version
+            return stakingV1.calculateBoostPercentage(_staker, _stakeId);
+        }
+
+        // Otherwise, use the local V2 logic:
         Staker memory deposit_ = userDeposits[_stakeId];
 
-        // Initialize the boost percentage with the base (divisorERC20 = 100%).
+        // Start from 100% = divisorERC20
         boostPercentage = divisorERC20[deposit_.token];
 
-        // Founders NFT boost
+        // Founders NFT
         if (IERC721(konduxERC721Founders).balanceOf(_staker) > 0) {
             boostPercentage += foundersRewardBoostERC20[deposit_.token];
         }
 
-        // kNFT boost
+        // kNFT
         if (IERC721(konduxERC721kNFT).balanceOf(_staker) > 0) {
+            // Here we call our V2 function for kNFT
             boostPercentage += calculateKNFTBoostPercentage(_staker, _stakeId); 
         }
 
-        // Timelock boost
+        // Timelock
         if (deposit_.timelockCategory > 0) {
             boostPercentage += timelockCategoryBoost[deposit_.timelockCategory];
         }
-
         return boostPercentage;
     }
 
     /**
-     * @dev A function that aggregates the returned values of getTimelock, getDepositTimestamp, getTimelockCategory,
-     *      getDepositInfo, and calculateKNFTBoostPercentage for convenience.
-     * @param _staker The address of the staker for which to get the details.
-     * @param _stakeId The ID of the stake for which to get the details.
-     * @return _timelock The timelock for the specified deposit ID.
-     * @return _depositTimestamp The timestamp of the deposit
-     * @return _timelockCategory The timelock category for the specified deposit ID.
-     * @return _stake The staked amount for the specified deposit.
-     * @return _unclaimedRewards The earned rewards (including unclaimed rewards) for the specified deposit.
-     * @return _boostPercentage The calculated boost percentage for the specified staker and deposit ID.
+     * @dev Return several fields for a deposit in one call.
      */
     function getDepositDetails(address _staker, uint _stakeId)
         public
@@ -1330,3 +1252,4 @@ contract Staking is AccessControlled {
         _boostPercentage = calculateBoostPercentage(_staker, _stakeId);
     }
 }
+ 
