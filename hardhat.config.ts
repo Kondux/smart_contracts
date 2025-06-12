@@ -268,7 +268,19 @@ const config: HardhatUserConfig = {
           },
           optimizer: {
             enabled: true,
-            runs: 100,
+            runs: 1000,
+          },
+        },
+      },
+      {
+        version: "0.8.30",
+        settings: {
+          metadata: {
+            bytecodeHash: "none",
+          },
+          optimizer: {
+            enabled: true,
+            runs: 1000,
           },
         },
       }

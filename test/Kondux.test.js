@@ -55,7 +55,8 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
       WETH,
       KNDX,
       FOUNDERSPASS_ADDRESS,
-      konduxTreasury
+      konduxTreasury,
+      0 // infinite supply for testing
     );
     await kondux.waitForDeployment();
 
