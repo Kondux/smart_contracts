@@ -223,8 +223,8 @@ const Kondux = await ethers.getContractFactory("Kondux");
  */
 
 const kondux = await Kondux.connect(signer).deploy(
-    "KonduxAvatar",          // _name
-    "KNDX_AVATAR",               // _symbol
+    "Kondux Avatars",          // _name
+    "kALN",               // _symbol
     uniswapPairAddress,   // _uniswapPair
     WETHAddress,          // _weth
     paymentTokenAddress,  // _kndx (the ERC20 token used to pay royalties)
@@ -233,7 +233,7 @@ const kondux = await Kondux.connect(signer).deploy(
     1000                  // _maxSupply
 );
  console.log("Arguments for hardhat verify:");
-    console.log(`KonduxAvatar KNDX_AVATAR ${uniswapPairAddress} ${WETHAddress} ${paymentTokenAddress} ${foundersPassAddress} ${treasuryAddress} 1000`);
+    console.log(`"Kondux Avatars" kALN ${uniswapPairAddress} ${WETHAddress} ${paymentTokenAddress} ${foundersPassAddress} ${treasuryAddress} 1000`);
 await kondux.waitForDeployment();
 kNFTAddress = kondux.target;
 console.log(`Kondux NFT contract deployed to: ${kNFTAddress}`);
