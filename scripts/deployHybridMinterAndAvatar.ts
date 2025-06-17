@@ -51,12 +51,13 @@ async function main() {
   const MAINNET_ADDRESSES = {
     ADMIN_ADDRESS: "0x41BC231d1e2eB583C24cee022A6CBCE5168c9FD2",
     KNFT_ADDRESS: "0x5aD180dF8619CE4f888190C3a926111a723632ce",
-    TREASURY_ADDRESS: "0xaD2E62E90C63D5c2b905C3F709cC3045AecDAa1E",
+    TREASURY_ADDRESS: "0x15Eb71031430C08946E6733a16498F7397Ad13b3",// "0xaD2E62E90C63D5c2b905C3F709cC3045AecDAa1E",
     FOUNDERSPASS_ADDRESS: "0xD3f011f1768B38CcC0faA7B00E59B0E29920194b",
     PAYMENT_TOKEN_ADDRESS: "0x7CA5af5bA3472AF6049F63c1AbC324475D44EFC1",
     UNISWAP_PAIR_ADDRESS: "0x79dd15aD871b0fE18040a52F951D757Ef88cfe72",
     WETH_ADDRESS: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
     UNISWAP_V2_ROUTER_ADDRESS: "0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD",
+    AVATAR_ADDRESS: "0xb885880f5e4Ad1064e02f56beb5175BA9801fC96",
   };
 
   // Define testnet addresses
@@ -67,7 +68,7 @@ async function main() {
 
   const PREDEPLOYED_ADDRESSES = {
     KNFT_ADDRESS: "0xDDAEc4bfe0D64A234F49F2fe1d22c42126089Ac1",
-    TREASURY_ADDRESS: "0x57B2FF8afF3b8A3307E2aE7bf0854167922aCf96",
+    TREASURY_ADDRESS: "0x17719306030fE5fBf6094fb0e2A38D948dDAfd0c", //"0x57B2FF8afF3b8A3307E2aE7bf0854167922aCf96",
     FOUNDERSPASS_ADDRESS: "0xBE983455A9FF94480510Be64Ee4df75F444638AF",
     PAYMENT_TOKEN_ADDRESS: "0x7601584C416aFC4DB0299964ceBD0aD2C7Da2500",
     UNISWAP_PAIR_ADDRESS: "0xD5714c7dE4297199F08B0c7250DecFd3a4902718",
@@ -222,20 +223,21 @@ const Kondux = await ethers.getContractFactory("Kondux");
  * )
  */
 
-const kondux = await Kondux.connect(signer).deploy(
-    "Kondux Avatars",          // _name
-    "kALN",               // _symbol
-    uniswapPairAddress,   // _uniswapPair
-    WETHAddress,          // _weth
-    paymentTokenAddress,  // _kndx (the ERC20 token used to pay royalties)
-    foundersPassAddress,  // _foundersPass
-    treasuryAddress,      // _treasury
-    1000                  // _maxSupply
-);
- console.log("Arguments for hardhat verify:");
-    console.log(`"Kondux Avatars" kALN ${uniswapPairAddress} ${WETHAddress} ${paymentTokenAddress} ${foundersPassAddress} ${treasuryAddress} 1000`);
-await kondux.waitForDeployment();
-kNFTAddress = kondux.target;
+// const kondux = await Kondux.connect(signer).deploy(
+//     "Kondux Avatars",          // _name
+//     "kALN",               // _symbol
+//     uniswapPairAddress,   // _uniswapPair
+//     WETHAddress,          // _weth
+//     paymentTokenAddress,  // _kndx (the ERC20 token used to pay royalties)
+//     foundersPassAddress,  // _foundersPass
+//     treasuryAddress,      // _treasury
+//     1000                  // _maxSupply
+// );
+//  console.log("Arguments for hardhat verify:");
+//     console.log(`"Kondux Avatars" kALN ${uniswapPairAddress} ${WETHAddress} ${paymentTokenAddress} ${foundersPassAddress} ${treasuryAddress} 1000`);
+// await kondux.waitForDeployment();
+// kNFTAddress = kondux.target;
+kNFTAddress = MAINNET_ADDRESSES.AVATAR_ADDRESS;
 console.log(`Kondux NFT contract deployed to: ${kNFTAddress}`);
 
   // Deploy KonduxHybridMinter
@@ -259,12 +261,12 @@ console.log(`Kondux NFT contract deployed to: ${kNFTAddress}`);
     uniswapPairAddress,
     WETHAddress,
     // 0.01 ETH for the minting fee
-    ethers.parseEther("0.01"), // 0.01 ETH
+    ethers.parseEther("0.05"), // 0.01 ETH
     10, // 10% discount for KNDX ERC20 payment
     ethers.sha256(ethers.toUtf8Bytes("merkleRoot")) // merkleRoot
   );
   console.log("Arguments for hardhat verify:");
-    console.log(`${kNFTAddress} ${treasuryAddress} ${paymentTokenAddress} ${uniswapPairAddress} ${WETHAddress} 10000000000000000 10 ${merkleRoot}`);
+    console.log(`${kNFTAddress} ${treasuryAddress} ${paymentTokenAddress} ${uniswapPairAddress} ${WETHAddress} 50000000000000000 10 ${merkleRoot}`);
   await konduxHybridMinter.waitForDeployment();
   console.log(`KonduxHybridMinter deployed to: ${konduxHybridMinter.target}`);
 
@@ -276,6 +278,56 @@ console.log(`Kondux NFT contract deployed to: ${kNFTAddress}`);
     const grantTx = await kNFTContract.connect(signer).grantRole(MINTER_ROLE, konduxHybridMinter.target);
     await grantTx.wait();
     console.log(`Granted MINTER_ROLE to KonduxHybridMinter on Kondux NFT contract.`);
+
+    // grant ether depositor permission on treasury for hybrid minter
+        /**
+     * @notice Allow approved address to deposit Ether.
+     * @dev Deposits Ether to the contract.
+     */
+    // function depositEther () external payable {
+    //     require(permissions[STATUS.RESERVEDEPOSITOR][msg.sender], notApproved);  
+                
+    //     emit DepositEther(msg.value);
+    // }
+    
+    // enum STATUS {
+    //     RESERVEDEPOSITOR,
+    //     RESERVESPENDER,
+    //     RESERVETOKEN
+    // }
+        /**
+     * @dev Sets permissions for the specified address.
+     * @param _status The status to set the permission for.
+     * @param _address The address to set the permission for.
+     * @param _permission The permission value to set.
+     */
+    // function setPermission(
+    //     STATUS _status,
+    //     address _address,
+    //     bool _permission
+    // ) public onlyGovernor {
+    //     // Check if the address is non-zero
+    //     require(_address != address(0), "Treasury Permission: zero address");
+    //     permissions[_status][_address] = _permission;
+    //     if (_status == STATUS.RESERVETOKEN) {
+    //         isTokenApproved[_address] = _permission;
+    //         if (_permission) {
+    //             approvedTokensList.push(_address);
+    //             approvedTokensCount++;                
+    //         }
+    //     }
+    // }
+    // Grant RESERVEDEPOSITOR permission to KonduxHybridMinter on the Treasury contract
+    // const treasuryContract = await ethers.getContractAt("Treasury", treasuryAddress);
+    // const setPermissionTx = await treasuryContract.connect(signer).setPermission(
+    //   0, // STATUS.RESERVEDEPOSITOR
+    //   konduxHybridMinter.target,
+    //   true // Grant permission
+    // );
+    // await setPermissionTx.wait();
+    // console.log(`Granted RESERVEDEPOSITOR permission to KonduxHybridMinter on Treasury contract.`);
+
+
   } else if ((networkName === "sepolia" || networkName === "goerli") ) {
     const mockKondux = await ethers.getContractAt("MockKondux", kNFTAddress);
     const grantTx = await mockKondux.connect(signer).grantRole(MINTER_ROLE, konduxHybridMinter.target);
