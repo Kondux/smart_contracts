@@ -688,6 +688,489 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
       ).to.be.revertedWith("Fallback not permitted");
     });
   });
+
+  //----------------------------------------------------------------------------
+  // Royalty Splitting
+  //----------------------------------------------------------------------------
+  describe("Royalty Splitting", function () {
+    /**
+     * Helper that prepares a token whose next transfer will trigger royalty.
+     *
+     * @param {boolean} withPartner   if true => set a global partner wallet
+     * @param {boolean} treasuryOn    if true => treasuryFeeEnabled = true
+     */
+    async function prepareRoyaltyScenario(withPartner = true, treasuryOn = true) {
+      const {
+        kondux,
+        admin,          // will act as partner wallet
+        minter,
+        user1,          // creator / royalty owner
+        user2,          // payer of the royalty
+        konduxTreasury,
+        paymentToken,   // KNDX (ERC‑20)
+        tokenHolderSigner,
+      } = await loadFixture(deployKonduxFixture);
+
+      // ------------------------------------------------------------------
+      // Optional config: partner wallet & treasury fee toggle
+      // ------------------------------------------------------------------
+      if (withPartner) {
+        await kondux.connect(admin).setPartnerWallet(admin.address);
+      } else {
+        await kondux.connect(admin).setPartnerWallet(ethers.ZeroAddress);
+      }
+      if (!treasuryOn) {
+        await kondux.connect(admin).setTreasuryFeeEnabled(false);
+      }
+
+      // ------------------------------------------------------------------
+      // Mint token to creator, set royalty, move token to payer
+      // ------------------------------------------------------------------
+      await kondux.connect(minter).safeMint(user1.address, 999);             // tokenId = 0
+      const royaltyETH = ethers.parseUnits("0.001", "ether");
+      await kondux.connect(user1).setTokenRoyaltyEth(0, royaltyETH);
+
+      // First hop (creator ➜ payer) is exempt (mintedOwnerExempt), so no royalty yet
+      await kondux.connect(user1).transferFrom(user1.address, user2.address, 0);
+
+      // ------------------------------------------------------------------
+      // Fund payer (user2) with plenty of KNDX and approve Kondux
+      // ------------------------------------------------------------------
+      await network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [tokenHolderSigner.address],
+      });
+      const richSigner = await ethers.getSigner(tokenHolderSigner.address);
+      await paymentToken
+        .connect(richSigner)
+        .transfer(user2.address, ethers.parseUnits("1000", 9));
+      await network.provider.request({
+        method: "hardhat_stopImpersonatingAccount",
+        params: [tokenHolderSigner.address],
+      });
+
+      await paymentToken
+        .connect(user2)
+        .approve(await kondux.getAddress(), ethers.parseUnits("1000", 9));
+
+      return {
+        kondux,
+        paymentToken,
+        royaltyETH,
+        denominator: await kondux.denominator(),
+        manufacturerBP: await kondux.manufacturerCutBP(),
+        partnerBP: await kondux.partnerCutBP(),
+        creatorBP: await kondux.creatorCutBP(),
+        treasury: konduxTreasury,
+        partner: withPartner ? admin : user1, // falls back to creator if no partner
+        creator: user1,
+        payer: user2,
+        treasuryOn,
+      };
+    }
+
+    it("Splits 40 % / 30 % / 30 % when treasury fee is enabled and partner wallet is set", async function () {
+      const s = await prepareRoyaltyScenario(true, true);
+
+      // Expected amounts
+      const requiredKndx =
+        await s.kondux.getKndxForEth(s.royaltyETH);
+      const expectedManufacturer = (requiredKndx * s.manufacturerBP) / s.denominator;
+      const expectedPartner      = (requiredKndx * s.partnerBP)      / s.denominator;
+      const expectedCreator      = requiredKndx - expectedManufacturer - expectedPartner;
+
+      // Balances before
+      const treasBefore   = await s.paymentToken.balanceOf(s.treasury);
+      const partnerBefore = await s.paymentToken.balanceOf(s.partner.address);
+      const creatorBefore = await s.paymentToken.balanceOf(s.creator.address);
+      // console.log("Balances before:");
+      // console.log("Treasury:", treasBefore.toString());
+      // console.log("Partner:", partnerBefore.toString());
+      // console.log("Creator:", creatorBefore.toString());
+
+      // Royalty‑paying transfer (payer ➜ creator)
+      await s.kondux
+        .connect(s.payer)
+        .transferFrom(s.payer.address, s.creator.address, 0);
+
+      // Balances after
+      const treasAfter   = await s.paymentToken.balanceOf(s.treasury);
+      const partnerAfter = await s.paymentToken.balanceOf(s.partner.address);
+      const creatorAfter = await s.paymentToken.balanceOf(s.creator.address);
+
+      // console.log("Balances after:");
+      // console.log("Treasury:", treasAfter.toString());
+      // console.log("Partner:", partnerAfter.toString());
+      // console.log("Creator:", creatorAfter.toString());
+
+      // Check balances
+
+      expect(treasAfter   - treasBefore).to.equal(expectedManufacturer);
+      expect(partnerAfter - partnerBefore).to.equal(expectedPartner);
+      expect(creatorAfter - creatorBefore).to.equal(expectedCreator);
+    });
+
+    it("Redirects partner share to creator when partner wallet is unset (0x0)", async function () {
+      const s = await prepareRoyaltyScenario(false, true);
+
+      const requiredKndx        = await s.kondux.getKndxForEth(s.royaltyETH);
+      const expectedManufacturer = (requiredKndx * s.manufacturerBP) / s.denominator;
+      const expectedCreator      = requiredKndx - expectedManufacturer; // creator receives partner+creator cuts
+
+      const treasBefore   = await s.paymentToken.balanceOf(s.treasury);
+      const creatorBefore = await s.paymentToken.balanceOf(s.creator.address);
+
+      await s.kondux
+        .connect(s.payer)
+        .transferFrom(s.payer.address, s.creator.address, 0);
+
+      const treasAfter   = await s.paymentToken.balanceOf(s.treasury);
+      const creatorAfter = await s.paymentToken.balanceOf(s.creator.address);
+
+      expect(treasAfter   - treasBefore).to.equal(expectedManufacturer);
+      expect(creatorAfter - creatorBefore).to.equal(expectedCreator);
+    });
+
+    it("Omits manufacturer share completely when treasury fee is disabled", async function () {
+      const s = await prepareRoyaltyScenario(true, false);
+
+      const requiredKndx   = await s.kondux.getKndxForEth(s.royaltyETH);
+      const expectedPartner = (requiredKndx * s.partnerBP) / s.denominator;
+      const expectedCreator = requiredKndx - expectedPartner; // entire remainder to creator
+
+      const treasBefore   = await s.paymentToken.balanceOf(s.treasury);
+      const partnerBefore = await s.paymentToken.balanceOf(s.partner.address);
+      const creatorBefore = await s.paymentToken.balanceOf(s.creator.address);
+
+      await s.kondux
+        .connect(s.payer)
+        .transferFrom(s.payer.address, s.creator.address, 0);
+
+      const treasAfter   = await s.paymentToken.balanceOf(s.treasury);
+      const partnerAfter = await s.paymentToken.balanceOf(s.partner.address);
+      const creatorAfter = await s.paymentToken.balanceOf(s.creator.address);
+
+      expect(treasAfter   - treasBefore).to.equal(0n);
+      expect(partnerAfter - partnerBefore).to.equal(expectedPartner);
+      expect(creatorAfter - creatorBefore).to.equal(expectedCreator);
+    });
+  });
+
+  //----------------------------------------------------------------------------
+  // Edge‑case & “hack‑attempt” scenarios for royalty logic
+  //----------------------------------------------------------------------------
+  describe("Royalty Splitting – Edge‑Cases & Attack Vectors", function () {
+    /* --------------------------------------------------------------------- */
+    /* Helper: deploy, mint 1 token (#0), push it to a payer ready to send   */
+    /* --------------------------------------------------------------------- */
+    async function prepare({
+      withPartner    = true,
+      treasuryOn     = true,
+      changePartner  = false,
+    } = {}) {
+      const f = await loadFixture(deployKonduxFixture);
+
+      // optional partner wallet
+      if (withPartner) {
+        await f.kondux.connect(f.admin).setPartnerWallet(f.admin.address);
+      }
+      if (!treasuryOn) {
+        await f.kondux.connect(f.admin).setTreasuryFeeEnabled(false);
+      }
+
+      // mint ‑> creator (user1)
+      await f.kondux.connect(f.minter).safeMint(f.user1.address, 123);
+      await f.kondux
+        .connect(f.user1)
+        .setTokenRoyaltyEth(0, ethers.parseUnits("0.001", 18)); // 0.001 ETH
+
+      // first hop (creator ➜ payer) – exempt
+      await f.kondux
+        .connect(f.user1)
+        .transferFrom(f.user1.address, f.user2.address, 0);
+
+      // fund payer with plenty of KNDX & approve
+      await network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [f.tokenHolderSigner.address],
+      });
+      const rich = await ethers.getSigner(f.tokenHolderSigner.address);
+      await f.paymentToken
+        .connect(rich)
+        .transfer(f.user2.address, ethers.parseUnits("1000", 9));
+      await network.provider.request({
+        method: "hardhat_stopImpersonatingAccount",
+        params: [f.tokenHolderSigner.address],
+      });
+      await f.paymentToken
+        .connect(f.user2)
+        .approve(await f.kondux.getAddress(), ethers.parseUnits("1000", 9));
+
+      // optional partner switch after first split
+      if (changePartner) {
+        await f.kondux
+          .connect(f.admin)
+          .setPartnerWallet(f.user1.address); // new partner = creator
+      }
+
+      return f;
+    }
+
+    /* ---------------- Admin guards ---------------- */
+    it("Non‑admin cannot call setRoyaltySplits or setPartnerWallet", async () => {
+      const { kondux, user1 } = await loadFixture(deployKonduxFixture);
+      await expect(
+        kondux.connect(user1).setRoyaltySplits(4000, 3000, 3000)
+      ).to.be.revertedWith("kNFT: only admin");
+      await expect(
+        kondux.connect(user1).setPartnerWallet(user1.address)
+      ).to.be.revertedWith("kNFT: only admin");
+    });
+
+    /* ---------------- split sum validation -------- */
+    it("setRoyaltySplits reverts if basis‑points do not sum to denominator", async () => {
+      const { kondux, admin } = await loadFixture(deployKonduxFixture);
+      // 4000 + 4000 + 3000 = 11000 (≠ 10000) -> revert
+      await expect(
+        kondux.connect(admin).setRoyaltySplits(4000, 4000, 3000)
+      ).to.be.revertedWith("kNFT: total royalty cuts must equal 100%");
+    });
+
+    /* ---------------- denominator change ---------- */
+    it("Changing denominator requires new compliant splits", async () => {
+      const { kondux, admin } = await loadFixture(deployKonduxFixture);
+
+      // bump denominator to 20 000
+      await kondux.connect(admin).changeDenominator(20000);
+      expect(await kondux.denominator()).to.equal(20000);
+
+      // old split totals (4000/3000/3000) now invalid
+      await expect(
+        kondux.connect(admin).setRoyaltySplits(4000, 3000, 3000)
+      ).to.be.revertedWith("kNFT: total royalty cuts must equal 100%");
+
+      // valid new totals
+      await kondux.connect(admin).setRoyaltySplits(8000, 6000, 6000);
+      expect(await kondux.manufacturerCutBP()).to.equal(8000);
+    });
+
+    /* ---------------- treasury disabled ----------- */
+    it("Manufacturer share is *ignored* when treasuryFeeEnabled = false", async () => {
+      const s = await prepare({ withPartner: true, treasuryOn: false });
+
+      const needed = await s.kondux.getKndxForEth(
+        ethers.parseUnits("0.001", 18)
+      );
+      const partnerShare = (needed * (await s.kondux.partnerCutBP())) /
+        (await s.kondux.denominator());
+      const creatorShare = needed - partnerShare; // manufacturer = 0
+
+      const t0 = await s.paymentToken.balanceOf(s.konduxTreasury);
+      const p0 = await s.paymentToken.balanceOf(s.admin.address);
+      const c0 = await s.paymentToken.balanceOf(s.user1.address);
+
+      await s.kondux
+        .connect(s.user2)
+        .transferFrom(s.user2.address, s.user1.address, 0);
+
+      expect(
+        (await s.paymentToken.balanceOf(s.konduxTreasury)) - t0
+      ).to.equal(0n);
+      expect(
+        (await s.paymentToken.balanceOf(s.admin.address)) - p0
+      ).to.equal(partnerShare);
+      expect(
+        (await s.paymentToken.balanceOf(s.user1.address)) - c0
+      ).to.equal(creatorShare);
+    });
+
+    /* ---------------- partner wallet swap --------- */
+    it("Switching partnerWallet mid‑lifecycle reroutes future partner shares", async () => {
+      const s = await prepare({ withPartner: true, treasuryOn: true });
+
+      /* 1st royalty‑paying transfer => partner = admin */
+      await s.kondux
+        .connect(s.user2)
+        .transferFrom(s.user2.address, s.user1.address, 0);
+
+      const adminBalAfter1 = await s.paymentToken.balanceOf(s.admin.address);
+
+      /* Change partner to creator */
+      await s.kondux.connect(s.admin).setPartnerWallet(s.user1.address);
+
+      /* 2nd transfer ⇒ partner should now be creator */
+      await s.kondux
+        .connect(s.user1)
+        .transferFrom(s.user1.address, s.user2.address, 0); // user1 -> user2 (exempt)
+      await s.kondux
+        .connect(s.user2)
+        .transferFrom(s.user2.address, s.user1.address, 0); // pays again
+
+      const adminBalAfter2  = await s.paymentToken.balanceOf(s.admin.address);
+      const creatorBalAfter = await s.paymentToken.balanceOf(s.user1.address);
+
+      expect(adminBalAfter2 - adminBalAfter1).to.equal(0n); // no more partner share
+      // creator got at least partner share on second transfer
+      expect(creatorBalAfter).to.be.gt(adminBalAfter1);
+    });
+
+    /* ---------------- allowance / balance attack --- */
+    it("Transfer reverts when payer lacks *either* balance or allowance", async () => {
+      const { kondux, minter, user1, user2, paymentToken } =
+        await loadFixture(deployKonduxFixture);
+
+      // mint → user1, set royalty
+      await kondux.connect(minter).safeMint(user1.address, 42);
+      await kondux
+        .connect(user1)
+        .setTokenRoyaltyEth(0, ethers.parseUnits("0.001", 18));
+      await kondux
+        .connect(user1)
+        .transferFrom(user1.address, user2.address, 0);
+
+      // grant *insufficient* allowance
+      await paymentToken
+        .connect(user2)
+        .approve(await kondux.getAddress(), 1); // 1 wei ≪ needed
+
+      await expect(
+        kondux.connect(user2).transferFrom(user2.address, user1.address, 0)
+      ).to.be.revertedWith("Insufficient allowance for royalty transfer");
+
+      // give huge allowance but drain balance ⇒ still reverts
+      await paymentToken
+        .connect(user2)
+        .approve(await kondux.getAddress(), ethers.MaxUint256);
+      const bal = await paymentToken.balanceOf(user2.address);
+      if (bal > 0n) {
+        await paymentToken.connect(user2).transfer(user1.address, bal); // drain
+      }
+      await expect(
+        kondux.connect(user2).transferFrom(user2.address, user1.address, 0)
+      ).to.be.reverted; // generic ERC‑20 revert due to balance shortage
+    });
+  });
+
+  //----------------------------------------------------------------------------
+  // Royalty‑Owner Management (setRoyaltyOwner)
+  //----------------------------------------------------------------------------
+  describe("Royalty‑Owner Management", function () {
+    /**
+     * Deploy, mint token #0 to `creator` (user1) and push it to `payer` (user2).
+     * The next transfer will therefore trigger royalty collection.
+     */
+    async function readyRoyaltyToken() {
+      const f = await loadFixture(deployKonduxFixture);
+
+      // Mint → creator
+      await f.kondux.connect(f.minter).safeMint(f.user1.address, 1234);
+      await f.kondux
+        .connect(f.user1)
+        .setTokenRoyaltyEth(0, ethers.parseUnits("0.001", 18));
+
+      // First hop (creator ➜ payer) – exempt from royalty
+      await f.kondux
+        .connect(f.user1)
+        .transferFrom(f.user1.address, f.user2.address, 0);
+
+      // Fund payer with KNDX and approve Kondux
+      await network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [f.tokenHolderSigner.address],
+      });
+      const rich = await ethers.getSigner(f.tokenHolderSigner.address);
+      await f.paymentToken
+        .connect(rich)
+        .transfer(f.user2.address, ethers.parseUnits("1000", 9));
+      await network.provider.request({
+        method: "hardhat_stopImpersonatingAccount",
+        params: [f.tokenHolderSigner.address],
+      });
+      await f.paymentToken
+        .connect(f.user2)
+        .approve(await f.kondux.getAddress(), ethers.parseUnits("1000", 9));
+
+      return f;
+    }
+
+    /* ---------------- Permission checks ---------------- */
+    it("Admin can change royalty owner", async () => {
+      const { kondux, admin, user1, deployer } = await readyRoyaltyToken();
+
+      // Initially user1 is royalty owner
+      expect(await kondux.royaltyOwnerOf(0)).to.equal(user1.address);
+
+      await kondux.connect(admin).setRoyaltyOwner(0, deployer.address);
+      expect(await kondux.royaltyOwnerOf(0)).to.equal(deployer.address);
+    });
+
+    it("Current royalty owner can transfer royalty rights", async () => {
+      const { kondux, user1, deployer } = await readyRoyaltyToken();
+
+      await kondux.connect(user1).setRoyaltyOwner(0, deployer.address);
+      expect(await kondux.royaltyOwnerOf(0)).to.equal(deployer.address);
+
+      // Now deployer (new royalty owner) can change it again
+      await kondux.connect(deployer).setRoyaltyOwner(0, user1.address);
+      expect(await kondux.royaltyOwnerOf(0)).to.equal(user1.address);
+    });
+
+    it("Non‑admin, non‑current owner cannot change royalty owner", async () => {
+      const { kondux, user2, user1 } = await readyRoyaltyToken();
+
+      // user2 owns the NFT but is *not* royalty owner nor admin
+      await expect(
+        kondux.connect(user2).setRoyaltyOwner(0, user1.address)
+      ).to.be.revertedWith("kNFT: only admin or royalty owner");
+    });
+
+    /* ---------------- Economic effect ---------------- */
+    it("Subsequent royalty split honours new royalty owner", async () => {
+      const {
+        kondux,
+        paymentToken,
+        admin,
+        user1,          // creator (old royalty owner)
+        user2,          // payer
+        deployer,       // will become new royalty owner
+        konduxTreasury,
+      } = await readyRoyaltyToken();
+
+      // Change royalty owner to `deployer`
+      await kondux.connect(admin).setRoyaltyOwner(0, deployer.address);
+
+      // Record balances before royalty‑paying transfer
+      const balTreasBefore = await paymentToken.balanceOf(konduxTreasury);
+      const balNewBefore   = await paymentToken.balanceOf(deployer.address);
+      const balOldBefore   = await paymentToken.balanceOf(user1.address);
+
+      // Royalty‑paying transfer (payer → creator)
+      await kondux
+        .connect(user2)
+        .transferFrom(user2.address, user1.address, 0);
+
+      // New royalty owner receives creator‑cut
+      const balNewAfter = await paymentToken.balanceOf(deployer.address);
+      const balOldAfter = await paymentToken.balanceOf(user1.address);
+
+      expect(balNewAfter).to.be.gt(balNewBefore);   // got paid
+      expect(balOldAfter - balOldBefore).to.be.lt(balNewAfter - balNewBefore); // only partner cut (if any)
+      // Treasury still received its share
+      expect(await paymentToken.balanceOf(konduxTreasury)).to.be.gt(balTreasBefore);
+    });
+
+    /* ---------------- Edge case ---------------- */
+    it("Setting royalty owner to zero address breaks later transfers (should revert)", async () => {
+      const { kondux, admin, user1, user2, paymentToken } = await readyRoyaltyToken();
+
+      // Set royalty owner to zero address reverts
+      await expect(
+        kondux.connect(admin).setRoyaltyOwner(0, ethers.ZeroAddress)
+      ).to.be.revertedWith("kNFT: invalid royalty owner");
+    });
+  });
+
+
 });
 
 /**

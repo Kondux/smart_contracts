@@ -40,6 +40,9 @@ contract Kondux is
     event DnaModified(uint256 indexed tokenID, uint256 dna, uint256 inputValue, uint8 startIndex, uint8 endIndex);
     event RoleChanged(address indexed addr, bytes32 role, bool enabled);
     event FreeMintingChanged(bool freeMinting);
+    
+    event RoyaltySplitsChanged(uint96 manufacturerBP, uint96 partnerBP, uint96 creatorBP);
+    event PartnerWalletChanged(address partner);
 
     // -------------------- Config Addresses (Set in Constructor) -------------------- //
 
@@ -119,6 +122,14 @@ contract Kondux is
     /// @dev Mapping from token ID to user information for the ERC4907 interface.
     mapping(uint256 => UserInfo) private _users;
 
+    /// @dev Royalty split percentages (in basis points)
+    uint96 public manufacturerCutBP = 4000; // 40 % (manufacturer / treasury)
+    uint96 public partnerCutBP      = 3000; // 30 % (partner)
+    uint96 public creatorCutBP      = 3000; // 30 % (creator)
+
+    address public partnerWallet;     // if 0x0 ⇒ use creator
+
+
     // -------------------- Constructor -------------------- //
 
     /**
@@ -172,6 +183,54 @@ contract Kondux is
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "kNFT: only admin");
         _;
     }
+
+    /**
+     * @notice Sets the partner wallet address.
+     * @dev This function can only be called by an admin. It updates the partner wallet address used for royalty splits.
+     * @param _partner The new partner wallet address. If set to zero, the creator's address will be used instead.
+     */
+    function setPartnerWallet(address _partner) external onlyAdmin {
+        partnerWallet = _partner;
+    }
+    /**
+     * @notice Sets the royalty split percentages for manufacturer, partner, and creator.
+     * @dev This function can only be called by an admin. It updates the basis points for each role.
+     * @param _manufacturerCutBP The basis points for the manufacturer cut (e.g., 4000 = 40%).
+     * @param _partnerCutBP The basis points for the partner cut (e.g., 3000 = 30%).
+     * @param _creatorCutBP The basis points for the creator cut (e.g., 3000 = 30%).
+     */
+    function setRoyaltySplits(uint96 _manufacturerCutBP, uint96 _partnerCutBP, uint96 _creatorCutBP) external onlyAdmin {
+        // Require that the total royalty cuts match 100% (denominator calculated in basis points)
+        require(
+            _manufacturerCutBP + _partnerCutBP + _creatorCutBP == denominator, 
+            "kNFT: total royalty cuts must equal 100%"
+        );
+
+        // Update the royalty cuts
+        manufacturerCutBP = _manufacturerCutBP;
+        partnerCutBP = _partnerCutBP;
+        creatorCutBP = _creatorCutBP;
+    }
+
+    /**
+     * @notice Sets the royalty recipient for a specific token.
+     * @dev This function can only be called by an admin or the token owner. It updates the royalty owner for the specified token ID.
+     * @param tokenId The identifier of the token whose royalty owner is being set.
+     * @param royaltyOwner The address that will receive royalties for this token.
+     */
+    function setRoyaltyOwner(uint256 tokenId, address royaltyOwner) external {
+        // Allow only the admin or the current royalty owner to set a new royalty owner
+        require(
+            hasRole(DEFAULT_ADMIN_ROLE, msg.sender) || 
+            royaltyOwnerOf[tokenId] == msg.sender, 
+            "kNFT: only admin or royalty owner"
+        );
+
+        require(royaltyOwner != address(0), "kNFT: invalid royalty owner");
+
+        // Set the new royalty owner
+        royaltyOwnerOf[tokenId] = royaltyOwner;
+    } 
 
     /**
      * @notice Enables or disables the enforcement of royalty settings.
@@ -250,7 +309,32 @@ contract Kondux is
      * Emits a {DenominatorChanged} event indicating the new denominator value.
      */
     function changeDenominator(uint96 _denominator) public onlyAdmin returns (uint96) {
+        // Adjust the royalty cuts to match the new denominator value by recalculating their basis points with the old and new denominators.
+        require(_denominator > 0, "kNFT: denominator must be > 0");
+
+        // If the new denominator is the same as the current one, no need to change
+        if (_denominator == denominator) {
+            return denominator;
+        }
+
+        // Recalculate the royalty cuts based on the new denominator
+        uint96 _manufacturerCutBP = (manufacturerCutBP * _denominator) / denominator;
+        uint96 _partnerCutBP = (partnerCutBP * _denominator) / denominator;
+        uint96 _creatorCutBP = (creatorCutBP * _denominator) / denominator;
+        // Ensure the total royalty cuts match 100% with the provided denominator
+        require(
+            (_manufacturerCutBP + _partnerCutBP + _creatorCutBP) == _denominator,
+            "kNFT: total royalty cuts must match denominator"
+        );
+
+        // Update the royalty cuts
+        manufacturerCutBP = _manufacturerCutBP;
+        partnerCutBP = _partnerCutBP;
+        creatorCutBP = _creatorCutBP;
+
+        // Update the denominator
         denominator = _denominator;
+        
         emit DenominatorChanged(denominator);
         return denominator;
     }
@@ -531,42 +615,48 @@ contract Kondux is
         uint256 ethRoyalty = royaltyETHWei[tokenId];
         if (ethRoyalty == 0) return;
 
-        bool isMinterExempt = (mintedOwnerExemptEnabled && (from == royaltyOwnerOf[tokenId]));
-        bool isFounderExempt = (founderPassExemptEnabled && (foundersPass.balanceOf(from) > 0));
+        bool isMinterExempt  = (mintedOwnerExemptEnabled && from == royaltyOwnerOf[tokenId]);
+        bool isFounderExempt = (founderPassExemptEnabled && foundersPass.balanceOf(from) > 0);
+        if (isMinterExempt || isFounderExempt) return;
 
-        if (!isMinterExempt && !isFounderExempt) {
-            uint256 requiredKndx = getKndxForEth(ethRoyalty);
-            require(requiredKndx > 0, "Royalty calc failed");
+        uint256 requiredKndx = getKndxForEth(ethRoyalty);
+        require(requiredKndx > 0, "Royalty calc failed");
 
-            IERC20 kndxToken = IERC20(KNDX);
-    
-            if (treasuryFeeEnabled) {
-                uint256 treasuryCut = (requiredKndx * 1) / 100;
-                uint256 toRoyaltyOwner = requiredKndx - treasuryCut;
+        IERC20 kndxToken = IERC20(KNDX);
 
-                // require approval for the full amount                
-                require(
-                    kndxToken.allowance(from, address(this)) >= requiredKndx,
-                    "Insufficient allowance for royalty transfer"
-                );
+        // partner wallet (falls back to creator if unset)
+        address _partner = (partnerWallet != address(0))
+            ? partnerWallet
+            : royaltyOwnerOf[tokenId];
 
-                require(
-                    kndxToken.transferFrom(from, konduxTreasury, treasuryCut),
-                    "Royalty treasury cut failed"
-                );
-                require(
-                    kndxToken.transferFrom(from, royaltyOwnerOf[tokenId], toRoyaltyOwner),
-                    "Royalty transfer failed"
-                );
-            } else {
-                require(
-                    kndxToken.transferFrom(from, royaltyOwnerOf[tokenId], requiredKndx),
-                    "Royalty transfer failed"
-                );
-            }
-        } 
+        // compute splits
+        uint256 amountManufacturer = treasuryFeeEnabled
+            ? (requiredKndx * manufacturerCutBP) / denominator
+            : 0;
+        uint256 amountPartner = (requiredKndx * partnerCutBP) / denominator;
+        uint256 amountCreator = requiredKndx - amountManufacturer - amountPartner;
+
+        require(
+            kndxToken.allowance(from, address(this)) >= requiredKndx,
+            "Insufficient allowance for royalty transfer"
+        );
+
+        // transfers
+        if (amountManufacturer > 0) {
+            require(
+                kndxToken.transferFrom(from, konduxTreasury, amountManufacturer),
+                "Royalty: manufacturer"
+            );
+        }
+        require(
+            kndxToken.transferFrom(from, _partner, amountPartner),
+            "Royalty: partner"
+        );
+        require(
+            kndxToken.transferFrom(from, royaltyOwnerOf[tokenId], amountCreator),
+            "Royalty: creator"
+        );
     }
-
 
 
     // -------------------- DNA Gene Reading/Writing -------------------- //
