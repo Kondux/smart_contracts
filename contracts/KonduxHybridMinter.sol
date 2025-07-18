@@ -30,7 +30,8 @@ contract KonduxHybridMinter is AccessControl, ReentrancyGuard {
     uint256 public price;                      // ETH price per NFT
     uint256 public discountPercent;            // Discount percentage for token payments (0-100)
     IKondux public kNFT;
-    ITreasury public treasury;
+    // ITreasury public treasury;
+    address public treasury; // Address of the treasury contract
     IKonduxERC20 public paymentToken;
     IUniswapV2Pair public uniswapPair;
     address public WETH;
@@ -84,7 +85,8 @@ contract KonduxHybridMinter is AccessControl, ReentrancyGuard {
         require(_discountPercent <= 100, "Invalid discount");
 
         kNFT = IKondux(_kNFT);
-        treasury = ITreasury(_treasury);
+        // treasury = ITreasury(_treasury);
+        treasury = _treasury; 
         paymentToken = IKonduxERC20(_paymentToken);
         uniswapPair = IUniswapV2Pair(_uniswapPair);
         WETH = _WETH;
@@ -149,7 +151,8 @@ contract KonduxHybridMinter is AccessControl, ReentrancyGuard {
 
     function setTreasury(address _treasury) external onlyAdmin {
         require(_treasury != address(0), "Invalid treasury");
-        treasury = ITreasury(_treasury);
+        // treasury = ITreasury(_treasury);
+        treasury = _treasury;
         emit TreasuryChanged(_treasury);
     }
 
@@ -159,46 +162,19 @@ contract KonduxHybridMinter is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @notice Public mint: single token; choose payment in ERC20 or ETH.
-     * @param payWithToken true to pay with ERC20 (sent to zero address), false to pay in ETH.
+     * @notice Public mint: single token; choose payment in ETH.
      */
-    function publicMint(bool payWithToken)
+    function publicMint()
         external payable
         nonReentrant
         notPaused
         returns (uint256)
     {
         require(!publicMintPaused, "Public minting is paused");
+        require(msg.value >= price, "Not enough ETH sent"); 
 
-        uint256 tokenId;
-        if (payWithToken) {
-            require(!tokenMintPaused, "Token mints are paused");
-            (uint112 reserveETH, uint112 reserveToken) = _getReserves();
-            uint256 tokensRequired = Math.mulDiv(price, reserveToken, reserveETH);
-            if (discountPercent > 0) {
-                tokensRequired = tokensRequired * (100 - discountPercent) / 100;
-            }
-            require(paymentToken.allowance(msg.sender, address(this)) >= tokensRequired, "Insufficient allowance");
-            require(paymentToken.balanceOf(msg.sender) >= tokensRequired, "Insufficient balance");
-            bool success = paymentToken.transferFrom(msg.sender, address(0), tokensRequired);
-            require(success, "Token burn transfer failed");
-
-            tokenId = kNFT.safeMint(msg.sender, 0);
-            emit NFTMinted(msg.sender, tokenId, true);
-        } else {
-            require(!ethMintPaused, "ETH mints are paused");
-            require(msg.value >= price, "Insufficient ETH");
-            (bool sent, ) = address(treasury).call{value: price}("");
-            require(sent, "ETH transfer failed");
-            if (msg.value > price) {
-                (bool refunded, ) = msg.sender.call{value: msg.value - price}("");
-                require(refunded, "Refund failed");
-            }
-
-            tokenId = kNFT.safeMint(msg.sender, 0);
-            emit NFTMinted(msg.sender, tokenId, false);
-        }
-
+        uint256 tokenId = kNFT.safeMint(msg.sender, 0);
+        emit NFTMinted(msg.sender, tokenId, false);
         return tokenId;
     }
 
@@ -211,6 +187,7 @@ contract KonduxHybridMinter is AccessControl, ReentrancyGuard {
         notPaused
         returns (uint256)
     {
+        require(!publicMintPaused, "Public minting is paused");
         require(!whitelistMintPaused, "Whitelist minting is paused");
         require(!whitelistClaimed[msg.sender], "Already claimed");
         bytes32 leaf = keccak256(abi.encodePacked(msg.sender));
@@ -245,6 +222,19 @@ contract KonduxHybridMinter is AccessControl, ReentrancyGuard {
             reserveToken = r0;
         }
         require(reserveETH > 0 && reserveToken > 0, "Invalid reserves");
+    }
+
+    // emergency withdraw functions
+    function emergencyWithdrawTokens(address token, uint256 amount) external onlyAdmin {
+        require(token != address(0), "Invalid token address");
+        require(amount > 0, "Amount must be >0");
+        IKonduxERC20(token).transfer(msg.sender, amount);
+    }
+
+    function emergencyWithdrawEther(uint256 amount) external onlyAdmin {
+        require(amount > 0, "Amount must be >0");
+        (bool success, ) = msg.sender.call{ value: amount }("");
+        require(success, "Ether transfer failed");
     }
 
     // --- Fallbacks ---
