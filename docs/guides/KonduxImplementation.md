@@ -1,4 +1,23 @@
-### Executive Summary of **KonduxImplementation** (kNFT) Contract
+# Executive Summary of **KonduxImplementation** (kNFT) Contract
+
+## Table of Contents
+
+- [Executive Summary of **KonduxImplementation** (kNFT) Contract](#executivesummary-of-konduximplementation-knft-contract)
+  - [Table of Contents](#table-of-contents)
+  - [Introduction](#introduction)
+  - [Why a Clone‑Model?](#why-a-clonemodel)
+  - [Quick‑Start Guide: Cloning \& Configuration](#quickstart-guide-cloning--configuration)
+    - [1. Clone via Factory (pseudo‑JS)](#1-clone-via-factory-pseudojs)
+    - [2. Post‑clone Setup Checklist](#2-postclone-setup-checklist)
+  - [Leasing / Rental Flow (EIP‑4907)](#leasing--rental-flow-eip4907)
+  - [Handy **Getter / View** Functions for Front‑End Integrations](#handy-getter--view-functions-for-frontend-integrations)
+    - [Example: Display royalty info for a token](#example-display-royalty-info-for-a-token)
+    - [Responsive UI Pattern](#responsive-ui-pattern)
+  - [Real‑World Use‑Cases](#realworld-usecases)
+
+---
+
+## Introduction
 
 The **KonduxImplementation** contract is a feature‑rich, upgrade‑ready ERC‑721 collection template designed to be **cloned once per collection** via EIP‑1167 minimal proxies and managed from the **Kondux Contract Factory**. It provides a comprehensive set of tools for NFT creators, including:
 
@@ -14,21 +33,6 @@ The **KonduxImplementation** contract is a feature‑rich, upgrade‑ready ERC�
 | **Treasury & partner routing**            | `setAddresses`, `setRoyaltySplits`, `setPartnerWallet`                                                                                                                                | Route liquidity & royalty flows to Kondux treasury, partners, founders, or creators.                               |
 | **Emergency administration**              | `emergencyWithdrawToken`, `emergencyWithdrawNFT`                                                                                                                                      | Safety valves for stuck funds/assets.                                                                              |
 | **On‑chain price oracle**                 | `getKndxForEth` + `_getReserves`                                                                                                                                                      | Instant ETH→KNDX conversion based on live Uni‑V2 pool—used for pricing royalties and can be repurposed for mints.  |
-
----
-
-## Table of Contents
-
-- [Table of Contents](#table-of-contents)
-- [Why a Clone‑Model?](#why-a-clonemodel)
-- [Quick‑Start Guide: Cloning \& Configuration](#quickstart-guide-cloning--configuration)
-  - [1. Clone via Factory (pseudo‑JS)](#1-clone-via-factory-pseudojs)
-  - [2. Post‑clone Setup Checklist](#2-postclone-setup-checklist)
-- [Leasing / Rental Flow (EIP‑4907)](#leasing--rental-flow-eip4907)
-- [Handy **Getter / View** Functions for Front‑End Integrations](#handy-getter--view-functions-for-frontend-integrations)
-  - [Example: Display royalty info for a token](#example-display-royalty-info-for-a-token)
-  - [Responsive UI Pattern](#responsive-ui-pattern)
-- [Real‑World Use‑Cases](#realworld-usecases)
 
 ---
 
