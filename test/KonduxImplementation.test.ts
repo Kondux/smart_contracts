@@ -7,10 +7,10 @@ const exp = require("constants");
 function minimalProxyBytecode(impl: string): string {
   /* Creation‑code + runtime for EIP‑1167 (0x3d602d80 … 5af43d82803e903d91602b57fd5bf3) */
   return (
-    "0x3d602d80600a3d3981f3" +
-    "363d3d373d3d3d363d73" +
-    impl.slice(2) +
-    "5af43d82803e903d91602b57fd5bf3"
+    "0x3d602d80600a3d3981f3" + // Creation code prefix
+    "363d3d373d3d3d363d73" + // Runtime code prefix
+    impl.slice(2) + // Implementation address without '0x'
+    "5af43d82803e903d91602b57fd5bf3" // Creation code suffix
   );
 }
 
@@ -177,27 +177,6 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
       founderPassHolder,
       impl
     };
-  }
-
-  async function freshClone(
-    name = "Kondux",
-    symbol = "KNFT"
-  ) {
-    const cloneAdr = await deployClone(impl, owner);
-    const clone = await ethers.getContractAt("KonduxImplementation", cloneAdr);
-
-    await clone.initialize(
-      name,
-      symbol,
-      pair.address,
-      weth.address,
-      kndx.address,
-      founders.address,
-      await treasury.getAddress(),
-      0 // maxSupply
-    );
-
-    return clone;
   }
 
   //----------------------------------------------------------------------------
@@ -1244,6 +1223,83 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
     });
   });
 
+  //----------------------------------------------------------------------------
+  // Clone Deployment
+  //----------------------------------------------------------------------------
+  describe("Clone Deployment", function () {
+    it("Contract admin can deploy and initialize a fresh clone", async function () {
+      const {
+        kondux,
+        admin,
+        uniswapV2Pair,
+        WETH,
+        KNDX,
+        FOUNDERSPASS_ADDRESS,
+        konduxTreasury,
+      } = await loadFixture(deployKonduxFixture);
+
+      // 1) Deploy a minimal‑proxy clone that delegates to the current implementation
+      const cloneAddr = await deployClone(kondux, admin);
+      const clone = await ethers.getContractAt("KonduxImplementation", cloneAddr);
+
+      // 2) Initialize via the admin account
+      await clone
+        .connect(admin)
+        .initialize(
+          "KonduxCloneAdmin",
+          "kCLONEA",
+          uniswapV2Pair,
+          WETH,
+          KNDX,
+          FOUNDERSPASS_ADDRESS,
+          konduxTreasury,
+          0 // maxSupply
+        );
+
+      // 3) Sanity checks
+      expect(await clone.name()).to.equal("KonduxCloneAdmin");
+      expect(await clone.symbol()).to.equal("kCLONEA");
+      const DEFAULT_ADMIN_ROLE = await clone.DEFAULT_ADMIN_ROLE();
+      expect(await clone.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be.true;
+    });
+
+    it("Arbitrary user (user1) can deploy and initialize their own clone", async function () {
+      const {
+        kondux,
+        user1,
+        uniswapV2Pair,
+        WETH,
+        KNDX,
+        FOUNDERSPASS_ADDRESS,
+        konduxTreasury,
+      } = await loadFixture(deployKonduxFixture);
+
+      // 1) user1 deploys a new clone
+      const cloneAddr = await deployClone(kondux, user1);
+      const clone = await ethers.getContractAt("KonduxImplementation", cloneAddr);
+
+      // 2) user1 initializes the clone
+      await clone
+        .connect(user1)
+        .initialize(
+          "KonduxCloneUser",
+          "kCLONEU",
+          uniswapV2Pair,
+          WETH,
+          KNDX,
+          FOUNDERSPASS_ADDRESS,
+          konduxTreasury,
+          0 // maxSupply
+        );
+
+      // 3) Validate state & permissions
+      expect(await clone.name()).to.equal("KonduxCloneUser");
+      expect(await clone.symbol()).to.equal("kCLONEU");
+      const DEFAULT_ADMIN_ROLE = await clone.DEFAULT_ADMIN_ROLE();
+      expect(await clone.hasRole(DEFAULT_ADMIN_ROLE, user1.address)).to.be.true;
+    });
+  });
+
 
 });
 
@@ -1252,7 +1308,7 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
  * @param {string} to  recipient address
  * @param {BigInt} amount  amount in wei
  */
-async function userSendEther(to, amount) {
+async function userSendEther(to: string, amount: BigInt) {
   const [sender] = await ethers.getSigners();
   return sender.sendTransaction({ to, value: amount });
 }
