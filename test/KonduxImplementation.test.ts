@@ -15,7 +15,7 @@ function minimalProxyBytecode(impl: string): string {
 }
 
 async function deployClone(impl: any, signer: any) {
-  const tx = await signer.sendTransaction({ data: minimalProxyBytecode(impl.address) });
+  const tx = await signer.sendTransaction({ data: minimalProxyBytecode(await impl.getAddress()) });
   const rcpt = await tx.wait();
   return rcpt.contractAddress;
 }
@@ -31,6 +31,14 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
     // --- Signers ---
     const [deployer, admin, minter, dnaModifier, user1, user2, treasurySigner] =
       await ethers.getSigners();
+
+    // console.log("Deployer address:", deployer.address);
+    // console.log("Admin address:", admin.address);
+    // console.log("Minter address:", minter.address);
+    // console.log("DNA Modifier address:", dnaModifier.address);
+    // console.log("User1 address:", user1.address);
+    // console.log("User2 address:", user2.address);
+    // console.log("Treasury address:", treasurySigner.address);
 
     let impl;
 
@@ -78,7 +86,8 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
     // await kondux.waitForDeployment();
     const Kondux = await ethers.getContractFactory("KonduxImplementation");
     const kondux = await Kondux.deploy();
-    await kondux.deployed();
+    await kondux.waitForDeployment();
+    console.log("Kondux deployed at:", await kondux.getAddress());
 
     // --- Grant roles to test accounts ---
     // By default, the deployer has DEFAULT_ADMIN_ROLE, MINTER_ROLE, DNA_MODIFIER_ROLE, but
@@ -88,12 +97,35 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
     // await kondux.revokeRole(await kondux.MINTER_ROLE(), deployer.address);
     // await kondux.revokeRole(await kondux.DNA_MODIFIER_ROLE(), deployer.address);
 
-    // Grant to 'admin'
-    await kondux.grantRole(await kondux.DEFAULT_ADMIN_ROLE(), admin.address);
-    await kondux.grantRole(await kondux.MINTER_ROLE(), minter.address);
-    await kondux.grantRole(await kondux.DNA_MODIFIER_ROLE(), dnaModifier.address);
+    // Deploy Kondux implementation contract
+    impl = await deployClone(kondux, deployer);
 
-    const konduxAddress = await kondux.getAddress();
+    console.log("Kondux implementation deployed at:", impl);
+
+    // load the Kondux contract at the implementation address
+    const implContract = await ethers.getContractAt("KonduxImplementation", impl);
+    console.log("Kondux implementation contract loaded at:", await implContract.getAddress());
+
+    // Initialize the Kondux implementation contract
+    await implContract.initialize(
+      "KonduxNFT",          // _name
+      "kNFT",               // _symbol
+      uniswapV2Pair,      // _uniswapV2Pair
+      WETH,
+      KNDX,
+      FOUNDERSPASS_ADDRESS,
+      konduxTreasury,
+      0 // infinite supply for testing
+    );
+
+    console.log("Kondux implementation initialized");    
+
+    // Grant to 'admin'
+    await implContract.grantRole(await implContract.DEFAULT_ADMIN_ROLE(), admin.address);
+    await implContract.grantRole(await implContract.MINTER_ROLE(), minter.address);
+    await implContract.grantRole(await implContract.DNA_MODIFIER_ROLE(), dnaModifier.address);
+
+    const konduxAddress = await implContract.getAddress();
     // console.log("kondux deployed to:", ko?nduxAddress);
 
     // load the founder pass holder in a wallet through impersonation
@@ -127,7 +159,7 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
 
     // Return everything needed in tests
     return {
-      kondux,
+      kondux: implContract,
       FOUNDERSPASS_ADDRESS,
       uniswapV2Pair,
       WETH,

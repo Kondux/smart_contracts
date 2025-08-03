@@ -120,7 +120,7 @@ const config: HardhatUserConfig = {
         loggingEnabled: process.env.EVM_LOGGING === "true",
         forking: {
           url: getChainRPC("mainnet"),
-          blockNumber: 21088919
+          blockNumber: 21088920
         },
         initialBaseFeePerGas: 0
         
