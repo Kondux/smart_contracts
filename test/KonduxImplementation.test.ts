@@ -139,21 +139,6 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
     // await kondux.revokeRole(await kondux.MINTER_ROLE(), deployer.address);
     // await kondux.revokeRole(await kondux.DNA_MODIFIER_ROLE(), deployer.address);
 
-   
-    /* ---- 4. encode initialise() for the first clone ------------------- */
-
-    const initArgs = [
-      "KonduxNFT",           // name
-      "kNFT",                // symbol
-      uniswapV2Pair,         // pair
-      WETH,                  // WETH
-      KNDX,                  // KNDX
-      FOUNDERSPASS_ADDRESS,  // founders pass
-      konduxTreasury,        // treasury
-      0,                     // maxSupply
-      deployer.address,      // initial admin
-    ];
-
     /* ---- 5. deploy the first *uninitialised* clone via the factory ---- */
     const cloneAddr = await deployCloneThroughFactory(factory, [], deployer); // <- [] !!
     console.log("Kondux clone address:", cloneAddr);

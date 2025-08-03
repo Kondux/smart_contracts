@@ -6,9 +6,17 @@
   - [Table of Contents](#table-of-contents)
   - [Introduction](#introduction)
   - [Why a Clone‑Model?](#why-a-clonemodel)
-  - [Quick‑Start Guide: Cloning \& Configuration](#quickstart-guide-cloning--configuration)
-    - [1. Clone via Factory (pseudo‑JS)](#1-clone-via-factory-pseudojs)
-    - [2. Post‑clone Setup Checklist](#2-postclone-setup-checklist)
+  - [Kondux NFT ‑ Upgradeable Architecture](#konduxnft--upgradeable-architecture)
+    - [High‑level overview](#highlevel-overview)
+    - [Typical flows](#typical-flows)
+  - [Gas‑cost snapshot (Hardhat, **0.209 gwei**, Solidity 0.8.30, optimiser ON / runs 800)](#gascost-snapshot-hardhat-0209gwei-solidity0830-optimiseronruns800)
+    - [Observations](#observations)
+    - [Key take‑aways](#key-takeaways)
+  - [Quick‑Start Guide — Beacon‑based kNFT Collections](#quickstart-guide-beaconbased-knft-collections)
+    - [1 · Deploy a new collection](#1deploy-a-new-collection)
+    - [2 · Obtaining admin control](#2obtaining-admin-control)
+    - [3 · Post‑clone checklist](#3postclone-checklist)
+    - [4 · Factory‑level controls](#4--factorylevel-controls)
   - [Leasing / Rental Flow (EIP‑4907)](#leasing--rental-flow-eip4907)
   - [Handy **Getter / View** Functions for Front‑End Integrations](#handy-getter--view-functions-for-frontend-integrations)
     - [Example: Display royalty info for a token](#example-display-royalty-info-for-a-token)
@@ -56,46 +64,267 @@ The **KonduxImplementation** obeys Factory conventions:
 
 ---
 
-## Quick‑Start Guide: Cloning & Configuration
+## Kondux NFT ‑ Upgradeable Architecture
+  The **KonduxImplementation** contract is designed to be deployed once and then cloned for each new collection, leveraging the **Beacon Proxy** pattern for efficient upgrades and management. This architecture allows Kondux to maintain a single logic contract while enabling multiple collections to share the same codebase, ensuring consistency and ease of upgrades.
 
-> **Assumptions**: You are the Factory admin, have compiled byte‑code and hold the addresses for WETH, KNDX, Founders Pass, Treasury, and Uniswap pair.
+### High‑level overview
 
-### 1. Clone via Factory (pseudo‑JS)
+```mermaid
+graph TB
+  %% ---------- Phase 0 – one‑time deployments ----------
+  subgraph P0["Phase 0 – one‑time deployments"]
+    I["KonduxImplementation<br/>(logic contract)"] -->|address| B(UpgradeableBeacon)
+    B -->|owner| F["KonduxBeaconFactory<br/>(admin = deployer)"]
+  end
 
-```solidity
-address newCollection = KonduxFactory.cloneCollection(
-    "Cool K‑Dragons",
-    "KDRGN",
-    uniswapV2Pair,
-    WETH,
-    KNDX,
-    FOUNDERS_PASS,
-    KONDUX_TREASURY,
-    5000            // maxSupply
-);
+  %% ---------- Phase 1 – minting clones ----------------
+  subgraph P1["Phase 1 – minting clones"]
+    F -- "deployClone(initCalldata)" --> P1a["BeaconProxy #1"]
+    F -- "deployClone(initCalldata)" --> P1n["BeaconProxy #N"]
+  end
+
+  %% ---------- Phase 2 – runtime -----------------------
+  subgraph P2["Phase 2 – runtime"]
+    B -- "implementation()" --> I
+    P1a -. "delegatecall" .-> I
+    P1n -. "delegatecall" .-> I
+  end
+
+  %% ---------- Phase 3 – upgrading logic --------------
+  subgraph P3["Phase 3 – upgrading logic"]
+    I2["KonduxImplementationV2<br/>(new logic)"]
+    F -- "upgradeImplementation(newImpl)" --> B
+    B -- "implementation()" --> I2
+    P1a -. "delegatecall" .-> I2
+    P1n -. "delegatecall" .-> I2
+  end
+
+  %% ---------- Invisible edges to force vertical order -
+  P0 --> P1
+  P1 --> P2
+  P2 --> P3
+
+  %% ---------- Styling ---------------------------------
+  classDef logicfill    fill:#fef6d8,stroke:#d6b656,color:#000;
+  classDef newlogicfill fill:#d9ead3,stroke:#6aa84f,color:#000;
+  classDef beaconfill   fill:#dae8fc,stroke:#6c8ebf,color:#000;
+  classDef factoryfill  fill:#e1d5e7,stroke:#9673a6,color:#000;
+  classDef proxyfill    fill:#fff2cc,stroke:#d6b656,color:#000;
+
+  class I logicfill;
+  class I2 newlogicfill;
+  class B beaconfill;
+  class F factoryfill;
+  class P1a,P1n proxyfill;
+
 ```
 
-Behind the scenes the Factory:
+**Legend**
 
-1. `createClone(implementation)`.
-2. `initialize(...)` with arguments above.
-3. Grants itself admin so you can manage roles later.
+| Symbol                 | Description                                                                                                                                                                                            |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `KonduxImplementation` | Initial logic contract (never initialised, ***immutable***).                                                                                                                                           |
+| `UpgradeableBeacon`    | Stores a single implementation address; every `BeaconProxy` delegates to it.                                                                                                                           |
+| `KonduxBeaconFactory`  | Admin‑controlled contract that <br>• deploys new `BeaconProxy` clones (optionally gated by `CLONE_DEPLOYER_ROLE`) <br>• upgrades the beacon, thereby upgrading all existing clones in one transaction. |
+| `BeaconProxy`          | Lightweight proxy whose implementation is looked‑up in the beacon on **each** call.                                                                                                                    |
 
-### 2. Post‑clone Setup Checklist
+### Typical flows
 
-| Action                                | When / Why                                                         | API call                                 |
-| ------------------------------------- | ------------------------------------------------------------------ | ---------------------------------------- |
-| **Set baseUri**                       | After uploading metadata to IPFS / Arweave                         | `setBaseURI("ipfs://CID/")`              |
-| **Adjust royalties**                  | Change default 0.001 ETH or customise per token                    | `setTokenRoyaltyEth(tokenId, amountWei)` |
-| **Tune royalty splits**               | Different partner/manufacturer deals                               | `setRoyaltySplits(4500, 2500, 3000)`     |
-| **Switch treasury fee**               | Promotional period with zero platform fee                          | `setTreasuryFeeEnabled(false)`           |
-| **Enable free minting**               | Allow open mint or disable to restrict to `MINTER_ROLE`            | `setFreeMinting(true/false)`             |
-| **Add/Remove minters or DNA editors** | Delegate mint bots or artist wallets                               | `setRole(MINTER_ROLE, addr, true)`       |
-| **Update partner wallet**             | Direct partner share to a new multisig                             | `setPartnerWallet(newAddress)`           |
-| **Toggle royalty enforcement**        | Interop testing on non‑royalty markets                             | `setRoyaltyEnforcement(false)`           |
-| **Change denominator**                | Move from basis‑points (10 000) to e.g. 1 000 000 for finer splits | `changeDenominator(1_000_000)`           |
-| **Update external addresses**         | If Treasury or KNDX token migrates                                 | `setAddresses(...)`                      |
+| Scenario                           | Steps                                                                                                                                                                                                                                                       |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Deploy first collection**        | 1️⃣ Deploy `KonduxImplementation`.<br>2️⃣ Deploy `KonduxBeaconFactory`, feeding it the impl address – the factory internally deploys an `UpgradeableBeacon`.<br>3️⃣ `factory.deployClone(initCalldata)` → emits `CloneDeployed` → first collection is live. |
+| **Launch more collections**        | Call `deployClone()` again with different `initialize` parameters (name, symbol, supply, etc.).                                                                                                                                                             |
+| **Upgrade all collections**        | 1️⃣ Deploy **new** logic contract `KonduxImplementationV2` (or V3…).<br>2️⃣ `factory.upgradeImplementation(newImpl)` – beacon now points to V2.<br>3️⃣ Every existing and future `BeaconProxy` instantly runs V2 code **without** touching its storage.     |
+| **Restrict who can create clones** | `factory.setPublicDeployment(false)` → only addresses holding `CLONE_DEPLOYER_ROLE` may call `deployClone()`.                                                                                                                                               |
+| **Emergency disable upgrade‑path** | Transfer beacon‑ownership to a burn address (optional governance decision).                                                                                                                                                                                 |
 
+---
+
+## Gas‑cost snapshot (Hardhat, **0.209 gwei**, Solidity 0.8.30, optimiser ON / runs 800)
+
+| Contract / Method (selected)           | **Avg gas** | **USD (≈)** |
+| -------------------------------------- | ----------: | ----------: |
+| **KonduxImplementation**               |             |             |
+| `initialize(..)`                       | **357 341** |      \$0.26 |
+| `safeMint()`                           |     208 039 |      \$0.15 |
+| `changeDenominator()`                  |      50 194 |      \$0.04 |
+| `writeGen()`                           |      52 313 |      \$0.04 |
+| `safeTransferFrom()`<br>(royalty path) |     126 808 |      \$0.09 |
+| **KonduxBeaconFactory**                |             |             |
+| `deployClone(bytes)`                   |     259 804 |      \$0.19 |
+| `upgradeImplementation()`              |      39 375 |      \$0.03 |
+| `setPublicDeployment()`                |      25 112 |      \$0.02 |
+| **Access‑control helpers**             |             |             |
+| `grantRole()` (factory)                |      51 434 |      \$0.04 |
+| `grantRole()` (implementation)         |      59 270 |      \$0.04 |
+
+*Numbers are the arithmetic means from the test run you provided;
+gas‑to‑USD uses the same price assumptions as the Hardhat report.*
+
+### Observations
+
+* **Clone deployment is cheap** (\~260 k gas) because the heavy
+  `KonduxImplementation` byte‑code is **not** redeployed – only a 55‑byte
+  `BeaconProxy` plus initialisation.
+* **Upgrading** *all* collections costs **< 40 k gas** – a single
+  `beacon.upgradeTo()` call.
+* The most expensive runtime path is `safeMint` (≈ 0.15 USD at the quoted gas
+  price); typical user interactions like transfers or DNA edits remain well
+  below 0.10 USD.
+
+### Key take‑aways
+
+* **Beacon pattern** gives *O(1)* upgrades – one transaction, any number of
+  collections.
+* Gas profile is dominated by individual per‑NFT operations, **not** by the
+  upgrade machinery.
+* Access‑control toggles (`setPublicDeployment`, role grants, etc.) are very
+  inexpensive, enabling flexible permission management without economic pain.
+
+
+---
+## Quick‑Start Guide — Beacon‑based kNFT Collections
+
+> **Prerequisites**
+>
+> * You already deployed **KonduxBeaconFactory** (you are its `DEFAULT_ADMIN_ROLE`).
+> * You know the addresses of **WETH**, **KNDX**, **Founders Pass**, **Treasury**, and your **Uniswap V2 pair**.
+> * You are working in Ethers v6 (pseudo‑JS below).
+
+---
+
+### 1 · Deploy a new collection
+
+```js
+import { ethers } from "ethers";
+
+/**
+ * Deploy a clone through the KonduxBeaconFactory and return its address.
+ *
+ * @param factory   Deployed KonduxBeaconFactory contract
+ * @param initArgs  Plain argument list for initialize(...)
+ * @param signer    Signer that calls the factory
+ */
+async function deployCloneThroughFactory(factory: any, initArgs: any, signer: any) {
+  /* ------------------------------------------------------------- */
+  /* 1. encode the initialise() calldata                           */
+  /* ------------------------------------------------------------- */
+  const initIface = new ethers.Interface([
+    "function initialize(string,string,address,address,address,address,address,uint256)"
+  ]);
+
+  // If the caller passed an *empty* array, skip initialization
+  const initData = (initArgs.length === 0)
+    ? "0x"
+    : initIface.encodeFunctionData("initialize", initArgs);
+
+
+  /* ------------------------------------------------------------- */
+  /* 2. send the transaction                                       */
+  /* ------------------------------------------------------------- */
+  const tx   = await factory.connect(signer).deployClone(initData);
+  const rcpt = await tx.wait();
+
+  /* ------------------------------------------------------------- */
+  /* 3a. fast path – parse logs in the receipt                     */
+  /* ------------------------------------------------------------- */
+  for (const log of rcpt.logs) {
+    try {
+      const parsed = factory.interface.parseLog(log);
+      if (parsed.name === "CloneDeployed") return parsed.args.proxy;
+    } catch { /* not emitted by the factory – ignore */ }
+  }
+
+  /* ------------------------------------------------------------- */
+  /* 3b. fallback – query events from chain                        */
+  /* ------------------------------------------------------------- */
+  const evt = await factory.queryFilter(
+    factory.filters.CloneDeployed(null, signer.address),
+    rcpt.blockNumber,
+    rcpt.blockNumber
+  );
+
+  if (evt.length > 0) return evt[0].args.proxy;
+
+  throw new Error("Clone address not found; neither logs nor queryFilter returned a match");
+}
+
+  
+
+    /* ---- deploy the first *uninitialised* clone via the factory ---- */
+    const cloneAddr = await deployCloneThroughFactory(factory, [], deployer); // <- [] !!
+    console.log("Kondux clone address:", cloneAddr);
+
+    const kondux = await ethers.getContractAt("KonduxImplementation", cloneAddr);
+
+    /* ---- now initialise from an EOA that should become admin -------- */
+    await kondux.connect(deployer).initialize(
+      "Collection Name", // Collection name
+      "SYMBOL", // Collection symbol
+      uniswapV2Pair, // ETH-KNDX Uniswap V2 pair address for royalties
+      WETH, // WETH address for royalties
+      KNDX, // KNDX ERC 20 token for royalties
+      FOUNDERSPASS_ADDRESS, // Founders Pass NFT Collection address for exemptions
+      konduxTreasury, // Kondux Treasury address for payouts
+      0                // maxSupply – set to 0 for unlimited supply
+    );
+
+    console.log("Kondux implementation initialized");    
+```
+
+*Under the hood* the factory:
+
+1. Deploys a **BeaconProxy** (55 bytes) pointing at the shared beacon.
+2. Executes `initialize(..)` *inside the proxy* – the proxy address therefore
+   becomes the collection’s `DEFAULT_ADMIN_ROLE`.
+3. Emits **`CloneDeployed(proxy, creator)`**.
+
+---
+
+### 2 · Obtaining admin control
+
+If you need **EOA control** instead of “proxy‑is‑admin”, deploy **without**
+initialisation (`deployClone("0x")`), then immediately call
+`initialize(..)` from your wallet.
+That first external call makes **you** the admin and lets you grant / revoke
+roles:
+
+```js
+await collection.initialize(...same args...);          // you are admin
+await collection.grantRole(await collection.MINTER_ROLE(), bot1);
+```
+
+---
+
+### 3 · Post‑clone checklist
+
+| Task                          | Typical reason                              | Function (admin‑only)                       |
+| ----------------------------- | ------------------------------------------- | ------------------------------------------- |
+| Set metadata base URI         | After IPFS / Arweave upload                 | `setBaseURI("ipfs://CID/")`                 |
+| Enable / disable free minting | Open mint vs. gated                         | `setFreeMinting(true / false)`              |
+| Add / remove minters          | Delegate bots or launchpad wallets          | `setRole(MINTER_ROLE, addr, true/false)`    |
+| Add DNA editors               | Artist pipeline                             | `setRole(DNA_MODIFIER_ROLE, addr, true)`    |
+| Per‑token royalty (ETH)       | Adjust beyond the default 0.001 ETH         | `setTokenRoyaltyEth(id, 1 ether / 1000)`    |
+| Global royalty splits         | New partner/manufacturer deal               | `setRoyaltySplits(4500, 2500, 3000)`        |
+| Switch treasury fee on/off    | Promo period with zero platform fee         | `setTreasuryFeeEnabled(false)`              |
+| Toggle royalty enforcement    | Testing on non‑royalty marketplaces         | `setRoyaltyEnforcement(false)`              |
+| Change denominator            | Finer‐grained basis points (e.g. 1 000 000) | `changeDenominator(1_000_000)`              |
+| Update partner wallet         | Redirect partner share to new multisig      | `setPartnerWallet(newAddr)`                 |
+| Update external addresses     | Treasury / token migration                  | `setAddresses(pair, weth, kndx, fp, treas)` |
+
+---
+
+### 4 · Factory‑level controls
+
+| Action                                     | Function                               |
+| ------------------------------------------ | -------------------------------------- |
+| Disable public cloning                     | `setPublicDeployment(false)`           |
+| Allow specific deployers (`user`) to clone | `grantRole(CLONE_DEPLOYER_ROLE, user)` |
+| Upgrade **all** collections to new logic   | `upgradeImplementation(newImpl)`       |
+
+> Upgrading is a single 40 k gas transaction – all past and future proxies
+> instantly start executing the new implementation while keeping their own
+> storage and state intact.
 
 ---
 
