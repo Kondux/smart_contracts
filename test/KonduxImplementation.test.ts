@@ -1300,6 +1300,143 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
     });
   });
 
+  //----------------------------------------------------------------------------
+  // Upgradeability – “new‑logic + fresh clone” pattern
+  //----------------------------------------------------------------------------
+  describe("Upgradeability – new implementation + fresh clones", function () {
+    /**
+     * Returns:
+     *  – cloneV1: the first clone that fixture already initialised on top of the
+     *             original KonduxImplementation logic (“v1”).
+     *  – implV2 : a brand‑new KonduxImplementationV2 logic contract that exposes
+     *             the helper getter `version() → "V2"`.
+     *  – admin  : default‑admin‑role account that will deploy / init the v2 clone.
+     *  – common addresses needed for initialise().
+     */
+    async function ready() {
+      const f = await loadFixture(deployKonduxFixture);       // gives us cloneV1
+      const cloneV1 = f.kondux;                               // alias
+
+      // ── deploy a *second* implementation with new behaviour ────────────────
+      const KonduxV2 = await ethers.getContractFactory("KonduxImplementationV2");
+      const implV2   = await KonduxV2.deploy();
+      await implV2.waitForDeployment();
+
+      return {
+        cloneV1: cloneV1,
+        implV2:  implV2,
+        admin:   f.admin,
+        uniswapV2Pair:      f.uniswapV2Pair,
+        WETH:               f.WETH,
+        KNDX:               f.KNDX,
+        FOUNDERSPASS:       f.FOUNDERSPASS_ADDRESS,
+        konduxTreasury:     f.konduxTreasury,
+      };
+    }
+
+    it("Existing clones keep running v1 logic while new clones run v2 logic", async function () {
+      const {
+        cloneV1,
+        implV2,
+        admin,
+        uniswapV2Pair,
+        WETH,
+        KNDX,
+        FOUNDERSPASS,
+        konduxTreasury,
+      } = await ready();
+
+      /* --------------------------------------------------------------------
+      * 1) Deploy and initialise a *new* clone wired to the fresh v2 logic
+      * ------------------------------------------------------------------ */
+      const cloneV2Addr = await deployClone(implV2, admin);
+      const cloneV2     = await ethers.getContractAt(
+        "KonduxImplementationV2",
+        cloneV2Addr
+      );
+
+      await cloneV2
+        .connect(admin)
+        .initialize(
+          "Kondux‑NFT‑V2",
+          "kNFTv2",
+          uniswapV2Pair,
+          WETH,
+          KNDX,
+          FOUNDERSPASS,
+          konduxTreasury,
+          0                  // maxSupply
+        );
+
+      /* --------------------------------------------------------------------
+      * 2) Verify cloneV2 exposes the new behaviour
+      * ------------------------------------------------------------------ */
+      expect(await cloneV2.version()).to.equal("V2");
+      expect(await cloneV2.symbol()).to.equal("kNFTv2");
+
+      /* --------------------------------------------------------------------
+      * 3) Verify the *old* clone is still on v1 logic
+      *      – It can’t answer `version()`
+      *      – Its existing state (e.g. baseURI) is unchanged
+      * ------------------------------------------------------------------ */
+      const cloneV1AsV2ABI = await ethers.getContractAt(
+        "KonduxImplementationV2",
+        await cloneV1.getAddress()
+      );
+
+      // The call reverts because underlying logic (v1) has no `version()`
+      await expect(cloneV1AsV2ABI.version()).to.be.reverted;
+
+      // Sanity‑check that a piece of state we set on v1 is untouched
+      await cloneV1.connect(admin).setBaseURI("ipfs://kondux/v1/");
+      expect(await cloneV1.baseURI()).to.equal("ipfs://kondux/v1/");
+      // v2 clone must *not* be affected
+      expect(await cloneV2.baseURI()).to.equal("");
+    });
+
+    it("Different clones can safely diverge after the split", async function () {
+      const {
+        cloneV1,
+        implV2,
+        admin,
+        uniswapV2Pair,
+        WETH,
+        KNDX,
+        FOUNDERSPASS,
+        konduxTreasury,
+      } = await ready();
+
+      // set a piece of state only on v1
+      await cloneV1.connect(admin).setBaseURI("ipfs://only‑v1/");
+
+      // deploy & init cloneV2 on the new logic
+      const cloneV2Addr = await deployClone(implV2, admin);
+      const cloneV2     = await ethers.getContractAt(
+        "KonduxImplementationV2",
+        cloneV2Addr
+      );
+      await cloneV2
+        .connect(admin)
+        .initialize(
+          "Kondux‑NFT‑V2",
+          "kNFTv2",
+          uniswapV2Pair,
+          WETH,
+          KNDX,
+          FOUNDERSPASS,
+          konduxTreasury,
+          0
+        );
+
+      // mutate state on v2 only
+      await cloneV2.connect(admin).setBaseURI("ipfs://only‑v2/");
+
+      // verify isolation
+      expect(await cloneV1.baseURI()).to.equal("ipfs://only‑v1/");
+      expect(await cloneV2.baseURI()).to.equal("ipfs://only‑v2/");
+    });
+  });
+
 
 });
 
