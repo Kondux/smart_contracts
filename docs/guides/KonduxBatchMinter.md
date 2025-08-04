@@ -16,6 +16,10 @@
     - [7. Post‑mint checks (optional)](#7-postmint-checks-optional)
     - [How the Solidity ⟷ JS Pieces Fit Together](#how-the-solidityjs-pieces-fittogether)
     - [Production Tips \& Pitfalls](#production-tips--pitfalls)
+  - [Batch‑Mint Limits \& Cost Scaling](#batchmint-limits--cost-scaling)
+    - [1 · What ultimately caps a batch?](#1--what-ultimately-caps-a-batch)
+    - [2 · Gas‑cost grows almost linearly](#2--gascost-grows-almost-linearly)
+    - [3 · Best‑practice checklist](#3--bestpractice-checklist)
 
 ## Introduction
 
@@ -212,4 +216,73 @@ console.log("Collection supply is now:", newSupply.toString());
 * **Nonce sync**: If a signature is rejected, fetch `mintNonces` again—someone might have front‑run a mint.
 * **Gas estimation**: Batch mint cost grows roughly *linear* with `dnas.length`; price your `priceWei` accordingly.
 * **Cold‑wallet signing**: `signTypedData` works on Ledger / Trezor (EIP‑712 aware) for secure role keys.
+
+---
+
+## Batch‑Mint Limits & Cost Scaling
+
+### 1 · What ultimately caps a batch?
+
+`KonduxBatchMinter` places **no hard limit** on the length of the `dnas[]`
+array.
+The only factors that can stop a transaction are:
+
+| Limiting factor            | Comment                                                                            |
+| -------------------------- | ---------------------------------------------------------------------------------- |
+| **EVM block gas limit**    | On Ethereum main‑net this is \~30 M gas.                                           |
+| **Collection `maxSupply`** | Each `safeMint` enforces the cap you set during `initialize`.                      |
+| **Node / RPC gas cap**     | Some providers reject transactions above a configurable threshold (e.g. 15 M gas). |
+
+Using today’s gas report (≈ 208 k gas per `safeMint`, plus \~70 k overhead for
+signature checks & vault transfer):
+
+```
+practicalMax = floor( (blockGasLimit – 70 k) / 208 k ) ≈ 140 mints
+```
+
+You should therefore:
+
+* **Main‑net**: keep single batches **≤ 130–140 NFTs**.
+* **Layer‑2** (Optimism, Arbitrum, etc.): block gas is \~100 M → **450 + mints**
+  per batch are feasible.
+* **Large drops**: split into sequential batches; the nonce mechanism already
+  guards against replay.
+
+---
+
+### 2 · Gas‑cost grows almost linearly
+
+| Component                                                  | Gas (approx.) |
+| ---------------------------------------------------------- | ------------: |
+| Base overhead (EIP‑712 verify, loop setup, vault transfer) |  **\~70 000** |
+| **Each additional `safeMint`**                             | **\~208 000** |
+
+Total gas ≈ 70 k + *208 k × batchSize*
+
+That means:
+
+*Doubling the batch size \~doubles the gas*, with only a tiny fixed surcharge.
+Consequently, the **ETH fee per NFT** **decreases** slightly in larger batches
+because that 70 k overhead is amortised.
+
+| Batch size | Total gas | Gas / NFT | ETH @ 30 gwei |
+| ---------- | --------: | --------: | ------------: |
+| 1          |     278 k |     278 k |    0.0083 ETH |
+| 10         |    2.15 M |     215 k |     0.064 ETH |
+| 50         |    10.5 M |     210 k |     0.314 ETH |
+| 130        |    27.0 M |     208 k |     0.810 ETH |
+
+*(Gas numbers rounded; assumes block gas = 30 M and 1 ETH = US\$3 500.)*
+
+---
+
+### 3 · Best‑practice checklist
+
+1. **Pre‑compute** how many NFTs fit on your target chain/block.
+2. **Group mints** into the largest batch that safely fits to lower per‑NFT
+   gas.
+3. For drops > block limit, **issue multiple signatures** (incrementing the
+   nonce) and let users execute them back‑to‑back.
+4. Always keep an eye on `maxSupply`: the loop stops the whole batch if a
+   single mint would overflow.
 
