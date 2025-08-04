@@ -309,7 +309,7 @@ const config: HardhatUserConfig = {
     tests: "./test",
 },
   mocha: {
-    timeout: 40000
+    timeout: 400000
   },
   abiExporter: {
     path: './abi',

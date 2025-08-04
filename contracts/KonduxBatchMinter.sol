@@ -9,19 +9,14 @@ import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "./interfaces/IKondux.sol";
+import "./interfaces/IAuthority.sol";
 
 // ────────────────────────────────────────────────────────────
 // Minimal interfaces
 // ────────────────────────────────────────────────────────────
-interface IKondux {
-    function safeMint(address to, uint256 dna) external returns (uint256);
-}
 
-interface IAuthority {
-    function vault() external view returns (address);
-}
-
-/**
+/** 
  * @title  KonduxBatchMinter
  * @notice Helper that validates an EIP‑712 authorisation, mints the requested
  *         kNFTs and **forwards all ETH to the current vault returned by an
