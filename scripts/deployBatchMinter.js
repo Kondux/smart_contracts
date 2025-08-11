@@ -187,7 +187,7 @@ async function main() {
     console.log("MINTER_ROLE granted successfully.");
   } catch (err) {
     console.warn(
-      "Unable to grant MINTER_ROLE. Ensure the contract name matches the deployed kNFT and the signer has admin privileges."
+      `Unable to grant MINTER_ROLE. Tried to call grantRole on contract "${"KonduxImplementation"}" at address ${konduxAddress} using signer ${signer.address}. Ensure the contract name matches the deployed kNFT and that the signer has admin privileges for this contract.`
     );
     console.error(err);
   }
