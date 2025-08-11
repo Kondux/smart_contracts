@@ -6,14 +6,10 @@
   - [Table of Contents](#table-of-contents)
   - [Introduction](#introduction)
   - [Deep‑Dive: EIP‑712 Batch‑Mint Workflow](#deepdive-eip712-batchmint-workflow)
-  - [End‑to‑End JavaScript Tutorial](#endtoend-javascript-tutorial)
-    - [1. Install](#1-install)
-    - [2. Boilerplate](#2-boilerplate)
-    - [3. Build the **typed‑data domain** \& types object](#3-build-the-typeddata-domain--typesobject)
-    - [4. Craft the mint payload](#4-craft-the-mint-payload)
-    - [5. Sign the **typed data**](#5-sign-the-typed-data)
-    - [6. Submit the transaction](#6-submit-the-transaction)
-    - [7. Post‑mint checks (optional)](#7-postmint-checks-optional)
+    - [Full example](#full-example)
+      - [Backend](#backend)
+      - [Client](#client)
+      - [Code Example](#code-example)
     - [How the Solidity ⟷ JS Pieces Fit Together](#how-the-solidityjs-pieces-fittogether)
     - [Production Tips \& Pitfalls](#production-tips--pitfalls)
   - [Batch‑Mint Limits \& Cost Scaling](#batchmint-limits--cost-scaling)
@@ -71,141 +67,237 @@ sequenceDiagram
 
 ---
 
-## End‑to‑End JavaScript Tutorial
+### Full example
 
-*Using **ethers v6** and Node.js. Adjust for v5 if needed.*
+Here’s a complete example of how to use the `KonduxBatchMinter` in a typical minting flow:
 
-### 1. Install
+#### Backend
+It checks whether the user’s address is eligible and calls `generateMintVoucher`, which does the following:
+
+* Reads the user’s current nonce (`mintNonces`) from the contract to prevent replay attacks.
+* Sets an expiration time (`deadline`) for the authorization.
+* Computes `dnasHash` by concatenating and hashing the provided DNAs.
+* Builds the EIP‑712 domain with the same settings as the contract (name “Kondux kNFT” and version “1”).
+* Signs the `MintAuthorisation` structure with the backend’s private key, producing the EIP‑712 signature.
+* Returns a `voucher` object containing all those data fields and the signature.
+
+#### Client
+On receiving the voucher, it calls `mintWithVoucher` with its own private key.
+
+* The function instantiates a `minterContract` pointing to `KonduxBatchMinter`.
+* It uses `mintBatchWithSignature` to submit the batch mint, passing the DNAs, deadline, nonce, price and signature.
+* It attaches `priceWei` as `value` in the transaction request to cover the cost required by the contract.
+* It returns the transaction hash, indicating that the mint has been submitted.
+
+Result: Once the transaction is confirmed, the user receives their NFTs in a single mint batch and can verify the returned transaction hash.
+
+#### Code Example
+
+Prerequisites:
+
+- Node.js installed (version 14.x or later)
+- Install the necessary dependencies:
 
 ```bash
-npm install ethers@^6 dotenv
+npm install ethers dotenv
 ```
 
-### 2. Boilerplate
+```typescript
+import { ethers } from "ethers";
 
-```js
-import { Wallet, JsonRpcProvider, keccak256, toUtf8Bytes } from "ethers";
-import dotenv from "dotenv";
-
-dotenv.config();
-const provider = new JsonRpcProvider(process.env.RPC_URL);
-const chainId  = await provider.getNetwork().then(n => n.chainId);
-
-// ── Addresses ─────────────────────────────────────────────
-const KONDUX_MINTER = "0xBatchMinterProxy";
-const KONDUX_NFT    = "0xKonduxCollection";   // the kNFT proxy you want to mint on
-
-// ── ABIs (trimmed) ────────────────────────────────────────
-const minterAbi = [
-  "function mintNonces(address) view returns (uint256)",
-  "function mintBatchWithSignature(address,uint256[],uint256,uint256,uint256,bytes)"
-];
-const konduxAbi = [ "function safeMint(address,uint256) returns (uint256)" ];
-
-// ── Signer roles ──────────────────────────────────────────
-const signer      = new Wallet(process.env.SIGNER_PK, provider);      // has BATCH_MINTER_ROLE
-const userWallet  = new Wallet(process.env.USER_PK, provider);        // recipient / msg.sender
-```
-
-### 3. Build the **typed‑data domain** & types object
-
-```js
-const domain = {
-  name: "Kondux kNFT",
-  version: "1",
-  chainId,
-  verifyingContract: KONDUX_MINTER
+// Configuration: define network RPC and the deployed KonduxBatchMinter address.
+// Replace the mainnet address when available.
+const NETWORKS = {
+  sepolia: {
+    rpc: "https://rpc.sepolia.org",
+    batchMinterAddress: "0x43EA065138D2Cc9678976cDd29Dad707579c8a65",
+  },
+  mainnet: {
+    rpc: "https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID",
+    batchMinterAddress: "TBD_CONTRACT_ADDRESS", // Replace with actual when deployed
+  },
 };
 
-const types = {
-  MintAuthorisation: [
-    { name: "recipient", type: "address" },
-    { name: "dnasHash", type: "bytes32" },
-    { name: "nonce", type: "uint256" },
-    { name: "deadline", type: "uint256" },
-    { name: "priceWei", type: "uint256" }
-  ]
-};
-```
+// Define the shape of a mint voucher that will be signed off‑chain by the backend.
+interface MintVoucher {
+  recipient: string;
+  dnas: bigint[];
+  priceWei: bigint;
+  nonce: bigint;
+  deadline: bigint;
+  signature: string;
+}
 
-### 4. Craft the mint payload
+/**
+ * Backend service: generate an EIP‑712 signed voucher for batch minting.
+ *
+ * This function encapsulates the server-side logic that verifies user eligibility
+ * (omitted here) and produces a voucher signed by the backend's private key.
+ */
+async function generateMintVoucher(
+  networkName: keyof typeof NETWORKS,
+  backendPk: string,     // Private key of backend signer (must have BATCH_MINTER_ROLE)
+  recipient: string,
+  dnas: bigint[],
+  priceWei: bigint,
+  expiresInSec: number = 3600
+): Promise<MintVoucher> {
+  const { rpc, batchMinterAddress } = NETWORKS[networkName];
+  const provider = new ethers.JsonRpcProvider(rpc);
+  const backendWallet = new ethers.Wallet(backendPk, provider);
 
-```js
-// pick your DNA values (uint256 each)
-const dnas      = [
-  0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f,
-  0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-];
+  // Minimal ABI to interact with the contract and read the nonce
+  const abi = ["function mintNonces(address) view returns (uint256)"];
+  const minterContract = new ethers.Contract(batchMinterAddress, abi, provider);
 
-const priceWei  = ethers.parseEther("0.05");          // total ETH expected
-const deadline  = Math.floor(Date.now() / 1e3) + 3600; // 1‑hour validity
+  // Query the current nonce for the recipient to avoid replay attacks
+  const nonce: bigint = await minterContract.mintNonces(recipient);
 
-// fetch current nonce from the contract
-const minter = new ethers.Contract(KONDUX_MINTER, minterAbi, provider);
-const nonce  = await minter.mintNonces(userWallet.address);
+  // Compute a deadline timestamp for the voucher (e.g. 1 hour from now)
+  const deadline: bigint = BigInt(Math.floor(Date.now() / 1000) + expiresInSec);
 
-// hash the DNA array exactly like the solidity code
-const dnasHash = keccak256(ethers.solidityPacked(["uint256[]"], [dnas]));
-```
+  // Compute dnasHash by concatenating 32‑byte encodings of each DNA value
+  const dnaBytes = dnas.map((dna) =>
+    ethers.zeroPadValue(ethers.toBeHex(dna), 32)
+  );
+  const dnasHash: string = ethers.keccak256(ethers.concat(dnaBytes));
 
-### 5. Sign the **typed data**
+  // Build EIP‑712 domain and types definitions as expected by the smart contract
+  const chainId = BigInt((await provider.getNetwork()).chainId);
+  const domain = {
+    name: "Kondux kNFT",
+    version: "1",
+    chainId,
+    verifyingContract: batchMinterAddress,
+  };
+  const types = {
+    MintAuthorisation: [
+      { name: "recipient", type: "address" },
+      { name: "dnasHash", type: "bytes32" },
+      { name: "nonce", type: "uint256" },
+      { name: "deadline", type: "uint256" },
+      { name: "priceWei", type: "uint256" },
+    ],
+  };
 
-```js
-const value = { recipient: userWallet.address, dnasHash, nonce, deadline, priceWei };
+  // Message payload matching the MintAuthorisation struct
+  const message = {
+    recipient,
+    dnasHash,
+    nonce,
+    deadline,
+    priceWei,
+  };
 
-const signature = await signer.signTypedData(domain, types, value);
-console.log("Signature:", signature);
-```
-
-The resulting signature encodes `(v, r, s)` that Solidity verifies with:
-
-```solidity
-address signer = ECDSA.recover(digest, signature);
-```
-
-### 6. Submit the transaction
-
-```js
-// connect the USER wallet (they pay gas & ETH priceWei)
-const tx = await minter
-  .connect(userWallet)
-  .mintBatchWithSignature(
-      userWallet.address, // recipient
-      dnas,
-      deadline,
-      priceWei,
-      nonce,
-      signature,
-      { value: priceWei }  // msg.value
+  // Sign the typed data with the backend wallet. This signature proves the voucher's authenticity.
+  const signature: string = await backendWallet.signTypedData(
+    domain,
+    types,
+    message
   );
 
-console.log("Mint submitted:", tx.hash);
-await tx.wait();
-console.log("Mint confirmed!");
+  // Return the voucher to be used by the frontend/client
+  return {
+    recipient,
+    dnas,
+    priceWei,
+    nonce,
+    deadline,
+    signature,
+  };
+}
+
+/**
+ * Client function: consume a voucher and call the smart contract to mint NFTs.
+ *
+ * The recipient wallet submits the transaction, attaching the required Ether.
+ */
+async function mintWithVoucher(
+  networkName: keyof typeof NETWORKS,
+  recipientPk: string,
+  voucher: MintVoucher
+): Promise<string> {
+  const { rpc, batchMinterAddress } = NETWORKS[networkName];
+  const provider = new ethers.JsonRpcProvider(rpc);
+  const recipientWallet = new ethers.Wallet(recipientPk, provider);
+
+  // ABI including the mintBatchWithSignature function
+  const abi = [
+    "function mintBatchWithSignature(address,uint256[],uint256,uint256,uint256,bytes) payable",
+  ];
+  const minterContract = new ethers.Contract(
+    batchMinterAddress,
+    abi,
+    provider
+  );
+
+  // Submit the mint transaction, paying `priceWei` if necessary
+  const tx = await minterContract
+    .connect(recipientWallet)
+    .mintBatchWithSignature(
+      voucher.recipient,
+      voucher.dnas,
+      voucher.deadline,
+      voucher.priceWei,
+      voucher.nonce,
+      voucher.signature,
+      { value: voucher.priceWei }
+    );
+
+  // Wait until the transaction is confirmed on chain
+  await tx.wait();
+  return tx.hash;
+}
+
+// -----------------------------------------------------------------------------
+// Example flow tying everything together
+// -----------------------------------------------------------------------------
+
+async function exampleFlow() {
+  // 1. User calls backend service (simulated here):
+  //    The backend verifies the user's address/eligibility and prepares a voucher.
+  const backendPrivateKey = process.env.BACKEND_PK!;
+  const userAddress = process.env.USER_ADDRESS!;
+  const dnas = [1n, 2n, 3n]; // Example DNA values
+  const priceWei = 0n;       // Example price; adjust as needed
+
+  // Backend generates the signed voucher off‑chain
+  const voucher = await generateMintVoucher(
+    "sepolia",
+    backendPrivateKey,
+    userAddress,
+    dnas,
+    priceWei
+  );
+
+  // 2. User (client) submits voucher to the smart contract along with payment
+  const userPrivateKey = process.env.USER_PK!;
+  const txHash = await mintWithVoucher("sepolia", userPrivateKey, voucher);
+
+  // 3. Confirmation: the transaction hash indicates minting was successful
+  console.log("Mint transaction sent:", txHash);
+}
+
+exampleFlow().catch((error) => console.error(error));
+
 ```
 
-### 7. Post‑mint checks (optional)
-
-```js
-const kNFT = new ethers.Contract(KONDUX_NFT, konduxAbi, provider);
-const newSupply = await kNFT.totalSupply();
-console.log("Collection supply is now:", newSupply.toString());
-```
 
 ---
 
 ### How the Solidity ⟷ JS Pieces Fit Together
 
-| Step | JavaScript action                                           | Solidity counterpart                                                                       |
-| ---- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| 1    | Build `domain`, `types`, `value`                            | `EIP712._hashTypedDataV4(...)` uses identical domain values.                               |
-| 2    | Compute `dnasHash` with `keccak256(abi.encodePacked(dnas))` | Solidity `abi.encodePacked(dnas)` uses dynamic array encoding – *byte‑for‑byte identical*. |
-| 3    | Sign with `signTypedData`                                   | `ECDSA.recover(digest, sig)` validates signature.                                          |
-| 4    | Pass `nonce` equal to `mintNonces[recipient]`               | Contract checks `nonce == mintNonces[recipient]` then increments.                          |
-| 5    | Provide exact `priceWei` in both params **and** `msg.value` | Reverts if mismatch.                                                                       |
-| 6    | Transaction mined → `_safeMint` inside KonduxImplementation | kNFT emits standard `Transfer` events.                                                     |
-| 7    | ETH auto‑forwarded via `sendValue`                          | No ETH ever rests in BatchMinter, so no withdrawal surface.                                |
 
+
+| Step | JavaScript/TypeScript action                                                                                                             | Solidity counterpart                                                                              |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| 1    | Build the EIP‑712 `domain`, `types` and `message` objects exactly as in the contract (`name`, `version`, `chainId`, `verifyingContract`) | `EIP712._hashTypedDataV4(...)` internally uses the same domain fields when hashing                |
+| 2    | Compute `dnasHash` by zero-padding each DNA to 32 bytes, concatenating them and hashing with `keccak256`                                 | In Solidity `keccak256(abi.encodePacked(dnas))` concatenates dynamic array elements identically   |
+| 3    | Use `signTypedData` (or `_signTypedData`) to sign the struct off‑chain                                                                   | `ECDSA.recover(digest, signature)` inside `mintBatchWithSignature` verifies the signer            |
+| 4    | Query `mintNonces(recipient)` and pass that value as `nonce`                                                                             | The contract checks `nonce == mintNonces[recipient]` and then increments it to prevent replays    |
+| 5    | Set `priceWei` in the typed message and send exactly that amount as `msg.value`                                                          | `mintBatchWithSignature` reverts if `msg.value` doesn’t equal the `priceWei` parameter            |
+| 6    | Send the transaction; once mined, the contract calls `safeMint` for each DNA                                                             | `_safeMint` in `KonduxImplementation` mints the NFTs and emits standard `Transfer` events         |
+| 7    | No Ether remains in the batch minter after minting                                                                                       | The contract forwards any ETH received to `authority.vault()` via `sendValue`, leaving no balance |
 
 ---
 
