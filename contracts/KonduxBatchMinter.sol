@@ -167,6 +167,52 @@ contract KonduxBatchMinter is
         emit AuthorisedMint(signer, recipient, dnas, priceWei);
     }
 
+    function previewDigest(
+        address recipient,
+        uint256[] calldata dnas,
+        uint256 nonce,
+        uint256 deadline,
+        uint256 priceWei
+    ) external view returns (bytes32) {
+        return _hashTypedDataV4(
+            keccak256(abi.encode(
+                _MINT_TYPEHASH,
+                recipient,
+                keccak256(abi.encodePacked(dnas)),
+                nonce,
+                deadline,
+                priceWei
+            ))
+        );
+    }
+
+    function previewSigner(
+        address recipient,
+        uint256[] calldata dnas,
+        uint256 nonce,
+        uint256 deadline,
+        uint256 priceWei,
+        bytes calldata signature
+    ) external view returns (address signer, bool hasBatchRole) {
+        bytes32 digest = _hashTypedDataV4(
+            keccak256(abi.encode(
+                _MINT_TYPEHASH,
+                recipient,
+                keccak256(abi.encodePacked(dnas)),
+                nonce,
+                deadline,
+                priceWei
+            ))
+        );
+        signer = ECDSA.recover(digest, signature);
+        hasBatchRole = hasRole(BATCH_MINTER_ROLE, signer);
+    }
+
+    function previewDnasHash(uint256[] calldata dnas) external pure returns (bytes32) {
+        return keccak256(abi.encodePacked(dnas));
+    }
+
+
     // ── Admin functions ────────────────────────────── */
     /**
      * @notice Set the paused state of the contract.

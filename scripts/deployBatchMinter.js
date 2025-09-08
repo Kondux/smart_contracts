@@ -43,7 +43,7 @@ const MAINNET_ADDRESSES = {
 
 const PREDEPLOYED_ADDRESSES = {
   // Addresses of contracts already deployed on Sepolia/Goerli.
-  KNFT_ADDRESS: "0xDDAEc4bfe0D64A234F49F2fe1d22c42126089Ac1",
+  KNFT_ADDRESS: "0x99D05Efbfa6d6a1a7409687eb993AA525a225D31",
   TREASURY_ADDRESS: "0x17719306030fE5fBf6094fb0e2A38D948dDAfd0c",
   FOUNDERSPASS_ADDRESS: "0xBE983455A9FF94480510Be64Ee4df75F444638AF",
   PAYMENT_TOKEN_ADDRESS: "0x7601584C416aFC4DB0299964ceBD0aD2C7Da2500",
@@ -119,9 +119,19 @@ async function main() {
     // Use the signer's address as the vault (forwards ETH to deployer)
     vaultAddress = await signer.getAddress();
   } else if (targetNetwork === "sepolia" || targetNetwork === "goerli") {
-    console.log("Using pre‑deployed addresses on the testnet...");
-    konduxAddress = PREDEPLOYED_ADDRESSES.KNFT_ADDRESS;
+    console.log("Configuring testnet (sepolia/goerli) addresses...");
     vaultAddress = PREDEPLOYED_ADDRESSES.TREASURY_ADDRESS;
+    if (PREDEPLOYED_ADDRESSES.KNFT_ADDRESS) {
+      console.log("Using pre‑deployed kNFT address on testnet...");
+      konduxAddress = PREDEPLOYED_ADDRESSES.KNFT_ADDRESS;
+    } else {
+      console.log("No KNFT_ADDRESS configured for testnet – deploying MockKondux...");
+      const MockKonduxFactory = await ethers.getContractFactory("MockKondux");
+      const mockKondux = await MockKonduxFactory.connect(signer).deploy();
+      await mockKondux.waitForDeployment();
+      konduxAddress = mockKondux.target;
+      console.log(`MockKondux (testnet) deployed at: ${konduxAddress}`);
+    }
   } else if (targetNetwork === "mainnet") {
     console.log("Using pre‑deployed addresses on mainnet...");
     // Use the AVATAR address as the Kondux NFT; adjust if a different contract is intended
@@ -185,6 +195,22 @@ async function main() {
 
     await grantTx.wait();
     console.log("MINTER_ROLE granted successfully.");
+
+    // Additionally grant MINTER_ROLE to a predefined hot wallet for sepolia/local development
+    const EXTRA_MINTER = "0x5c8f300781bebdd84a0bf27b37a6c0a7d42df114"; // provided address
+    if (targetNetwork === "sepolia" || targetNetwork === "localhost") {
+      try {
+        console.log(`Granting MINTER_ROLE to extra minter ${EXTRA_MINTER}...`);
+        const extraTx = await konduxContract
+          .connect(signer)
+          .grantRole(MINTER_ROLE, EXTRA_MINTER);
+        await extraTx.wait();
+        console.log("Extra MINTER_ROLE granted successfully.");
+      } catch (extraErr) {
+        console.warn(`Failed to grant MINTER_ROLE to extra minter ${EXTRA_MINTER}`);
+        console.error(extraErr);
+      }
+    }
   } catch (err) {
     console.warn(
       `Unable to grant MINTER_ROLE. Tried to call grantRole on contract "${"KonduxImplementation"}" at address ${konduxAddress} using signer ${signer.address}. Ensure the contract name matches the deployed kNFT and that the signer has admin privileges for this contract.`
