@@ -105,16 +105,18 @@ contract StakingV2Test is ForgeTestBase {
         vm.prank(user);
         uint256 depositId = staking.deposit(STAKE_AMOUNT, 0, address(kondux));
 
-        vm.warp(block.timestamp + 1 days);
-        vm.prank(user);
-        staking.stakeRewards(depositId);
+    uint256 currentTime = block.timestamp + 1 days;
+    vm.warp(currentTime);
+    vm.prank(user);
+    staking.stakeRewards(depositId);
 
-        staking.setAPR(75, address(kondux));
-        uint256 currentApr = staking.getAPR(address(kondux));
-        (uint256 originalApr, bool exists) = staking.getDepositAprSnapshot(depositId);
-        assertTrue(exists, "snapshot missing");
+    staking.setAPR(75, address(kondux));
+    uint256 currentApr = staking.getAPR(address(kondux));
+    (uint256 originalApr, bool exists) = staking.getDepositAprSnapshot(depositId);
+    assertTrue(exists, "snapshot missing");
 
-        vm.warp(block.timestamp + 1 days);
+    currentTime += 1 days;
+    vm.warp(currentTime);
         vm.startPrank(user);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -132,11 +134,13 @@ contract StakingV2Test is ForgeTestBase {
         vm.prank(user);
         uint256 depositId = staking.deposit(STAKE_AMOUNT, 0, address(kondux));
 
-        vm.warp(block.timestamp + 1 days);
-        vm.prank(user);
-        staking.stakeRewards(depositId);
+    uint256 currentTime = block.timestamp + 1 days;
+    vm.warp(currentTime);
+    vm.prank(user);
+    staking.stakeRewards(depositId);
 
-        vm.warp(block.timestamp + 1 days);
+    currentTime += 1 days;
+    vm.warp(currentTime);
         vm.prank(user);
         staking.stakeRewards(depositId);
 

@@ -22,6 +22,10 @@ interface Vm {
     function recordLogs() external;
     function getRecordedLogs() external returns (Log[] memory);
     function addr(uint256) external returns (address);
+    function createFork(string calldata) external returns (uint256);
+    function selectFork(uint256) external;
+    function envString(string calldata) external returns (string memory);
+    function load(address, bytes32) external returns (bytes32);
 }
 
 abstract contract ForgeTestBase {
@@ -37,6 +41,14 @@ abstract contract ForgeTestBase {
 
     function assertEq(bool a, bool b, string memory err) internal pure {
         require(a == b, err);
+    }
+
+    function assertEq(address a, address b, string memory err) internal pure {
+        require(a == b, err);
+    }
+
+    function assertEq(address a, address b) internal pure {
+        require(a == b, "assertEq failed");
     }
 
     function assertTrue(bool condition, string memory err) internal pure {
