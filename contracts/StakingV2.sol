@@ -2,7 +2,6 @@
 pragma solidity 0.8.23;
 
 import "./Staking.sol";
-import "./interfaces/IStakingV1.sol";
 
 /**
  * @title StakingV2
@@ -24,19 +23,31 @@ contract StakingV2 is Staking {
     /// @dev Thrown when attempting to restake rewards with a modified APR.
     error APRChangedForDeposit(uint256 depositId, uint256 originalApr, uint256 currentApr);
 
-    /// @dev Thrown when attempting to import a deposit that does not exist on the legacy contract.
-    error LegacyDepositMissing(uint256 depositId);
-
     /// @dev Thrown when attempting to import a deposit that is already present in this contract.
     error DepositAlreadyImported(uint256 depositId);
 
-    event LegacyDepositImported(
+    event DepositImported(
         uint256 indexed depositId,
         address indexed staker,
         address indexed token,
         uint256 deposited,
         uint256 unclaimedRewards
     );
+
+    struct DepositImport {
+        uint256 depositId;
+        address token;
+        address staker;
+        uint256 deposited;
+        uint256 redeemed;
+        uint256 timeOfLastUpdate;
+        uint256 lastDepositTime;
+        uint256 unclaimedRewards;
+        uint256 timelock;
+        uint8 timelockCategory;
+        uint256 ratioStored;
+        uint256 aprSnapshot;
+    }
 
     constructor(
         address _authority,
@@ -113,145 +124,63 @@ contract StakingV2 is Staking {
     }
 
     /**
-     * @notice Copies the configuration for a staking token from the legacy contract.
-     * @dev Only callable by the governor.
-     * @param legacy The address of the live staking V1 contract.
-     * @param token The ERC20 token whose configuration should be copied.
+     * @notice Imports pre-validated deposit data.
+     * @dev Expects the caller (typically the governor) to supply canonical deposit records.
+     * @param deposits The list of deposits to persist.
+     * @param nextDepositId The next deposit identifier to program after imports complete.
      */
-    function importLegacyTokenConfig(address legacy, address token) external onlyGovernor {
-        require(token != address(0), "token zero address");
-
-        IStakingV1 legacyContract = IStakingV1(legacy);
-
-        minStakeERC20[token] = legacyContract.minStakeERC20(token);
-        compoundFreqERC20[token] = legacyContract.compoundFreqERC20(token);
-        aprERC20[token] = legacyContract.aprERC20(token);
-        withdrawalFeeERC20[token] = legacyContract.withdrawalFeeERC20(token);
-        foundersRewardBoostERC20[token] = legacyContract.foundersRewardBoostERC20(token);
-        kNFTRewardBoostERC20[token] = legacyContract.kNFTRewardBoostERC20(token);
-        ratioERC20[token] = legacyContract.ratioERC20(token);
-        decimalsERC20[token] = legacyContract.decimalsERC20(token);
-        divisorERC20[token] = legacyContract.divisorERC20(token);
-        earlyWithdrawalPenalty[token] = legacyContract.earlyWithdrawalPenalty(token);
-
-        totalWithdrawalFees[token] = legacyContract.totalWithdrawalFees(token);
-
-        bool authorized = legacyContract.authorizedERC20(token);
-        _setAuthorizedERC20(token, authorized);
-    }
-
-    /**
-     * @notice Imports timelock durations and reward boosts from the legacy contract.
-     * @dev Iterates the first four categories (0-3) which are actively used in V1.
-     * @param legacy The address of the live staking V1 contract.
-     */
-    function importLegacyTimelockConfig(address legacy) external onlyGovernor {
-        IStakingV1 legacyContract = IStakingV1(legacy);
-        for (uint8 category = 0; category < 4; ++category) {
-            timelockDurations[category] = legacyContract.timelockDurations(category);
-            timelockCategoryBoost[category] = legacyContract.timelockCategoryBoost(category);
-        }
-    }
-
-    /**
-     * @notice Mirrors the DNA version permission flag from the legacy contract.
-     * @param legacy The address of the live staking V1 contract.
-     * @param version The DNA version identifier to synchronise.
-     */
-    function importLegacyDnaVersion(address legacy, uint256 version) external onlyGovernor {
-        allowedDnaVersions[version] = IStakingV1(legacy).allowedDnaVersions(version);
-    }
-
-    /**
-     * @notice Copies total withdrawal fee accounting for a token from the legacy contract.
-     * @param legacy The address of the live staking V1 contract.
-     * @param token The token whose accumulated withdrawal fees should be copied.
-     */
-    function importLegacyWithdrawalFees(address legacy, address token) external onlyGovernor {
-        totalWithdrawalFees[token] = IStakingV1(legacy).totalWithdrawalFees(token);
-    }
-
-    /**
-     * @notice Imports a batch of deposits from the legacy contract.
-     * @param legacy The address of the live staking V1 contract.
-     * @param depositIds The list of deposit identifiers to copy.
-     */
-    function importLegacyDeposits(address legacy, uint256[] calldata depositIds)
+    function importDeposits(DepositImport[] calldata deposits, uint256 nextDepositId)
         external
         onlyGovernor
     {
-        IStakingV1 legacyContract = IStakingV1(legacy);
-        for (uint256 i = 0; i < depositIds.length; ++i) {
-            _importLegacyDeposit(legacyContract, depositIds[i]);
-        }
-    }
+        for (uint256 i = 0; i < deposits.length; ++i) {
+            DepositImport calldata data = deposits[i];
 
-    /**
-     * @notice Imports a single deposit from the legacy contract.
-     * @param legacy The address of the live staking V1 contract.
-     * @param depositId The identifier of the deposit to copy.
-     */
-    function importLegacyDeposit(address legacy, uint256 depositId) external onlyGovernor {
-        _importLegacyDeposit(IStakingV1(legacy), depositId);
-    }
+            if (userDeposits[data.depositId].staker != address(0)) {
+                revert DepositAlreadyImported(data.depositId);
+            }
 
-    function _importLegacyDeposit(IStakingV1 legacy, uint256 depositId) internal {
-        (
-            address token,
-            address staker,
-            uint256 deposited,
-            uint256 redeemed,
-            uint256 timeOfLastUpdate,
-            uint256 lastDepositTime,
-            uint256 unclaimedRewards,
-            uint256 timelock,
-            uint8 timelockCategory,
-            uint256 ratioStored
-        ) = legacy.userDeposits(depositId);
+            userDeposits[data.depositId] = Staker({
+                token: data.token,
+                staker: data.staker,
+                deposited: data.deposited,
+                redeemed: data.redeemed,
+                timeOfLastUpdate: data.timeOfLastUpdate,
+                lastDepositTime: data.lastDepositTime,
+                unclaimedRewards: data.unclaimedRewards,
+                timelock: data.timelock,
+                timelockCategory: data.timelockCategory,
+                ratioERC20: data.ratioStored
+            });
 
-        if (staker == address(0)) {
-            revert LegacyDepositMissing(depositId);
-        }
+            userDepositsIds[data.staker].push(data.depositId);
 
-        if (userDeposits[depositId].staker != address(0)) {
-            revert DepositAlreadyImported(depositId);
-        }
+            if (data.deposited > 0) {
+                totalStaked[data.token] += data.deposited;
+                userTotalStakedByCoin[data.token][data.staker] += data.deposited;
+            }
 
-        userDeposits[depositId] = Staker({
-            token: token,
-            staker: staker,
-            deposited: deposited,
-            redeemed: redeemed,
-            timeOfLastUpdate: timeOfLastUpdate,
-            lastDepositTime: lastDepositTime,
-            unclaimedRewards: unclaimedRewards,
-            timelock: timelock,
-            timelockCategory: timelockCategory,
-            ratioERC20: ratioStored
-        });
+            if (data.redeemed > 0) {
+                totalRewarded[data.token] += data.redeemed;
+                userTotalRewardedByCoin[data.token][data.staker] += data.redeemed;
+            }
 
-        userDepositsIds[staker].push(depositId);
+            _depositAprSnapshot[data.depositId] = data.aprSnapshot;
+            _hasSnapshot[data.depositId] = true;
 
-        if (deposited > 0) {
-            totalStaked[token] += deposited;
-            userTotalStakedByCoin[token][staker] += deposited;
+            emit DepositImported(
+                data.depositId,
+                data.staker,
+                data.token,
+                data.deposited,
+                data.unclaimedRewards
+            );
         }
 
-        if (redeemed > 0) {
-            totalRewarded[token] += redeemed;
-            userTotalRewardedByCoin[token][staker] += redeemed;
+        uint256 currentNext = _getNextDepositId();
+        if (nextDepositId > currentNext) {
+            _setNextDepositId(nextDepositId);
         }
-
-        _depositAprSnapshot[depositId] = legacy.aprERC20(token);
-        _hasSnapshot[depositId] = true;
-
-        uint256 nextId = _getNextDepositId();
-        uint256 candidateNext = depositId + 1;
-        if (candidateNext > nextId) {
-            _setNextDepositId(candidateNext);
-        }
-
-        emit LegacyDepositImported(depositId, staker, token, deposited, unclaimedRewards);
     }
 
     function _getNextDepositId() internal view returns (uint256 nextId) {

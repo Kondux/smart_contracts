@@ -2,6 +2,7 @@
 pragma solidity 0.8.23;
 
 import "./utils/ForgeTestBase.sol";
+import {Staking} from "contracts/Staking.sol";
 import {StakingV2} from "contracts/StakingV2.sol";
 import {Authority} from "contracts/Authority.sol";
 import {Treasury} from "contracts/Treasury.sol";
@@ -47,6 +48,8 @@ contract StakingV2MigrationForkTest is ForgeTestBase {
     mapping(address => uint256[]) internal importedDepositIdsByUser;
     address[] internal importedTokens;
 
+    uint256 internal constant BATCH_SIZE = 10;
+
     function setUp() public {
         string memory rpcUrl = string.concat(
             "https://eth-mainnet.g.alchemy.com/v2/",
@@ -79,21 +82,27 @@ contract StakingV2MigrationForkTest is ForgeTestBase {
         staking.setHelixERC20(legacy.helixERC20());
         staking.setKonduxERC721Founders(legacy.konduxERC721Founders());
         staking.setKonduxERC721kNFT(legacy.konduxERC721kNFT());
-    staking.setTreasury(legacy.treasury());
+        staking.setTreasury(legacy.treasury());
 
-    staking.importLegacyTimelockConfig(LEGACY_STAKING);
-    staking.importLegacyDnaVersion(LEGACY_STAKING, 1);
+        for (uint8 category = 0; category < 4; ++category) {
+            staking.setTimelockDuration(category, legacy.timelockDurations(category));
+            staking.setTimelockCategoryBoost(category, legacy.timelockCategoryBoost(category));
+        }
+        staking.setAllowedDnaVersion(1, legacy.allowedDnaVersions(1));
     }
 
     function test_importsAllLegacyDepositsAndKeepsAccountingInSync() public {
         uint256 legacyNextId = legacyNextDepositId();
         require(legacyNextId > 0, "legacy has no deposits");
 
-        uint256 imported;
+    uint256 imported;
         uint256 sampleDepositId;
         LegacyDepositData memory sampleDeposit;
         bool sampleCaptured;
         uint256 highestImportedId;
+    StakingV2.DepositImport[] memory pendingBatch = allocBatch();
+    uint256 batchIdx;
+    uint256 nextDepositCursor;
 
         for (uint256 depositId = 0; depositId < legacyNextId; ++depositId) {
             LegacyDepositData memory legacyDeposit = readLegacyDeposit(depositId);
@@ -102,8 +111,7 @@ contract StakingV2MigrationForkTest is ForgeTestBase {
             }
 
             if (!tokenProcessed[legacyDeposit.token]) {
-                staking.importLegacyTokenConfig(LEGACY_STAKING, legacyDeposit.token);
-                staking.importLegacyWithdrawalFees(LEGACY_STAKING, legacyDeposit.token);
+                copyTokenConfig(legacyDeposit.token);
                 tokenProcessed[legacyDeposit.token] = true;
                 importedTokens.push(legacyDeposit.token);
             }
@@ -114,7 +122,14 @@ contract StakingV2MigrationForkTest is ForgeTestBase {
                 sampleCaptured = true;
             }
 
-            staking.importLegacyDeposit(LEGACY_STAKING, depositId);
+            pendingBatch[batchIdx] = toDepositImport(legacyDeposit, depositId);
+            batchIdx++;
+
+            if (batchIdx == pendingBatch.length) {
+                nextDepositCursor = depositId + 1;
+                staking.importDeposits(pendingBatch, nextDepositCursor);
+                batchIdx = 0;
+            }
 
             imported++;
             importedDepositIdsByUser[legacyDeposit.staker].push(depositId);
@@ -133,37 +148,20 @@ contract StakingV2MigrationForkTest is ForgeTestBase {
             }
         }
 
+        if (batchIdx > 0) {
+            nextDepositCursor = highestImportedId + 1;
+            StakingV2.DepositImport[] memory leftover = shrinkBatch(pendingBatch, batchIdx);
+            staking.importDeposits(leftover, nextDepositCursor);
+        }
+
         require(imported > 0, "no deposits imported");
 
-        uint256 nextIdAfterImport = staking.getNextDepositId();
-        assertEq(nextIdAfterImport, highestImportedId + 1, "next deposit id mismatch");
+    uint256 nextIdAfterImport = staking.getNextDepositId();
+    assertEq(nextIdAfterImport, highestImportedId + 1, "next deposit id mismatch");
 
         // Validate sample deposit state matches exactly.
-        {
-            (
-                address token,
-                address staker,
-                uint256 deposited,
-                uint256 redeemed,
-                uint256 timeOfLastUpdate,
-                uint256 lastDepositTime,
-                uint256 unclaimedRewards,
-                uint256 timelock,
-                uint8 timelockCategory,
-                uint256 ratioERC20
-            ) = staking.userDeposits(sampleDepositId);
-
-            assertEq(token, sampleDeposit.token, "token mismatch");
-            assertEq(staker, sampleDeposit.staker, "staker mismatch");
-            assertEq(deposited, sampleDeposit.deposited, "deposited mismatch");
-            assertEq(redeemed, sampleDeposit.redeemed, "redeemed mismatch");
-            assertEq(timeOfLastUpdate, sampleDeposit.timeOfLastUpdate, "update time mismatch");
-            assertEq(lastDepositTime, sampleDeposit.lastDepositTime, "last deposit time mismatch");
-            assertEq(unclaimedRewards, sampleDeposit.unclaimedRewards, "unclaimed mismatch");
-            assertEq(timelock, sampleDeposit.timelock, "timelock mismatch");
-            assertEq(timelockCategory, sampleDeposit.timelockCategory, "category mismatch");
-            assertEq(ratioERC20, sampleDeposit.ratioERC20, "ratio mismatch");
-        }
+    Staking.Staker memory importedDeposit = fetchDeposit(sampleDepositId);
+    assertDepositMatches(importedDeposit, sampleDeposit);
 
         for (uint256 i = 0; i < importedTokens.length; ++i) {
             address token = importedTokens[i];
@@ -207,19 +205,84 @@ contract StakingV2MigrationForkTest is ForgeTestBase {
         }
     }
 
-    function readLegacyDeposit(uint256 depositId) internal view returns (LegacyDepositData memory data) {
+    function copyTokenConfig(address token) internal {
+        staking.setDivisorERC20(legacy.divisorERC20(token), token);
+        staking.setAPR(legacy.aprERC20(token), token);
+        staking.setCompoundFreq(legacy.compoundFreqERC20(token), token);
+        staking.setWithdrawalFee(legacy.withdrawalFeeERC20(token), token);
+        staking.setFoundersRewardBoost(legacy.foundersRewardBoostERC20(token), token);
+        staking.setkNFTRewardBoost(legacy.kNFTRewardBoostERC20(token), token);
+        staking.setRatio(legacy.ratioERC20(token), token);
+        staking.setMinStake(legacy.minStakeERC20(token), token);
+        staking.setDecimalsERC20(legacy.decimalsERC20(token), token);
+        staking.setEarlyWithdrawalPenalty(token, legacy.earlyWithdrawalPenalty(token));
+        staking.setTotalWithdrawalFees(token, legacy.totalWithdrawalFees(token));
+        staking.setAuthorizedERC20(token, true);
+    }
+
+    function allocBatch() internal pure returns (StakingV2.DepositImport[] memory) {
+        return new StakingV2.DepositImport[](BATCH_SIZE);
+    }
+
+    function shrinkBatch(StakingV2.DepositImport[] memory batch, uint256 length)
+        internal
+        pure
+        returns (StakingV2.DepositImport[] memory)
+    {
+        StakingV2.DepositImport[] memory trimmed = new StakingV2.DepositImport[](length);
+        for (uint256 i = 0; i < length; ++i) {
+            trimmed[i] = batch[i];
+        }
+        return trimmed;
+    }
+
+    function toDepositImport(LegacyDepositData memory legacyDeposit, uint256 depositId)
+        internal
+        view
+        returns (StakingV2.DepositImport memory)
+    {
+        return StakingV2.DepositImport({
+            depositId: depositId,
+            token: legacyDeposit.token,
+            staker: legacyDeposit.staker,
+            deposited: legacyDeposit.deposited,
+            redeemed: legacyDeposit.redeemed,
+            timeOfLastUpdate: legacyDeposit.timeOfLastUpdate,
+            lastDepositTime: legacyDeposit.lastDepositTime,
+            unclaimedRewards: legacyDeposit.unclaimedRewards,
+            timelock: legacyDeposit.timelock,
+            timelockCategory: legacyDeposit.timelockCategory,
+            ratioStored: legacyDeposit.ratioERC20,
+            aprSnapshot: legacy.aprERC20(legacyDeposit.token)
+        });
+    }
+
+    function readLegacyDeposit(uint256 depositId) internal view returns (LegacyDepositData memory) {
         (
-            data.token,
-            data.staker,
-            data.deposited,
-            data.redeemed,
-            data.timeOfLastUpdate,
-            data.lastDepositTime,
-            data.unclaimedRewards,
-            data.timelock,
-            data.timelockCategory,
-            data.ratioERC20
+            address token,
+            address staker,
+            uint256 deposited,
+            uint256 redeemed,
+            uint256 timeOfLastUpdate,
+            uint256 lastDepositTime,
+            uint256 unclaimedRewards,
+            uint256 timelock,
+            uint8 timelockCategory,
+            uint256 ratioERC20
         ) = legacy.userDeposits(depositId);
+
+        return LegacyDepositData({
+            token: token,
+            staker: staker,
+            deposited: deposited,
+            redeemed: redeemed,
+            timeOfLastUpdate: timeOfLastUpdate,
+            lastDepositTime: lastDepositTime,
+            unclaimedRewards: unclaimedRewards,
+            timelock: timelock,
+            timelockCategory: timelockCategory,
+            ratioERC20: ratioERC20
+        });
     }
 
     function legacyNextDepositId() internal returns (uint256) {
@@ -241,5 +304,49 @@ contract StakingV2MigrationForkTest is ForgeTestBase {
         bytes32 slot = keccak256(abi.encode(user, uint256(2)));
         bytes32 base = keccak256(abi.encode(slot));
         return uint256(vm.load(stakingAddress, bytes32(uint256(base) + index)));
+    }
+
+    function assertDepositMatches(Staking.Staker memory actual, LegacyDepositData memory expected)
+        internal
+        pure
+    {
+        assertEq(actual.token, expected.token, "token mismatch");
+        assertEq(actual.staker, expected.staker, "staker mismatch");
+        assertEq(actual.deposited, expected.deposited, "deposited mismatch");
+        assertEq(actual.redeemed, expected.redeemed, "redeemed mismatch");
+        assertEq(actual.timeOfLastUpdate, expected.timeOfLastUpdate, "update time mismatch");
+        assertEq(actual.lastDepositTime, expected.lastDepositTime, "last deposit time mismatch");
+        assertEq(actual.unclaimedRewards, expected.unclaimedRewards, "unclaimed mismatch");
+        assertEq(actual.timelock, expected.timelock, "timelock mismatch");
+        assertEq(actual.timelockCategory, expected.timelockCategory, "category mismatch");
+        assertEq(actual.ratioERC20, expected.ratioERC20, "ratio mismatch");
+    }
+
+    function fetchDeposit(uint256 depositId) internal view returns (Staking.Staker memory) {
+        (
+            address token,
+            address staker,
+            uint256 deposited,
+            uint256 redeemed,
+            uint256 timeOfLastUpdate,
+            uint256 lastDepositTime,
+            uint256 unclaimedRewards,
+            uint256 timelock,
+            uint8 timelockCategory,
+            uint256 ratioERC20
+        ) = staking.userDeposits(depositId);
+
+        return Staking.Staker({
+            token: token,
+            staker: staker,
+            deposited: deposited,
+            redeemed: redeemed,
+            timeOfLastUpdate: timeOfLastUpdate,
+            lastDepositTime: lastDepositTime,
+            unclaimedRewards: unclaimedRewards,
+            timelock: timelock,
+            timelockCategory: timelockCategory,
+            ratioERC20: ratioERC20
+        });
     }
 }

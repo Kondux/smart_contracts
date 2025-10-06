@@ -863,6 +863,15 @@ contract Staking is AccessControlled {
     }  
 
     /**
+     * @dev Updates the timelock duration for a given category.
+     * @param _category The timelock category index to update.
+     * @param _duration The new duration in seconds.
+     */
+    function setTimelockDuration(uint8 _category, uint256 _duration) public onlyGovernor {
+        timelockDurations[_category] = _duration;
+    }
+
+    /**
      * @dev This function sets the timelock category boost for a specified category.
      * @param _category The category for which to set the boost.
      * @param _boost The boost value to be set.
@@ -916,6 +925,15 @@ contract Staking is AccessControlled {
         // Check if the token address is set
         require(_token != address(0), "Token address is not set"); 
         _setAuthorizedERC20(_token, _authorized);
+    }
+
+    /**
+     * @dev Manually sets the accumulated withdrawal fees for a token.
+     * @param _token The token whose accounting should be updated.
+     * @param _amount The total fee amount to store.
+     */
+    function setTotalWithdrawalFees(address _token, uint256 _amount) public onlyGovernor {
+        totalWithdrawalFees[_token] = _amount;
     }
 
     /**
