@@ -1,176 +1,145 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-// ---------------------------------------
-// OpenZeppelin imports
-// ---------------------------------------
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Royalty.sol";
+// --------------------- OpenZeppelin (upgradeable) --------------------- //
+import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721BurnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721RoyaltyUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
+
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/interfaces/IERC4906.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "./interfaces/IUniswapV2Pair.sol";
+
 import "./interfaces/IERC4907.sol";
+import "./interfaces/IUniswapV2Pair.sol";
 
 /**
- * @title Kondux
- * @notice NFT contract that enforces royalties in KNDX, pegged to 0.001 ETH
- *         (exemptions for founder pass holders and original minter, optional 1% treasury fee).
+ * @title KonduxImplementation
+ * @notice Implementation logic for Kondux kNFT collections.
+ *         Deploy **once**, then clone via EIP‑1167 minimal proxies.
  */
-contract Kondux is
-    ERC721,
-    ERC721Enumerable,
-    ERC721Burnable,
-    ERC721Royalty,
-    AccessControl,
+contract KonduxImplementation is
+    Initializable,
+    ERC721Upgradeable,
+    ERC721EnumerableUpgradeable,
+    ERC721BurnableUpgradeable,
+    ERC721RoyaltyUpgradeable,
+    AccessControlUpgradeable,
     IERC4906,
     IERC4907
 {
-    // -------------------- Roles & Events -------------------- //
-
-    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    /*----------------------------------------------------------------------*/
+    /*                               Roles                                  */
+    /*----------------------------------------------------------------------*/
+    bytes32 public constant MINTER_ROLE       = keccak256("MINTER_ROLE");
     bytes32 public constant DNA_MODIFIER_ROLE = keccak256("DNA_MODIFIER_ROLE");
 
-    event BaseURIChanged(string baseURI);
-    event DnaChanged(uint256 indexed tokenID, uint256 dna);
-    event DenominatorChanged(uint96 denominator);
-    event DnaModified(uint256 indexed tokenID, uint256 dna, uint256 inputValue, uint8 startIndex, uint8 endIndex);
-    event RoleChanged(address indexed addr, bytes32 role, bool enabled);
-    event FreeMintingChanged(bool freeMinting);
-    
-    event RoyaltySplitsChanged(uint96 manufacturerBP, uint96 partnerBP, uint96 creatorBP);
-    event PartnerWalletChanged(address partner);
+    /*----------------------------------------------------------------------*/
+    /*                                State                                 */
+    /*----------------------------------------------------------------------*/
+    // ─── External refs ────────────────────────────────────────────────────
+    address         public WETH;
+    address         public KNDX;
+    IERC721         public foundersPass;
+    address         public konduxTreasury;
+    IUniswapV2Pair  public uniswapV2Pair;
 
-    // -------------------- Config Addresses (Set in Constructor) -------------------- //
+    // ─── Toggles ─────────────────────────────────────────────────────────
+    bool public royaltyEnforcementEnabled;
+    bool public founderPassExemptEnabled;
+    bool public mintedOwnerExemptEnabled;
+    bool public treasuryFeeEnabled;
+    bool public eip4907Enabled;
 
-    /// @dev WETH address (wrapped ETH)
-    address public WETH;
-    /// @dev KNDX token address
-    address public KNDX;
-    /// @dev Founder’s pass contract
-    IERC721 public foundersPass;
-    /// @dev Kondux treasury address (receives 1% of each royalty)
-    address public konduxTreasury;
-
-    /// @notice The Uniswap V2 Pair interface used to determine token/ETH price ratios.
-    IUniswapV2Pair public uniswapV2Pair;
-
-    // -------------------- Royalty Settings / Toggles -------------------- //
-
-    /// @dev If `true`, we enforce the on-chain royalty logic in _update()
-    bool public royaltyEnforcementEnabled = true;
-
-    /// @dev If `true`, holders of the founder pass are exempt from paying royalties
-    bool public founderPassExemptEnabled = true;
-
-    /// @dev If `true`, the original minter (royalty owner) is exempt when sending
-    bool public mintedOwnerExemptEnabled = true;
-
-    /// @dev If `true`, we take 1% of the royalty for the treasury, 99% goes to the NFT’s royalty owner
-    bool public treasuryFeeEnabled = true;
-
-    // -------------------- EIP-4907 Toggle -------------------- //
-
-    /**
-     * @notice If this is `false`, EIP-4907 functionality is disabled.
-     *         - `setUser` will revert
-     *         - `userOf` and `userExpires` will return default values
-     *         - We do not declare support for 0xad092b5c in `supportsInterface`.
-     */
-    bool public eip4907Enabled = true;
-
-    // -------------------- Core NFT State -------------------- //
-
-    /// @dev Maximum mintable supply. If `maxSupply` is 0, supply is infinite.
+    // ─── Collection config ───────────────────────────────────────────────
     uint256 public maxSupply;
-    string public baseURI;
-    uint96 public denominator;       // for ERC721Royalty usage (optional)
-    bool public freeMinting;        // if true, anyone can mint (else only MINTER_ROLE)
+    string  public baseURI;
+    uint96  public denominator;
+    bool    public freeMinting;
     uint256 private _tokenIdCounter;
 
-    // DNA mapping
+    // ─── DNA ─────────────────────────────────────────────────────────────
     mapping(uint256 => uint256) public indexDna;
 
-    // -------------------- Per-Token Royalty in ETH (wei) -------------------- //
-
-    /**
-     * @dev The address that receives the royalty portion for each token.
-     *      This is set to the `to` address at mint time.
-     */
+    // ─── Per‑token royalty bookkeeping ───────────────────────────────────
     mapping(uint256 => address) public royaltyOwnerOf;
-
-    /**
-     * @dev The royalty amount in **wei** for each token. 
-     *      e.g. if `royaltyETHWei[tokenId] = 1e15`, that's 0.001 ETH pegged. 
-     *      If it's 0, that token charges no royalty on transfer.
-     */
     mapping(uint256 => uint256) public royaltyETHWei;
 
-    /**
-     * @dev User information for the ERC4907 interface.
-     *     This struct contains the user address and the expiration time of the user role.
-     *     The user role allows a specific address to use the NFT for a limited time.
-     */
-    struct UserInfo {
-        address user;   // address of the user role
-        uint64 expires; // UNIX timestamp when the user role expires
-    }
-
-    /// @dev Mapping from token ID to user information for the ERC4907 interface.
+    // ─── EIP‑4907 user struct ────────────────────────────────────────────
+    struct UserInfo { address user; uint64 expires; }
     mapping(uint256 => UserInfo) private _users;
 
-    /// @dev Royalty split percentages (in basis points)
-    uint96 public manufacturerCutBP = 4000; // 40 % (manufacturer / treasury)
-    uint96 public partnerCutBP      = 3000; // 30 % (partner)
-    uint96 public creatorCutBP      = 3000; // 30 % (creator)
+    // ─── Royalty splits ──────────────────────────────────────────────────
+    uint96 public manufacturerCutBP;
+    uint96 public partnerCutBP;
+    uint96 public creatorCutBP;
+    address public partnerWallet;
 
-    address public partnerWallet;     // if 0x0 ⇒ use creator
+    /*----------------------------------------------------------------------*/
+    /*                                Events                                */
+    /*----------------------------------------------------------------------*/
+    event BaseURIChanged(string baseURI);
+    event DnaChanged(uint256 indexed tokenID, uint256 dna);
+    event DnaModified(uint256 indexed tokenID, uint256 dna, uint256 inputVal, uint8 start, uint8 end);
+    event DenominatorChanged(uint96 denominator);
+    event RoleChanged(address indexed who, bytes32 role, bool enabled);
+    event FreeMintingChanged(bool enabled);
+    event RoyaltySplitsChanged(uint96 mfgBP, uint96 partnerBP, uint96 creatorBP);
+    event PartnerWalletChanged(address partner);
 
-
-    // -------------------- Constructor -------------------- //
-
+    /*----------------------------------------------------------------------*/
+    /*                           Initialiser                                */
+    /*----------------------------------------------------------------------*/
     /**
-     * @dev Initializes the Kondux contract.
-     * @param _name         ERC721 name
-     * @param _symbol       ERC721 symbol
-     * @param _uniswapPair  Uniswap V2 pair address
-     * @param _weth          WETH address
-     * @param _kndx          KNDX token address
-     * @param _foundersPass  Founder pass NFT
-     * @param _treasury      Kondux treasury address
-     * @param _maxSupply    Set a maximum supply limit. 0 => infinite supply
+     * @dev Replaces the old constructor. MUST be called exactly once on each clone.
      */
-    constructor(
-        string memory _name,
-        string memory _symbol,
-        address _uniswapPair, 
+    function initialize(
+        string calldata _name,
+        string calldata _symbol,
+        address _uniswapPair,
         address _weth,
         address _kndx,
         address _foundersPass,
         address _treasury,
         uint256 _maxSupply
-    )
-        ERC721(_name, _symbol)
-    {
-        // grant admin + roles
+    ) external initializer {
+        /* ---- parent initialisers ---- */
+        __ERC721_init(_name, _symbol);
+        __ERC721Enumerable_init();
+        __ERC721Burnable_init();
+        __ERC721Royalty_init();
+        __AccessControl_init();
+
+        /* ---- roles ---- */
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(MINTER_ROLE, msg.sender);
-        _grantRole(DNA_MODIFIER_ROLE, msg.sender);
+        _grantRole(MINTER_ROLE,         msg.sender);
+        _grantRole(DNA_MODIFIER_ROLE,   msg.sender);
 
-        // init config
-        uniswapV2Pair = IUniswapV2Pair(_uniswapPair); 
-        WETH = _weth;
-        KNDX = _kndx;
-        foundersPass = IERC721(_foundersPass);
-        konduxTreasury = _treasury;
-        maxSupply = _maxSupply;
+        /* ---- config ---- */
+        uniswapV2Pair            = IUniswapV2Pair(_uniswapPair);
+        WETH                     = _weth;
+        KNDX                     = _kndx;
+        foundersPass             = IERC721(_foundersPass);
+        konduxTreasury           = _treasury;
+        maxSupply                = _maxSupply;
 
-        // optional defaults
-        denominator = 10000;
-        freeMinting = false;
+        /* ---- sensible defaults ---- */
+        royaltyEnforcementEnabled = true;
+        founderPassExemptEnabled  = true;
+        mintedOwnerExemptEnabled  = true;
+        treasuryFeeEnabled        = true;
+        eip4907Enabled            = true;
+
+        denominator              = 10_000;
+        freeMinting              = false;
+
+        manufacturerCutBP = 4000;
+        partnerCutBP      = 3000;
+        creatorCutBP      = 3000;
     }
 
     // -------------------- Admin: Toggle/Set Functions -------------------- //
@@ -269,7 +238,7 @@ contract Kondux is
     }
 
     /**
-     * @notice Enables or disables the EIP-4907 functionality.
+     * @notice Enables or disables the EIP-4907 functionality. EIP-4907 allows for temporary user assignments to NFTs.
      * @dev This function can only be called by an admin. If disabled, it will revert calls to setUser and return default values for userOf and userExpires.
      * @param enabled A boolean value indicating whether EIP-4907 functionality should be enabled (true) or disabled (false).
      */
@@ -494,7 +463,7 @@ contract Kondux is
      * @param tokenId The unique identifier for the token.
      * @return string The generated token URI for the specified token ID.
      */
-    function tokenURI(uint256 tokenId) public view override(ERC721) returns (string memory) {
+    function tokenURI(uint256 tokenId) public view override(ERC721Upgradeable) returns (string memory) {
         require(_ownerOf(tokenId) != address(0), "kNFT: nonexistent token");
         if (bytes(baseURI).length == 0) {
             return "";
@@ -559,7 +528,7 @@ contract Kondux is
     
     /**
      * @notice Updates the ownership state of a token.
-     * @dev This function overrides the _update functions in both ERC721 and ERC721Enumerable.
+     * @dev This function overrides the _update functions in both ERC721 and ERC721EnumerableUpgradeable.
      * It determines the operation mode (mint, burn, or transfer) based on the token's current owner
      * and the destination address. If the operation is a transfer (not a mint or burn) and royalty enforcement
      * is enabled, it calls _enforceRoyalty to ensure compliance with royalty rules before proceeding.
@@ -572,7 +541,7 @@ contract Kondux is
      */
     function _update(address to, uint256 tokenId, address auth)
         internal
-        override(ERC721, ERC721Enumerable)
+        override(ERC721Upgradeable, ERC721EnumerableUpgradeable)
         returns (address prevOwner)
     {
         address from = _ownerOf(tokenId);
@@ -824,7 +793,7 @@ contract Kondux is
         public
         view
         virtual
-        override(ERC721, ERC721Enumerable, ERC721Royalty, AccessControl, IERC165)
+        override(ERC721Upgradeable, ERC721EnumerableUpgradeable, ERC721RoyaltyUpgradeable, AccessControlUpgradeable, IERC165)
         returns (bool)
     {
         // EIP-4906 (metadata update) => 0x49064906
@@ -938,7 +907,7 @@ contract Kondux is
 
     /**
      * @notice Increases the balance of the specified account by the provided value.
-     * @dev This function overrides the _increaseBalance method in both ERC721 and ERC721Enumerable.
+     * @dev This function overrides the _increaseBalance method in both ERC721 and ERC721EnumerableUpgradeable.
      * It ensures that balance management remains consistent across inherited contracts.
      *
      * @param account The address whose balance will be increased.
@@ -946,7 +915,7 @@ contract Kondux is
      */
     function _increaseBalance(address account, uint128 value)
         internal
-        override(ERC721, ERC721Enumerable)
+        override(ERC721Upgradeable, ERC721EnumerableUpgradeable)
     {
         super._increaseBalance(account, value);
     }
@@ -973,4 +942,11 @@ contract Kondux is
     fallback() external payable {
         revert("Fallback not permitted");
     }
+
+    /* -------------------- storage gap for upgrades ----------------------- */
+    uint256[50] private __gap;
+
+    /* ----------------- lock implementation constructor ------------------- */
+    /// @dev Prevent initialisation of the implementation itself.
+    constructor() { _disableInitializers(); }
 }

@@ -1,21 +1,105 @@
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
-const { ethers, network } = require("hardhat");
-const { expect } = require("chai");
-const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
+const { ethers, network }   = require("hardhat");
+const { expect }            = require("chai");
+const { anyValue }          = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const exp = require("constants");
 
 
+/**
+ * Deploy a clone through the KonduxBeaconFactory and return its address.
+ *
+ * @param factory   Deployed KonduxBeaconFactory contract
+ * @param initArgs  Plain argument list for initialize(...)
+ * @param signer    Signer that calls the factory
+ */
+async function deployCloneThroughFactory(factory: any, initArgs: any, signer: any) {
+  /* ------------------------------------------------------------- */
+  /* 1. encode the initialise() calldata                           */
+  /* ------------------------------------------------------------- */
+  const initIface = new ethers.Interface([
+    "function initialize(string,string,address,address,address,address,address,uint256)"
+  ]);
+
+  // If the caller passed an *empty* array, skip initialization
+  const initData = (initArgs.length === 0)
+    ? "0x"
+    : initIface.encodeFunctionData("initialize", initArgs);
+
+
+  /* ------------------------------------------------------------- */
+  /* 2. send the transaction                                       */
+  /* ------------------------------------------------------------- */
+  const tx   = await factory.connect(signer).deployClone(initData);
+  const rcpt = await tx.wait();
+
+  /* ------------------------------------------------------------- */
+  /* 3a. fast path – parse logs in the receipt                     */
+  /* ------------------------------------------------------------- */
+  for (const log of rcpt.logs) {
+    try {
+      const parsed = factory.interface.parseLog(log);
+      if (parsed.name === "CloneDeployed") return parsed.args.proxy;
+    } catch { /* not emitted by the factory – ignore */ }
+  }
+
+  /* ------------------------------------------------------------- */
+  /* 3b. fallback – query events from chain                        */
+  /* ------------------------------------------------------------- */
+  const evt = await factory.queryFilter(
+    factory.filters.CloneDeployed(null, signer.address),
+    rcpt.blockNumber,
+    rcpt.blockNumber
+  );
+
+  if (evt.length > 0) return evt[0].args.proxy;
+
+  throw new Error("Clone address not found; neither logs nor queryFilter returned a match");
+}
+
+
+
 describe("Kondux (kNFT) - Full Test Suite", function () {
+
   /**
-   * @dev Fixture to deploy and configure the Kondux contract.
-   *      - Mocks or uses real addresses for uniswap router, WETH, KNDX, founder pass, and treasury.
-   *      - Grants roles (admin, minter, dna_modifier) to test accounts.
-   *      - Optionally impersonates addresses if you have them on a mainnet fork.
+   * Deploys KonduxImplementation (logic V1) *and* KonduxBeaconFactory,
+   * then mints an initial clone that the rest of the test‑suite treats as
+   * “the Kondux contract under test”.
+   *
+   * Returns an object with
+   *   – kondux           : the first BeaconProxy clone (already initialised)
+   *   – factory          : KonduxBeaconFactory
+   *   – beacon           : UpgradeableBeacon
+   *   – all the signers / constants you already used
    */
   async function deployKonduxFixture() {
     // --- Signers ---
     const [deployer, admin, minter, dnaModifier, user1, user2, treasurySigner] =
       await ethers.getSigners();
+
+    // console.log("Deployer address:", deployer.address);
+    // console.log("Admin address:", admin.address);
+    // console.log("Minter address:", minter.address);
+    // console.log("DNA Modifier address:", dnaModifier.address);
+    // console.log("User1 address:", user1.address);
+    // console.log("User2 address:", user2.address);
+    // console.log("Treasury address:", treasurySigner.address);
+
+
+    /* ---- 1. deploy first implementation (logic V1) -------------------- */
+
+    const Impl = await ethers.getContractFactory("KonduxImplementation");
+    const impl = await Impl.deploy();
+    await impl.waitForDeployment();
+
+    /* ---- 2. deploy factory + beacon ----------------------------------- */
+
+    const Factory = await ethers.getContractFactory("KonduxBeaconFactory");
+    const factory = await Factory.deploy(await impl.getAddress());          // constructor arg
+    await factory.waitForDeployment();
+    const beacon = await ethers.getContractAt(
+      "UpgradeableBeacon",
+      await factory.beacon()
+    );
 
     // If needed for fork-testing, you can impersonate real mainnet addresses like so:
     // const FOUNDER_PASS_HOLDER = "0x1234..."; // some real address that owns a founder pass
@@ -26,7 +110,7 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
     // const founderPassHolder = await ethers.getSigner(FOUNDER_PASS_HOLDER);
     // Then fund it if needed, etc.
 
-    // --- Mock addresses (replace with real addresses on a mainnet fork) ---
+    // 3. Mock addresses (replace with real addresses on a mainnet fork) ---
     const uniswapV2Pair = "0x79dd15aD871b0fE18040a52F951D757Ef88cfe72";
     const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
     const KNDX = "0x7CA5af5bA3472AF6049F63c1AbC324475D44EFC1";
@@ -45,20 +129,7 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
 
     // For testing, we’ll treat the `treasurySigner` as the treasury address
     const konduxTreasury = await treasurySigner.getAddress();
-
-    // --- Deploy Kondux ---
-    const KonduxFactory = await ethers.getContractFactory("Kondux");
-    const kondux = await KonduxFactory.deploy(
-      "KonduxNFT",          // _name
-      "kNFT",               // _symbol
-      uniswapV2Pair,      // _uniswapV2Pair
-      WETH,
-      KNDX,
-      FOUNDERSPASS_ADDRESS,
-      konduxTreasury,
-      0 // infinite supply for testing
-    );
-    await kondux.waitForDeployment();
+    
 
     // --- Grant roles to test accounts ---
     // By default, the deployer has DEFAULT_ADMIN_ROLE, MINTER_ROLE, DNA_MODIFIER_ROLE, but
@@ -68,13 +139,33 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
     // await kondux.revokeRole(await kondux.MINTER_ROLE(), deployer.address);
     // await kondux.revokeRole(await kondux.DNA_MODIFIER_ROLE(), deployer.address);
 
+    /* ---- 5. deploy the first *uninitialised* clone via the factory ---- */
+    const cloneAddr = await deployCloneThroughFactory(factory, [], deployer); // <- [] !!
+    console.log("Kondux clone address:", cloneAddr);
+
+    const kondux = await ethers.getContractAt("KonduxImplementation", cloneAddr);
+
+    /* ---- 6. now initialise from an EOA that should become admin -------- */
+    await kondux.connect(deployer).initialize(
+      "KonduxNFT",
+      "kNFT",
+      uniswapV2Pair,
+      WETH,
+      KNDX,
+      FOUNDERSPASS_ADDRESS,
+      konduxTreasury,
+      0                // maxSupply
+    );
+
+    console.log("Kondux implementation initialized");    
+
     // Grant to 'admin'
     await kondux.grantRole(await kondux.DEFAULT_ADMIN_ROLE(), admin.address);
     await kondux.grantRole(await kondux.MINTER_ROLE(), minter.address);
     await kondux.grantRole(await kondux.DNA_MODIFIER_ROLE(), dnaModifier.address);
 
     const konduxAddress = await kondux.getAddress();
-    // console.log("kondux deployed to:", ko?nduxAddress);
+    console.log("kondux clone deployed to:", konduxAddress);
 
     // load the founder pass holder in a wallet through impersonation
     await network.provider.request({
@@ -108,6 +199,9 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
     // Return everything needed in tests
     return {
       kondux,
+      factory,
+      beacon,
+      implV1: impl,
       FOUNDERSPASS_ADDRESS,
       uniswapV2Pair,
       WETH,
@@ -122,7 +216,8 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
       treasurySigner,
       tokenHolderSigner,
       KNDX,
-      founderPassHolder
+      founderPassHolder,
+      impl
     };
   }
 
@@ -1170,6 +1265,169 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
     });
   });
 
+ /* -------------------------------------------------------------------------- */
+/*  Beacon / Factory – clone deployment & access control                      */
+/* -------------------------------------------------------------------------- */
+describe("Beacon / Factory – clone deployment", () => {
+
+  it("Admin can deploy & initialise a clone via the factory", async () => {
+    const {
+      factory,                 // KonduxBeaconFactory
+      admin,
+      uniswapV2Pair, WETH, KNDX,
+      FOUNDERSPASS_ADDRESS, konduxTreasury
+    } = await loadFixture(deployKonduxFixture);
+
+    const initArgs = [
+      "KonduxCloneAdmin", "kCLONEA",
+      uniswapV2Pair, WETH, KNDX,
+      FOUNDERSPASS_ADDRESS,
+      konduxTreasury,
+      0                       // maxSupply
+    ];
+
+    const cloneAddr = await deployCloneThroughFactory(factory, initArgs, admin);
+    const clone     = await ethers.getContractAt("KonduxImplementation", cloneAddr);
+
+    /* clone was already initialised in the BeaconProxy constructor           */
+    await expect(
+      clone.connect(admin).initialize(...initArgs)
+    ).to.be.reverted;
+
+    expect(await clone.name()).to.equal("KonduxCloneAdmin");
+    expect(await clone.symbol()).to.equal("kCLONEA");
+  });
+
+
+  it("Public‑deployment flag & CLONE_DEPLOYER_ROLE gating", async () => {
+    const { factory, deployer, user1 } = await loadFixture(deployKonduxFixture);
+
+    /* 1 ▸ default ⇒ publicDeployment == true → everyone can deploy          */
+    await expect(factory.connect(user1).deployClone("0x")).not.to.be.reverted;
+
+    /* 2 ▸ admin disables public deployment                                  */
+    await factory.connect(deployer).setPublicDeployment(false);
+
+    await expect(factory.connect(user1).deployClone("0x"))
+      .to.be.revertedWithCustomError(factory, "AccessControlUnauthorizedAccount");
+
+    /* 3 ▸ grant CLONE_DEPLOYER_ROLE to user1 → now allowed again            */
+    const DEPLOYER_ROLE = await factory.CLONE_DEPLOYER_ROLE();
+    await factory.connect(deployer).grantRole(DEPLOYER_ROLE, user1.address);
+
+    await expect(factory.connect(user1).deployClone("0x")).not.to.be.reverted;
+  });
+
+
+  /* -------- additional coverage ----------------------------------------- */
+
+  it("Only ADMIN can change publicDeployment flag", async () => {
+    const { factory, user1 } = await loadFixture(deployKonduxFixture);
+
+    await expect(
+      factory.connect(user1).setPublicDeployment(false)
+    ).to.be.revertedWithCustomError(factory, "AccessControlUnauthorizedAccount");
+  });
+
+  it("CloneDeployed event is emitted with correct arguments", async () => {
+    const { factory, admin } = await loadFixture(deployKonduxFixture);
+
+    const tx = await factory.connect(admin).deployClone("0x");
+    await expect(tx)
+      .to.emit(factory, "CloneDeployed")
+      .withArgs(/* proxy    */ anyValue,   /* creator */ admin.address);
+  });
+});
+
+
+/* -------------------------------------------------------------------------- */
+/*  Beacon upgrade – all clones adopt new logic, storage persists             */
+/* -------------------------------------------------------------------------- */
+describe("Upgradeability – beacon upgrade", () => {
+
+  /** helper that returns the first clone + factory + admin */
+  async function ready() {
+    const f       = await loadFixture(deployKonduxFixture);
+    const cloneV1 = f.kondux;
+    return { ...f, cloneV1 };
+  }
+
+  it("Existing clones switch to new implementation after upgrade", async () => {
+    const {
+      cloneV1, factory, admin, deployer,
+      uniswapV2Pair, WETH, KNDX,
+      FOUNDERSPASS_ADDRESS, konduxTreasury
+    } = await ready();
+
+    /* 1 ▸ record pre‑upgrade state on cloneV1                               */
+    await cloneV1.connect(admin).setBaseURI("ipfs://before-upgrade/");
+
+    /* 2 ▸ deploy V2 implementation (with version() = 'V2')                  */
+    const KonduxV2 = await ethers.getContractFactory("KonduxImplementationV2");
+    const implV2   = await KonduxV2.deploy();
+    await implV2.waitForDeployment();
+
+    /* 3 ▸ upgrade the beacon                                                */
+    await expect(factory.connect(deployer).upgradeImplementation(await implV2.getAddress()))
+      .to.emit(factory, "GlobalUpgrade")
+      .withArgs(await implV2.getAddress());
+
+    /* 4 ▸ old clone now answers version() and kept storage                  */
+    const cloneV1AsV2 = await ethers.getContractAt(
+      "KonduxImplementationV2",
+      await cloneV1.getAddress()
+    );
+    expect(await cloneV1AsV2.version()).to.equal("V2");
+    expect(await cloneV1AsV2.baseURI()).to.equal("ipfs://before-upgrade/");
+
+    /* 5 ▸ fresh clone = V2 right away                                       */
+    const initArgsV2 = [
+      "KonduxV2", "kV2",
+      uniswapV2Pair, WETH, KNDX,
+      FOUNDERSPASS_ADDRESS, konduxTreasury,
+      0
+    ];
+    const cloneV2Addr = await deployCloneThroughFactory(factory, initArgsV2, admin);
+    const cloneV2     = await ethers.getContractAt("KonduxImplementationV2", cloneV2Addr);
+
+    expect(await cloneV2.version()).to.equal("V2");
+    expect(await cloneV2.symbol()).to.equal("kV2");
+  });
+
+
+  it("Storage (e.g. baseURI) survives the upgrade untouched", async () => {
+    const { factory, deployer, admin, kondux: clone } = await loadFixture(deployKonduxFixture);
+
+    await clone.connect(admin).setBaseURI("ipfs://persist/");
+
+    /* upgrade */
+    const V2 = await ethers.getContractFactory("KonduxImplementationV2");
+    const v2 = await V2.deploy(); await v2.waitForDeployment();
+    await factory.connect(deployer).upgradeImplementation(await v2.getAddress());
+
+    const cloneAsV2 = await ethers.getContractAt(
+      "KonduxImplementationV2",
+      await clone.getAddress()
+    );
+    expect(await cloneAsV2.baseURI()).to.equal("ipfs://persist/");
+  });
+
+
+  /* -------- extra security tests --------------------------------------- */
+
+  it("Non‑admin cannot upgrade the beacon", async () => {
+    const { factory, user1 } = await loadFixture(deployKonduxFixture);
+
+    const V2 = await ethers.getContractFactory("KonduxImplementationV2");
+    const v2 = await V2.deploy(); await v2.waitForDeployment();
+
+    await expect(
+      factory.connect(user1).upgradeImplementation(await v2.getAddress())
+    ).to.be.revertedWithCustomError(factory, "AccessControlUnauthorizedAccount");
+  });
+});
+
+
 
 });
 
@@ -1178,7 +1436,7 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
  * @param {string} to  recipient address
  * @param {BigInt} amount  amount in wei
  */
-async function userSendEther(to, amount) {
+async function userSendEther(to: string, amount: BigInt) {
   const [sender] = await ethers.getSigners();
   return sender.sendTransaction({ to, value: amount });
 }

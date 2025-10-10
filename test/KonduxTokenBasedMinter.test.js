@@ -661,7 +661,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
             const paymentToken = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, user);
 
             // Define the amount of tokens the user needs to mint
-            const ethAmount = ethers.parseEther("0.225"); // 1 ETH
+            const ethAmount = ethers.parseEther("0.2"); // 1 ETH
             // get reserves from uniswap pair
             const uniswapPair = await ethers.getContractAt(uniswapPairABI, UNISWAP_PAIR_ADDRESS);
             const reserves = await uniswapPair.getReserves();
@@ -755,7 +755,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
             const paymentToken = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, user);
 
             // Define the amount of tokens the user needs to mint
-            const ethAmount = ethers.parseEther("0.225"); // 1 ETH
+            const ethAmount = ethers.parseEther("0.2"); // 1 ETH
             // get reserves from uniswap pair
             const uniswapPair = await ethers.getContractAt(uniswapPairABI, UNISWAP_PAIR_ADDRESS);
             const reserves = await uniswapPair.getReserves();
@@ -818,7 +818,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
             const paymentToken = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, user);
 
             // Define the amount of tokens the user needs to mint
-            const ethAmount = ethers.parseEther("0.225"); // 1 ETH
+            const ethAmount = ethers.parseEther("0.2"); // 1 ETH
             // get reserves from uniswap pair
             const uniswapPair = await ethers.getContractAt(uniswapPairABI, UNISWAP_PAIR_ADDRESS);
             const reserves = await uniswapPair.getReserves();
@@ -882,7 +882,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
             const paymentToken = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, user);
 
             // Define the amount of tokens the user needs to mint
-            const ethAmount = ethers.parseEther("0.225"); // 1 ETH
+            const ethAmount = ethers.parseEther("0.2"); // 1 ETH
             // get reserves from uniswap pair
             const uniswapPair = await ethers.getContractAt(uniswapPairABI, UNISWAP_PAIR_ADDRESS);
             const reserves = await uniswapPair.getReserves();
@@ -950,7 +950,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
             const paymentToken = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, user);
 
             // Define the amount of tokens the user needs to mint
-            const ethAmount = ethers.parseEther("0.225"); // .225 ETH
+            const ethAmount = ethers.parseEther("0.2"); // .225 ETH
             const uniswapPair = await ethers.getContractAt(uniswapPairABI, UNISWAP_PAIR_ADDRESS);
             const reserves = await uniswapPair.getReserves();
             const token0 = await uniswapPair.token0();
@@ -1041,7 +1041,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
             const paymentToken = await ethers.getContractAt("KNDX", PAYMENT_TOKEN_ADDRESS, user);
 
             // Define the amount of tokens the user needs to mint
-            const ethAmount = ethers.parseEther("0.225"); // 1 ETH
+            const ethAmount = ethers.parseEther("0.2"); // 1 ETH
             // get reserves from uniswap pair
             const uniswapPair = await ethers.getContractAt(uniswapPairABI, UNISWAP_PAIR_ADDRESS);
             const reserves = await uniswapPair.getReserves();
@@ -1274,7 +1274,7 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
             const paymentToken = await ethers.getContractAt("IKonduxERC20", PAYMENT_TOKEN_ADDRESS, user);
 
             // Define the amount of tokens the user needs to mint at founder discount
-            const ethAmount = ethers.parseEther("0.2"); // founderDiscountPrice
+            const ethAmount = ethers.parseEther("0.175"); // founderDiscountPrice
 
             // Fetch reserves from Uniswap pair
             const uniswapPair = await ethers.getContractAt(uniswapPairABI, UNISWAP_PAIR_ADDRESS);
@@ -1373,6 +1373,11 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
             // Save initial user token balance
             const initialUserBalance = await paymentToken.balanceOf(user.address);
 
+            // console log for the treasury address token balance before minting
+            const treasuryAddress = await konduxTokenBasedMinter.treasury();
+            const treasuryBalance = await paymentToken.balanceOf(treasuryAddress);
+            // console.log("Treasury balance before minting: ", treasuryBalance.toString());
+
             // Perform the minting and verify event emission
             await expect(konduxTokenBasedMinter.connect(user).publicMint())
                 .to.emit(konduxTokenBasedMinter, "BundleMinted")
@@ -1380,6 +1385,17 @@ describe("KonduxTokenBasedMinter - Comprehensive Tests", function () {
 
             // Capture the user's final token balance
             const finalUserBalance = await paymentToken.balanceOf(await user.getAddress());
+
+            // console log for the treasury address token balance after minting
+            const finalTreasuryBalance = await paymentToken.balanceOf(treasuryAddress);
+            // console.log("Treasury balance after minting: ", finalTreasuryBalance.toString());
+
+            // check if treasury received the burn fee
+            const burnFeeBP = await konduxTokenBasedMinter.burnFeeBP();
+            const burnAmount = (tokensRequired * burnFeeBP) / 10_000n;
+            const treasuryAmount = tokensRequired - burnAmount;
+            expect(finalTreasuryBalance).to.equal(treasuryAmount + treasuryBalance);
+
 
             // Calculate expected tokens transferred (should be equal to tokensRequired)
             const tokensTransferred = BigInt(ethers.toBigInt(initialUserBalance)) - BigInt(ethers.toBigInt(finalUserBalance));

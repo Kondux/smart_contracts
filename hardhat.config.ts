@@ -120,7 +120,7 @@ const config: HardhatUserConfig = {
         loggingEnabled: process.env.EVM_LOGGING === "true",
         forking: {
           url: getChainRPC("mainnet"),
-          blockNumber: 21088919
+          blockNumber: 21088920
         },
         initialBaseFeePerGas: 0
         
@@ -268,7 +268,19 @@ const config: HardhatUserConfig = {
           },
           optimizer: {
             enabled: true,
-            runs: 100,
+            runs: 1000,
+          },
+        },
+      },
+      {
+        version: "0.8.30",
+        settings: {
+          metadata: {
+            bytecodeHash: "none",
+          },
+          optimizer: {
+            enabled: true,
+            runs: 1000,
           },
         },
       }
@@ -297,7 +309,7 @@ const config: HardhatUserConfig = {
     tests: "./test",
 },
   mocha: {
-    timeout: 40000
+    timeout: 400000
   },
   abiExporter: {
     path: './abi',

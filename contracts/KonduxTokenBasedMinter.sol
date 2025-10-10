@@ -58,6 +58,9 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
     /// @notice Indicates whether the special Founder’s Pass minting discount is active.
     bool public foundersPassActive;
 
+    /// @notice Percentage of every payment that is burned (in basis points, 100 bp = 1 %).
+    uint16 public burnFeeBP;                     // e.g. 300 = 3 %
+
     // Events
 
     /// @notice Emitted when a bundle of NFTs is minted.
@@ -111,6 +114,9 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
     /// @param admin The admin who performed the withdrawal.
     /// @param amount The amount of ETH withdrawn.
     event ETHWithdrawn(address indexed admin, uint256 amount);
+
+    /// @notice Emitted when the burn fee is changed by an admin.
+    event BurnFeeChanged(uint16 burnFeeBP);
 
     /// @notice Emitted when multiple configurations are updated in a single transaction.
     event ConfigurationsUpdated(
@@ -170,14 +176,16 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
         uniswapPair = IUniswapV2Pair(_uniswapPair);
         WETH = _WETH;
         fullPrice = 0.25 ether;
-        discountPrice = 0.225 ether;
-        founderDiscountPrice = 0.2 ether;
+        discountPrice = 0.2 ether;
+        founderDiscountPrice = 0.175 ether;
         bundleSize = 5;
         paused = true;
         foundersPassActive = true;
 
         // Cache token decimals for gas optimization
         tokenDecimalsCached = paymentToken.decimals();
+
+        burnFeeBP           = 300;               // 3 % burn on every payment
 
         // Grant admin role to the deployer
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -214,6 +222,9 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
         // Calculate the number of tokens required based on ETH price
         uint256 tokensRequired = _calculateTokenAmount(_userPrice, reserveETH, reserveToken); 
 
+        uint256 burnAmount     = (tokensRequired * burnFeeBP) / 10_000;
+        uint256 treasuryAmount = tokensRequired - burnAmount;
+
         require(
             paymentToken.allowance(msg.sender, address(this)) >= tokensRequired,
             "Insufficient token allowance"
@@ -223,11 +234,19 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
             "Insufficient token balance"
         );
 
-        // Transfer tokens from user to treasury
-        bool success = paymentToken.transferFrom(msg.sender, address(treasury), tokensRequired);
-        require(success, "Token transfer failed");
+        // Pull total amount into this contract first (single allowance utilisation)
+        bool ok = paymentToken.transferFrom(msg.sender, address(this), tokensRequired);
+        require(ok, "Token transfer failed");
 
-        // Mint the NFT bundle
+        // Burn 3 % (or whatever `burnFeeBP` is set to)
+        ok = paymentToken.transfer(address(0), burnAmount);
+        require(ok, "Burn failed");
+
+        // Forward the remainder to the treasury
+        ok = paymentToken.transfer(address(treasury), treasuryAmount);
+        require(ok, "Treasury transfer failed");
+
+        // Mint NFT bundle
         uint256[] memory tokenIds = _mintBundle(bundleSize);
         emit BundleMinted(msg.sender, tokenIds);
         return tokenIds;
@@ -380,6 +399,17 @@ contract KonduxTokenBasedMinter is AccessControl, ReentrancyGuard {
      */
     function getReserves() public view returns (uint112 reserveETH, uint112 reserveToken) {
         return _getReserves();
+    }
+
+    /**
+     * @notice Sets the swap burn fee, expressed in basis points (100 bp = 1 %).
+     * @dev    Only callable by an admin. 10 000 bp = 100 % (upper bound sanity‑check).
+     * @param  _burnFeeBP New burn fee in basis points.
+     */
+    function setBurnFeeBP(uint16 _burnFeeBP) external onlyAdmin {
+        require(_burnFeeBP <= 10_000, "Fee too high");
+        burnFeeBP = _burnFeeBP;
+        emit BurnFeeChanged(_burnFeeBP);
     }
 
     /**
