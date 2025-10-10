@@ -11,3 +11,7 @@ remappings = [
     "@openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable/",
     "hardhat/=node_modules/hardhat/"
 ]
+fs_permissions = [
+    { access = "read", path = "./" },
+    { access = "write", path = "./docs/deployments/kondux-batchminter" }
+]
