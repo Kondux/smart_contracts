@@ -279,6 +279,7 @@ contract DeployKonduxBatchMinterScript is Script {
             _grantRoleIfNeeded(batchMinter, batchMinterRole, cfg.batchMinterRoleRecipients[i], "KonduxBatchMinter");
         }
 
+        _ensureBatchMinterKonduxTarget(batchMinter, kondux);
         _ensureKonduxCoreAddresses(kondux, cfg, pair);
         _applyKonduxPostSetup(kondux, cfg);
 
@@ -373,6 +374,31 @@ contract DeployKonduxBatchMinterScript is Script {
             target.revokeRole(adminRole, deployer);
             console2.log("KonduxBatchMinter admin revoked from deployer");
         }
+    }
+
+    function _ensureBatchMinterKonduxTarget(KonduxBatchMinter batchMinter, KonduxImplementation kondux) internal {
+        address current = address(batchMinter.kondux());
+        address expected = address(kondux);
+
+        if (current == expected) {
+            console2.log("KonduxBatchMinter kondux target already set");
+            return;
+        }
+
+        bool success;
+        bytes memory payload = abi.encodeWithSignature("setKonduxTarget(address)", expected);
+        (success,) = address(batchMinter).call(payload);
+
+        if (!success) {
+            payload = abi.encodeWithSignature("setKNFT(address)", expected);
+            (success,) = address(batchMinter).call(payload);
+        }
+
+        if (!success) {
+            revert("KonduxBatchMinter missing kondux target setter");
+        }
+
+        console2.log(string.concat("KonduxBatchMinter kondux target set to ", vm.toString(expected)));
     }
 
     function setupExistingKondux(address konduxProxyAddr, address batchMinterAddr) external {
@@ -586,11 +612,11 @@ contract DeployKonduxBatchMinterScript is Script {
     console2.log("Manual verification commands (sanitised API key):");
     _emitVerifyCommand(konduxLogic, "contracts/KonduxImplementation.sol:KonduxImplementation", "");
     _emitVerifyCommand(batchMinter, "contracts/KonduxBatchMinter.sol:KonduxBatchMinter", argHex);
-    _emitProxyVerifyCommand(konduxProxy, konduxLogic, "$ETHERSCAN_API_KEY");
+    _printProxyVerificationReminder(konduxProxy, konduxLogic);
 
     _runForgeVerify(konduxLogic, "contracts/KonduxImplementation.sol:KonduxImplementation", apiKey, "");
     _runForgeVerify(batchMinter, "contracts/KonduxBatchMinter.sol:KonduxBatchMinter", apiKey, argHex);
-    _runForgeProxyVerify(konduxProxy, konduxLogic, apiKey);
+    _printProxyVerificationReminder(konduxProxy, konduxLogic);
     }
 
     function _runForgeVerify(
@@ -612,20 +638,6 @@ contract DeployKonduxBatchMinterScript is Script {
         }
     }
 
-    function _runForgeProxyVerify(address proxy, address implementation, string memory apiKey) internal {
-        string[] memory cmd = _buildProxyVerifyCommandArgs(proxy, implementation, apiKey);
-
-        VmSafe.FfiResult memory res = vm.tryFfi(cmd);
-        bool ok = res.exitCode == 0;
-        bytes memory out = res.stdout.length > 0 ? res.stdout : res.stderr;
-        if (ok) {
-            console2.log("Proxy verification submitted", proxy);
-        } else {
-            console2.log("Proxy verification failed", proxy);
-            console2.log(string(out));
-        }
-    }
-
     function _emitVerifyCommand(address target, string memory contractPath, string memory constructorArgs)
         internal
         view
@@ -633,8 +645,11 @@ contract DeployKonduxBatchMinterScript is Script {
         console2.log(_formatVerifyCommand(target, contractPath, constructorArgs, "$ETHERSCAN_API_KEY"));
     }
 
-    function _emitProxyVerifyCommand(address proxy, address implementation, string memory apiKeyLabel) internal view {
-        console2.log(_formatProxyVerifyCommand(proxy, implementation, apiKeyLabel));
+    function _printProxyVerificationReminder(address proxy, address implementation) internal view {
+        console2.log("Proxy verification requires manual confirmation on Etherscan:");
+        console2.log(string.concat("  • Proxy address   : ", vm.toString(proxy)));
+        console2.log(string.concat("  • Implementation  : ", vm.toString(implementation)));
+        console2.log("    Use Etherscan's proxy verification flow to link these once the logic contract is verified.");
     }
 
     function _buildVerifyCommandArgs(
@@ -668,30 +683,6 @@ contract DeployKonduxBatchMinterScript is Script {
         cmd[i++] = contractPath;
     }
 
-    function _buildProxyVerifyCommandArgs(address proxy, address implementation, string memory apiKey)
-        internal
-        view
-        returns (string[] memory cmd)
-    {
-        cmd = new string[](15);
-        uint256 i;
-        cmd[i++] = "forge";
-        cmd[i++] = "verify-proxy";
-        cmd[i++] = "--chain-id";
-        cmd[i++] = vm.toString(block.chainid);
-        cmd[i++] = "--etherscan-api-key";
-        cmd[i++] = apiKey;
-        cmd[i++] = "--proxy-type";
-        cmd[i++] = "oz-upgrades";
-        cmd[i++] = "--watch";
-        cmd[i++] = "--retries";
-        cmd[i++] = "12";
-        cmd[i++] = "--delay";
-        cmd[i++] = "10";
-        cmd[i++] = vm.toString(proxy);
-        cmd[i++] = vm.toString(implementation);
-    }
-
     function _formatVerifyCommand(
         address target,
         string memory contractPath,
@@ -718,23 +709,6 @@ contract DeployKonduxBatchMinterScript is Script {
         return cmd;
     }
 
-    function _formatProxyVerifyCommand(address proxy, address implementation, string memory apiKeyLabel)
-        internal
-        view
-        returns (string memory)
-    {
-        return string.concat(
-            "forge verify-proxy --chain-id ",
-            vm.toString(block.chainid),
-            " --etherscan-api-key ",
-            apiKeyLabel,
-            " --proxy-type oz-upgrades --watch --retries 12 --delay 10 ",
-            vm.toString(proxy),
-            " ",
-            vm.toString(implementation)
-        );
-    }
-
     function _printManualVerify(
         address konduxProxy,
         address konduxLogic,
@@ -746,7 +720,7 @@ contract DeployKonduxBatchMinterScript is Script {
         _emitVerifyCommand(konduxLogic, "contracts/KonduxImplementation.sol:KonduxImplementation", "");
         string memory manualArgs = vm.toString(abi.encode(konduxProxy, cfg.authority));
         _emitVerifyCommand(batchMinter, "contracts/KonduxBatchMinter.sol:KonduxBatchMinter", manualArgs);
-        _emitProxyVerifyCommand(konduxProxy, konduxLogic, "$ETHERSCAN_API_KEY");
+        _printProxyVerificationReminder(konduxProxy, konduxLogic);
         console2.log(string.concat("(network: ", net, ")"));
     }
 }

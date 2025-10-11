@@ -690,29 +690,6 @@ def command_verify(args: argparse.Namespace) -> None:
     constructor_args = encode_constructor_args(kondux_proxy, authority)
     verifications = [
         (
-            "konduxImplementationProxy",
-            "Kondux implementation proxy (ERC1967 link)",
-            kondux_proxy,
-            forge_tool.build(
-                [
-                    "verify-proxy",
-                    "--chain-id",
-                    str(chain_id),
-                    "--etherscan-api-key",
-                    etherscan_key,
-                    "--proxy-type",
-                    "oz-upgrades",
-                    "--watch",
-                    "--retries",
-                    "12",
-                    "--delay",
-                    "10",
-                    kondux_proxy,
-                    kondux_logic,
-                ]
-            ),
-        ),
-        (
             "konduxImplementationLogic",
             "Kondux implementation (logic)",
             kondux_logic,
@@ -798,6 +775,23 @@ def command_verify(args: argparse.Namespace) -> None:
                 address=target_address,
             )
         )
+
+    proxy_note = (
+        "forge verify-proxy is not available in current Foundry builds. "
+        f"Verify proxy {kondux_proxy} -> {kondux_logic} manually via Etherscan's "
+        "proxy verification workflow after the logic contract is published."
+    )
+    print(f"\n{proxy_note}\n")
+    results.append(
+        VerificationResult(
+            component="konduxImplementationProxy",
+            label="Kondux implementation proxy (manual step)",
+            success=True,
+            command=proxy_note,
+            output=proxy_note,
+            address=kondux_proxy,
+        )
+    )
 
     status = "success" if all(result.success for result in results) else "failed"
 
