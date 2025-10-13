@@ -300,8 +300,10 @@ contract Staking is AccessControlled {
         // Transfer the deposited tokens from the user to the vault
         konduxERC20.transferFrom(msg.sender, authority.vault(), _amount);
 
-        // Mint an equivalent amount of reward tokens for the user, adjusted based on the decimal difference
+    // Mint an equivalent amount of reward tokens for the user, adjusted based on the decimal difference
         helixERC20.mint(msg.sender, _amount * ratioERC20[_token] * (10 ** decimalDifference));
+
+    _afterDeposit(_id, _token);
 
         // Increment the deposit ID counter
         _depositIds++;
@@ -324,6 +326,8 @@ contract Staking is AccessControlled {
         require(msg.sender == userDeposits[_depositId].staker, "You are not the owner of this deposit");
         // Verify that the user is not trying to compound rewards too soon
         // require(compoundRewardsTimer(_depositId) == 0, "Tried to compound rewards too soon");
+
+        _beforeStakeRewards(_depositId);
 
         // Calculate the rewards and add any unclaimed rewards
         uint256 rewards = calculateRewards(msg.sender, _depositId) + userDeposits[_depositId].unclaimedRewards;
@@ -591,7 +595,7 @@ contract Staking is AccessControlled {
         uint256 depositedAmount = deposit_.deposited;
 
         // Calculate the base reward per second using the token's APR
-        uint256 tokenApr = aprERC20[deposit_.token];
+    uint256 tokenApr = _getAPRForDeposit(deposit_.token, _depositId);
 
         /**
          * @dev This line calculates the reward earned per second by a staker for their deposit, considering the deposit's APR (annual percentage rate).
@@ -623,6 +627,27 @@ contract Staking is AccessControlled {
         // Return the calculated reward
         return _reward;
     }      
+
+    /**
+     * @dev Hook that is called after a new deposit has been created.
+     *      Can be overridden by derived contracts to capture snapshot information.
+     */
+    function _afterDeposit(uint256 depositId, address token) internal virtual {}
+
+    /**
+     * @dev Hook that is called before compounding rewards for a deposit.
+     *      Derived contracts can revert to block restaking under certain conditions.
+     */
+    function _beforeStakeRewards(uint256 depositId) internal view virtual {}
+
+    /**
+     * @dev Retrieves the APR that should be applied to a given deposit. Derived contracts
+     *      can override to return a deposit-specific APR snapshot.
+     */
+    function _getAPRForDeposit(address token, uint256 depositId) internal view virtual returns (uint256) {
+        depositId; // silence unused warning in base implementation
+        return aprERC20[token];
+    }
 
     // Internal functions:
 
@@ -838,6 +863,15 @@ contract Staking is AccessControlled {
     }  
 
     /**
+     * @dev Updates the timelock duration for a given category.
+     * @param _category The timelock category index to update.
+     * @param _duration The new duration in seconds.
+     */
+    function setTimelockDuration(uint8 _category, uint256 _duration) public onlyGovernor {
+        timelockDurations[_category] = _duration;
+    }
+
+    /**
      * @dev This function sets the timelock category boost for a specified category.
      * @param _category The category for which to set the boost.
      * @param _boost The boost value to be set.
@@ -891,6 +925,15 @@ contract Staking is AccessControlled {
         // Check if the token address is set
         require(_token != address(0), "Token address is not set"); 
         _setAuthorizedERC20(_token, _authorized);
+    }
+
+    /**
+     * @dev Manually sets the accumulated withdrawal fees for a token.
+     * @param _token The token whose accounting should be updated.
+     * @param _amount The total fee amount to store.
+     */
+    function setTotalWithdrawalFees(address _token, uint256 _amount) public onlyGovernor {
+        totalWithdrawalFees[_token] = _amount;
     }
 
     /**

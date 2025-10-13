@@ -359,6 +359,58 @@ describe("Kondux Batch Minter - Full Test Suite", function () {
     expect(await batch.mintNonces(user1.address)).to.equal(1);
   });
 
+  it("allows an admin to retarget the Kondux collection", async () => {
+    const { batch, kondux, deployer, user1 } = await loadFixture(deployKonduxFixture);
+
+    const MockKondux = await ethers.getContractFactory("MockKondux");
+    const replacement = await MockKondux.deploy();
+    await replacement.waitForDeployment();
+
+    const replacementAddr = await replacement.getAddress();
+    const originalAddr = await batch.kondux();
+    const adminRole = await batch.DEFAULT_ADMIN_ROLE();
+
+    await expect(batch.connect(user1).setKNFT(replacementAddr))
+      .to.be.revertedWithCustomError(batch, "AccessControlUnauthorizedAccount")
+      .withArgs(user1.address, adminRole);
+
+    await expect(batch.connect(deployer).setKNFT(replacementAddr))
+      .to.emit(batch, "KonduxTargetUpdated")
+      .withArgs(originalAddr, replacementAddr);
+
+    expect(await batch.kondux()).to.equal(replacementAddr);
+
+    const dnas = [555];
+    const price = 0n;
+    const nonce = 0;
+    const deadline = (await time.latest()) + 3600;
+
+    const sig = await signAuth({
+      signer: deployer,
+      verifyingContract: await batch.getAddress(),
+      chainId : (await ethers.provider.getNetwork()).chainId,
+      recipient: user1.address,
+      dnas,
+      nonce,
+      deadline,
+      priceWei: price
+    });
+
+    await batch.connect(user1).mintBatchWithSignature(
+      user1.address,
+      dnas,
+      deadline,
+      price,
+      nonce,
+      sig,
+      { value: price }
+    );
+
+    expect(await replacement.balanceOf(user1.address)).to.equal(1n);
+    expect(await replacement.totalSupply()).to.equal(1n);
+    expect(await kondux.balanceOf(user1.address)).to.equal(0);
+  });
+
   /* ────────────────────────────────────────────────────────────────────── */
   /* 2. auth failures                                                      */
   /* ────────────────────────────────────────────────────────────────────── */

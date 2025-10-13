@@ -36,10 +36,12 @@ contract KonduxBatchMinter is
 
     bytes32 public constant BATCH_MINTER_ROLE = keccak256("BATCH_MINTER_ROLE");
 
-    IKondux    public immutable kondux;
+    IKondux    public kondux;
     IAuthority public immutable authority;
 
     bool public paused;
+
+    event KonduxTargetUpdated(address indexed previous, address indexed current);
 
     /// Anti‑replay nonce per recipient
     mapping(address => uint256) public mintNonces;
@@ -220,5 +222,13 @@ contract KonduxBatchMinter is
      */
     function setPaused(bool _paused) external onlyRole(DEFAULT_ADMIN_ROLE) {
         paused = _paused;
+    }
+
+    function setKNFT(address newKondux) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(newKondux != address(0), "Kondux addr zero");
+        address previous = address(kondux);
+        require(newKondux != previous, "Kondux addr unchanged");
+        kondux = IKondux(newKondux);
+        emit KonduxTargetUpdated(previous, newKondux);
     }
 }
