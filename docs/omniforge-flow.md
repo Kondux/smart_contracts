@@ -3,9 +3,8 @@
 ```mermaid
 flowchart TD
     Creator([Creator / Studio<br/>uploads hero 3D asset]) --> Wizard[Omniforge intake wizard<br/>asset prep & metadata capture]
-    Wizard --> GDN[NVIDIA Graphics Delivery Network<br/>edge optimisation & QA]
-    Wizard --> Offering[Commercial blueprint<br/>supply, tiers, royalty mix]
-    Offering --> Decision{Launch new<br/>Kondux collection?}
+    Wizard --> Prep[Commercial blueprint assembly<br/></br>royalties, pricing, supply, DNA, etc]
+    Prep --> Decision{Launch new<br/>Kondux collection?}
 
     subgraph Automated Onchain Orchestration
         Logic[KonduxImplementation<br/>immutable logic on mainnet]
@@ -33,9 +32,9 @@ signature-gated issuance]
 receive dynamic kNFTs]
     Authority --> Treasury[Programmed disbursements<br/>royalty & revenue wallets]
 
-    GDN --> Experience[Interactive experience layer<br/>streamed inside Omniforge]
-    Proxy -. programmable royalties,<br/>DNA upgrades, token utilities .- Offering
-    BatchMinter -. drop tooling,<br/>retail & enterprise integrations .- Offering
+    Prep --> Experience[Interactive experience layer<br/>streamed inside Omniforge]
+    Proxy -. programmable royalties,<br/>DNA upgrades, token utilities .- Prep
+    BatchMinter -. drop tooling,<br/>retail & enterprise integrations .- Prep
     GTM --> Analytics[Unified analytics & reporting<br/>engagement, primary/secondary flow]
     Analytics --> CreatorOps[Creator success team<br/>iterates future drops]
 ```
