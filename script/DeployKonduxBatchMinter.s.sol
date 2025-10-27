@@ -647,8 +647,8 @@ contract DeployKonduxBatchMinterScript is Script {
 
     function _printProxyVerificationReminder(address proxy, address implementation) internal view {
         console2.log("Proxy verification requires manual confirmation on Etherscan:");
-        console2.log(string.concat("  • Proxy address   : ", vm.toString(proxy)));
-        console2.log(string.concat("  • Implementation  : ", vm.toString(implementation)));
+    console2.log(string.concat("  * Proxy address   : ", vm.toString(proxy)));
+    console2.log(string.concat("  * Implementation  : ", vm.toString(implementation)));
         console2.log("    Use Etherscan's proxy verification flow to link these once the logic contract is verified.");
     }
 
