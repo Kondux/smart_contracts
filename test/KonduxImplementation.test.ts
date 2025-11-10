@@ -245,7 +245,6 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
       expect(await kondux.mintedOwnerExemptEnabled()).to.be.true;
       expect(await kondux.treasuryFeeEnabled()).to.be.true;
 
-      expect(await kondux.denominator()).to.equal(10000);
       expect(await kondux.freeMinting()).to.be.false;
     });
 
@@ -434,7 +433,74 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
       // Another user cannot change it
       await expect(
         kondux.connect(minter).setTokenRoyaltyEth(0, ethers.parseUnits("0.005", "ether"))
-      ).to.be.revertedWith("Not the token's royalty owner");
+      ).to.be.revertedWith("kNFT: only admin or royalty owner");
+    });
+
+    it("Global defaults cannot exceed their caps", async function () {
+      const { kondux, admin } = await loadFixture(deployKonduxFixture);
+
+      const cap = ethers.parseUnits("0.001", "ether");
+      await kondux
+        .connect(admin)
+        .setGlobalRoyaltyCaps(cap, cap, cap);
+
+      await expect(
+        kondux.connect(admin).setGlobalRoyaltyDefaults(cap + 1n, 0, 0)
+      ).to.be.revertedWith("kNFT: creator default exceeds cap");
+
+      await expect(
+        kondux.connect(admin).setGlobalRoyaltyDefaults(0, cap + 1n, 0)
+      ).to.be.revertedWith("kNFT: manufacturer default exceeds cap");
+
+      await expect(
+        kondux.connect(admin).setGlobalRoyaltyDefaults(0, 0, cap + 1n)
+      ).to.be.revertedWith("kNFT: partner default exceeds cap");
+    });
+
+    it("Per-token royalties revert when exceeding configured caps", async function () {
+      const { kondux, admin, minter, user1 } = await loadFixture(deployKonduxFixture);
+
+      // Allow low caps by clearing defaults first
+      await kondux.connect(admin).setGlobalRoyaltyDefaults(0, 0, 0);
+
+      const cap = ethers.parseUnits("0.0005", "ether");
+      await kondux
+        .connect(admin)
+        .setGlobalRoyaltyCaps(cap, cap, cap);
+
+      await kondux.connect(minter).safeMint(user1.address, 321);
+
+      await expect(
+        kondux
+          .connect(admin)
+          .adminSetTokenRoyalties(0, cap + 1n, 0, 0)
+      ).to.be.revertedWith("kNFT: creator royalty exceeds cap");
+
+      await expect(
+        kondux
+          .connect(admin)
+          .adminSetTokenRoyalties(0, 0, cap + 1n, 0)
+      ).to.be.revertedWith("kNFT: manufacturer royalty exceeds cap");
+
+      await expect(
+        kondux
+          .connect(admin)
+          .adminSetTokenRoyalties(0, 0, 0, cap + 1n)
+      ).to.be.revertedWith("kNFT: partner royalty exceeds cap");
+
+      await expect(
+        kondux.connect(admin).setTokenRoyaltyEth(0, cap + 1n)
+      ).to.be.revertedWith("kNFT: creator royalty exceeds cap");
+
+      // Allow a valid configuration to succeed
+      await kondux
+        .connect(admin)
+        .adminSetTokenRoyalties(0, cap, cap, cap);
+
+      const [creatorWei, manufacturerWei, partnerWei] = await kondux.getTokenRoyalty(0);
+      expect(creatorWei).to.equal(cap);
+      expect(manufacturerWei).to.equal(cap);
+      expect(partnerWei).to.equal(cap);
     });
 
     it("If royalty is 0, no tokens are charged on transfer", async function () {
@@ -806,6 +872,12 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
         tokenHolderSigner,
       } = await loadFixture(deployKonduxFixture);
 
+      const royaltyBreakdown = {
+        creatorWei: ethers.parseUnits("0.0003", "ether"),
+        manufacturerWei: ethers.parseUnits("0.0004", "ether"),
+        partnerWei: ethers.parseUnits("0.0003", "ether"),
+      };
+
       // ------------------------------------------------------------------
       // Optional config: partner wallet & treasury fee toggle
       // ------------------------------------------------------------------
@@ -822,8 +894,14 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
       // Mint token to creator, set royalty, move token to payer
       // ------------------------------------------------------------------
       await kondux.connect(minter).safeMint(user1.address, 999);             // tokenId = 0
-      const royaltyETH = ethers.parseUnits("0.001", "ether");
-      await kondux.connect(user1).setTokenRoyaltyEth(0, royaltyETH);
+      await kondux
+        .connect(admin)
+        .adminSetTokenRoyalties(
+          0,
+          royaltyBreakdown.creatorWei,
+          royaltyBreakdown.manufacturerWei,
+          royaltyBreakdown.partnerWei
+        );
 
       // First hop (creator ➜ payer) is exempt (mintedOwnerExempt), so no royalty yet
       await kondux.connect(user1).transferFrom(user1.address, user2.address, 0);
@@ -851,16 +929,13 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
       return {
         kondux,
         paymentToken,
-        royaltyETH,
-        denominator: await kondux.denominator(),
-        manufacturerBP: await kondux.manufacturerCutBP(),
-        partnerBP: await kondux.partnerCutBP(),
-        creatorBP: await kondux.creatorCutBP(),
+        royaltyBreakdown,
         treasury: konduxTreasury,
         partner: withPartner ? admin : user1, // falls back to creator if no partner
         creator: user1,
         payer: user2,
         treasuryOn,
+        adminSigner: admin,
       };
     }
 
@@ -868,11 +943,9 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
       const s = await prepareRoyaltyScenario(true, true);
 
       // Expected amounts
-      const requiredKndx =
-        await s.kondux.getKndxForEth(s.royaltyETH);
-      const expectedManufacturer = (requiredKndx * s.manufacturerBP) / s.denominator;
-      const expectedPartner      = (requiredKndx * s.partnerBP)      / s.denominator;
-      const expectedCreator      = requiredKndx - expectedManufacturer - expectedPartner;
+      const expectedManufacturer = await s.kondux.getKndxForEth(s.royaltyBreakdown.manufacturerWei);
+      const expectedPartner      = await s.kondux.getKndxForEth(s.royaltyBreakdown.partnerWei);
+      const expectedCreator      = await s.kondux.getKndxForEth(s.royaltyBreakdown.creatorWei);
 
       // Balances before
       const treasBefore   = await s.paymentToken.balanceOf(s.treasury);
@@ -908,9 +981,9 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
     it("Redirects partner share to creator when partner wallet is unset (0x0)", async function () {
       const s = await prepareRoyaltyScenario(false, true);
 
-      const requiredKndx        = await s.kondux.getKndxForEth(s.royaltyETH);
-      const expectedManufacturer = (requiredKndx * s.manufacturerBP) / s.denominator;
-      const expectedCreator      = requiredKndx - expectedManufacturer; // creator receives partner+creator cuts
+      const expectedManufacturer = await s.kondux.getKndxForEth(s.royaltyBreakdown.manufacturerWei);
+      const expectedCreator      =
+        (await s.kondux.getKndxForEth(s.royaltyBreakdown.creatorWei + s.royaltyBreakdown.partnerWei));
 
       const treasBefore   = await s.paymentToken.balanceOf(s.treasury);
       const creatorBefore = await s.paymentToken.balanceOf(s.creator.address);
@@ -929,9 +1002,8 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
     it("Omits manufacturer share completely when treasury fee is disabled", async function () {
       const s = await prepareRoyaltyScenario(true, false);
 
-      const requiredKndx   = await s.kondux.getKndxForEth(s.royaltyETH);
-      const expectedPartner = (requiredKndx * s.partnerBP) / s.denominator;
-      const expectedCreator = requiredKndx - expectedPartner; // entire remainder to creator
+      const expectedPartner = await s.kondux.getKndxForEth(s.royaltyBreakdown.partnerWei);
+      const expectedCreator = await s.kondux.getKndxForEth(s.royaltyBreakdown.creatorWei);
 
       const treasBefore   = await s.paymentToken.balanceOf(s.treasury);
       const partnerBefore = await s.paymentToken.balanceOf(s.partner.address);
@@ -947,6 +1019,56 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
 
       expect(treasAfter   - treasBefore).to.equal(0n);
       expect(partnerAfter - partnerBefore).to.equal(expectedPartner);
+      expect(creatorAfter - creatorBefore).to.equal(expectedCreator);
+    });
+
+    it("Disabling creator category removes creator payout but keeps others intact", async function () {
+      const s = await prepareRoyaltyScenario(true, true);
+
+      await s.kondux.connect(s.adminSigner).setCreatorRoyaltyEnabled(false);
+
+      const treasuryBefore = await s.paymentToken.balanceOf(s.treasury);
+      const partnerBefore = await s.paymentToken.balanceOf(s.partner.address);
+      const creatorBefore = await s.paymentToken.balanceOf(s.creator.address);
+
+      await s.kondux
+        .connect(s.payer)
+        .transferFrom(s.payer.address, s.creator.address, 0);
+
+      const treasuryAfter = await s.paymentToken.balanceOf(s.treasury);
+      const partnerAfter = await s.paymentToken.balanceOf(s.partner.address);
+      const creatorAfter = await s.paymentToken.balanceOf(s.creator.address);
+
+      const expectedManufacturer = await s.kondux.getKndxForEth(s.royaltyBreakdown.manufacturerWei);
+      const expectedPartner = await s.kondux.getKndxForEth(s.royaltyBreakdown.partnerWei);
+
+      expect(treasuryAfter - treasuryBefore).to.equal(expectedManufacturer);
+      expect(partnerAfter - partnerBefore).to.equal(expectedPartner);
+      expect(creatorAfter - creatorBefore).to.equal(0n);
+    });
+
+    it("Disabling partner category removes partner payout", async function () {
+      const s = await prepareRoyaltyScenario(true, true);
+
+      await s.kondux.connect(s.adminSigner).setPartnerRoyaltyEnabled(false);
+
+      const treasuryBefore = await s.paymentToken.balanceOf(s.treasury);
+      const partnerBefore = await s.paymentToken.balanceOf(s.partner.address);
+      const creatorBefore = await s.paymentToken.balanceOf(s.creator.address);
+
+      await s.kondux
+        .connect(s.payer)
+        .transferFrom(s.payer.address, s.creator.address, 0);
+
+      const treasuryAfter = await s.paymentToken.balanceOf(s.treasury);
+      const partnerAfter = await s.paymentToken.balanceOf(s.partner.address);
+      const creatorAfter = await s.paymentToken.balanceOf(s.creator.address);
+
+      const expectedManufacturer = await s.kondux.getKndxForEth(s.royaltyBreakdown.manufacturerWei);
+      const expectedCreator = await s.kondux.getKndxForEth(s.royaltyBreakdown.creatorWei);
+
+      expect(treasuryAfter - treasuryBefore).to.equal(expectedManufacturer);
+      expect(partnerAfter - partnerBefore).to.equal(0n);
       expect(creatorAfter - creatorBefore).to.equal(expectedCreator);
     });
   });
@@ -975,9 +1097,19 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
 
       // mint ‑> creator (user1)
       await f.kondux.connect(f.minter).safeMint(f.user1.address, 123);
+      const royaltyBreakdown = {
+        creatorWei: ethers.parseUnits("0.0003", 18),
+        manufacturerWei: ethers.parseUnits("0.0004", 18),
+        partnerWei: ethers.parseUnits("0.0003", 18),
+      };
       await f.kondux
-        .connect(f.user1)
-        .setTokenRoyaltyEth(0, ethers.parseUnits("0.001", 18)); // 0.001 ETH
+        .connect(f.admin)
+        .adminSetTokenRoyalties(
+          0,
+          royaltyBreakdown.creatorWei,
+          royaltyBreakdown.manufacturerWei,
+          royaltyBreakdown.partnerWei
+        );
 
       // first hop (creator ➜ payer) – exempt
       await f.kondux
@@ -1008,57 +1140,23 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
           .setPartnerWallet(f.user1.address); // new partner = creator
       }
 
-      return f;
+      return { ...f, royaltyBreakdown };
     }
 
     /* ---------------- Admin guards ---------------- */
-    it("Non‑admin cannot call setRoyaltySplits or setPartnerWallet", async () => {
+    it("Non-admin cannot call setPartnerWallet", async () => {
       const { kondux, user1 } = await loadFixture(deployKonduxFixture);
-      await expect(
-        kondux.connect(user1).setRoyaltySplits(4000, 3000, 3000)
-      ).to.be.revertedWith("kNFT: only admin");
       await expect(
         kondux.connect(user1).setPartnerWallet(user1.address)
       ).to.be.revertedWith("kNFT: only admin");
-    });
-
-    /* ---------------- split sum validation -------- */
-    it("setRoyaltySplits reverts if basis‑points do not sum to denominator", async () => {
-      const { kondux, admin } = await loadFixture(deployKonduxFixture);
-      // 4000 + 4000 + 3000 = 11000 (≠ 10000) -> revert
-      await expect(
-        kondux.connect(admin).setRoyaltySplits(4000, 4000, 3000)
-      ).to.be.revertedWith("kNFT: total royalty cuts must equal 100%");
-    });
-
-    /* ---------------- denominator change ---------- */
-    it("Changing denominator requires new compliant splits", async () => {
-      const { kondux, admin } = await loadFixture(deployKonduxFixture);
-
-      // bump denominator to 20 000
-      await kondux.connect(admin).changeDenominator(20000);
-      expect(await kondux.denominator()).to.equal(20000);
-
-      // old split totals (4000/3000/3000) now invalid
-      await expect(
-        kondux.connect(admin).setRoyaltySplits(4000, 3000, 3000)
-      ).to.be.revertedWith("kNFT: total royalty cuts must equal 100%");
-
-      // valid new totals
-      await kondux.connect(admin).setRoyaltySplits(8000, 6000, 6000);
-      expect(await kondux.manufacturerCutBP()).to.equal(8000);
     });
 
     /* ---------------- treasury disabled ----------- */
     it("Manufacturer share is *ignored* when treasuryFeeEnabled = false", async () => {
       const s = await prepare({ withPartner: true, treasuryOn: false });
 
-      const needed = await s.kondux.getKndxForEth(
-        ethers.parseUnits("0.001", 18)
-      );
-      const partnerShare = (needed * (await s.kondux.partnerCutBP())) /
-        (await s.kondux.denominator());
-      const creatorShare = needed - partnerShare; // manufacturer = 0
+      const partnerShare = await s.kondux.getKndxForEth(s.royaltyBreakdown.partnerWei);
+      const creatorShare = await s.kondux.getKndxForEth(s.royaltyBreakdown.creatorWei);
 
       const t0 = await s.paymentToken.balanceOf(s.konduxTreasury);
       const p0 = await s.paymentToken.balanceOf(s.admin.address);

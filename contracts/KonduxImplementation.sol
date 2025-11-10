@@ -58,7 +58,6 @@ contract KonduxImplementation is
     // ─── Collection config ───────────────────────────────────────────────
     uint256 public maxSupply;
     string  public baseURI;
-    uint96  public denominator;
     bool    public freeMinting;
     uint256 private _tokenIdCounter;
 
@@ -69,14 +68,35 @@ contract KonduxImplementation is
     mapping(uint256 => address) public royaltyOwnerOf;
     mapping(uint256 => uint256) public royaltyETHWei;
 
+    struct RoyaltyBreakdown {
+        uint256 creatorWei;
+        uint256 manufacturerWei;
+        uint256 partnerWei;
+    }
+
+    mapping(uint256 => RoyaltyBreakdown) private _tokenRoyalties;
+
+    uint256 public globalCreatorRoyaltyCap;
+    uint256 public globalManufacturerRoyaltyCap;
+    uint256 public globalPartnerRoyaltyCap;
+
+    uint256 public defaultCreatorRoyaltyWei;
+    uint256 public defaultManufacturerRoyaltyWei;
+    uint256 public defaultPartnerRoyaltyWei;
+
+    bool public creatorRoyaltyEnabled;
+    bool public manufacturerRoyaltyEnabled;
+    bool public partnerRoyaltyEnabled;
+
+    uint8 private constant CATEGORY_CREATOR = 0;
+    uint8 private constant CATEGORY_MANUFACTURER = 1;
+    uint8 private constant CATEGORY_PARTNER = 2;
+
     // ─── EIP‑4907 user struct ────────────────────────────────────────────
     struct UserInfo { address user; uint64 expires; }
     mapping(uint256 => UserInfo) private _users;
 
-    // ─── Royalty splits ──────────────────────────────────────────────────
-    uint96 public manufacturerCutBP;
-    uint96 public partnerCutBP;
-    uint96 public creatorCutBP;
+    // ─── Partner routing ─────────────────────────────────────────────────
     address public partnerWallet;
 
     /*----------------------------------------------------------------------*/
@@ -85,11 +105,13 @@ contract KonduxImplementation is
     event BaseURIChanged(string baseURI);
     event DnaChanged(uint256 indexed tokenID, uint256 dna);
     event DnaModified(uint256 indexed tokenID, uint256 dna, uint256 inputVal, uint8 start, uint8 end);
-    event DenominatorChanged(uint96 denominator);
     event RoleChanged(address indexed who, bytes32 role, bool enabled);
     event FreeMintingChanged(bool enabled);
-    event RoyaltySplitsChanged(uint96 mfgBP, uint96 partnerBP, uint96 creatorBP);
     event PartnerWalletChanged(address partner);
+    event GlobalRoyaltyCapsUpdated(uint256 creatorCap, uint256 manufacturerCap, uint256 partnerCap);
+    event GlobalRoyaltyDefaultsUpdated(uint256 creatorWei, uint256 manufacturerWei, uint256 partnerWei);
+    event TokenRoyaltyUpdated(uint256 indexed tokenId, uint256 creatorWei, uint256 manufacturerWei, uint256 partnerWei);
+    event RoyaltyCategoryToggle(uint8 indexed category, bool enabled);
 
     /*----------------------------------------------------------------------*/
     /*                           Initialiser                                */
@@ -133,13 +155,19 @@ contract KonduxImplementation is
         mintedOwnerExemptEnabled  = true;
         treasuryFeeEnabled        = true;
         eip4907Enabled            = true;
+        creatorRoyaltyEnabled     = true;
+        manufacturerRoyaltyEnabled = true;
+        partnerRoyaltyEnabled     = true;
 
-        denominator              = 10_000;
         freeMinting              = false;
 
-        manufacturerCutBP = 4000;
-        partnerCutBP      = 3000;
-        creatorCutBP      = 3000;
+        globalCreatorRoyaltyCap      = type(uint256).max;
+        globalManufacturerRoyaltyCap = type(uint256).max;
+        globalPartnerRoyaltyCap      = type(uint256).max;
+
+        defaultCreatorRoyaltyWei      = 1e15;
+        defaultManufacturerRoyaltyWei = 0;
+        defaultPartnerRoyaltyWei      = 0;
     }
 
     // -------------------- Admin: Toggle/Set Functions -------------------- //
@@ -161,24 +189,57 @@ contract KonduxImplementation is
     function setPartnerWallet(address _partner) external onlyAdmin {
         partnerWallet = _partner;
     }
-    /**
-     * @notice Sets the royalty split percentages for manufacturer, partner, and creator.
-     * @dev This function can only be called by an admin. It updates the basis points for each role.
-     * @param _manufacturerCutBP The basis points for the manufacturer cut (e.g., 4000 = 40%).
-     * @param _partnerCutBP The basis points for the partner cut (e.g., 3000 = 30%).
-     * @param _creatorCutBP The basis points for the creator cut (e.g., 3000 = 30%).
-     */
-    function setRoyaltySplits(uint96 _manufacturerCutBP, uint96 _partnerCutBP, uint96 _creatorCutBP) external onlyAdmin {
-        // Require that the total royalty cuts match 100% (denominator calculated in basis points)
-        require(
-            _manufacturerCutBP + _partnerCutBP + _creatorCutBP == denominator, 
-            "kNFT: total royalty cuts must equal 100%"
-        );
 
-        // Update the royalty cuts
-        manufacturerCutBP = _manufacturerCutBP;
-        partnerCutBP = _partnerCutBP;
-        creatorCutBP = _creatorCutBP;
+    function setGlobalRoyaltyCaps(
+        uint256 creatorCap,
+        uint256 manufacturerCap,
+        uint256 partnerCap
+    ) external onlyAdmin {
+        require(creatorCap >= defaultCreatorRoyaltyWei, "kNFT: creator cap < default");
+        require(manufacturerCap >= defaultManufacturerRoyaltyWei, "kNFT: manufacturer cap < default");
+        require(partnerCap >= defaultPartnerRoyaltyWei, "kNFT: partner cap < default");
+
+        globalCreatorRoyaltyCap = creatorCap;
+        globalManufacturerRoyaltyCap = manufacturerCap;
+        globalPartnerRoyaltyCap = partnerCap;
+
+        emit GlobalRoyaltyCapsUpdated(creatorCap, manufacturerCap, partnerCap);
+    }
+
+    function setGlobalRoyaltyDefaults(
+        uint256 creatorWei,
+        uint256 manufacturerWei,
+        uint256 partnerWei
+    ) external onlyAdmin {
+        require(creatorWei <= globalCreatorRoyaltyCap, "kNFT: creator default exceeds cap");
+        require(manufacturerWei <= globalManufacturerRoyaltyCap, "kNFT: manufacturer default exceeds cap");
+        require(partnerWei <= globalPartnerRoyaltyCap, "kNFT: partner default exceeds cap");
+
+        defaultCreatorRoyaltyWei = creatorWei;
+        defaultManufacturerRoyaltyWei = manufacturerWei;
+        defaultPartnerRoyaltyWei = partnerWei;
+
+        emit GlobalRoyaltyDefaultsUpdated(creatorWei, manufacturerWei, partnerWei);
+    }
+
+    function setCreatorRoyaltyEnabled(bool enabled) external onlyAdmin {
+        creatorRoyaltyEnabled = enabled;
+        emit RoyaltyCategoryToggle(CATEGORY_CREATOR, enabled);
+    }
+
+    function setPartnerRoyaltyEnabled(bool enabled) external onlyAdmin {
+        partnerRoyaltyEnabled = enabled;
+        emit RoyaltyCategoryToggle(CATEGORY_PARTNER, enabled);
+    }
+
+    function setManufacturerRoyaltyEnabled(bool enabled) public onlyAdmin {
+        _setManufacturerRoyaltyEnabled(enabled);
+    }
+
+    function _setManufacturerRoyaltyEnabled(bool enabled) internal {
+        treasuryFeeEnabled = enabled;
+        manufacturerRoyaltyEnabled = enabled;
+        emit RoyaltyCategoryToggle(CATEGORY_MANUFACTURER, enabled);
     }
 
     /**
@@ -234,7 +295,7 @@ contract KonduxImplementation is
      * @param _enabled A boolean value indicating whether the treasury fee should be enabled (true) or disabled (false).
      */
     function setTreasuryFeeEnabled(bool _enabled) external onlyAdmin {
-        treasuryFeeEnabled = _enabled;
+        _setManufacturerRoyaltyEnabled(_enabled);
     }
 
     /**
@@ -270,45 +331,6 @@ contract KonduxImplementation is
     }
 
     /**
-     * @notice Changes the denominator used in the contract.
-     * @dev This function is restricted to admin users only.
-     * @param _denominator The new denominator value that will replace the current one.
-     * @return The updated denominator after the change.
-     * 
-     * Emits a {DenominatorChanged} event indicating the new denominator value.
-     */
-    function changeDenominator(uint96 _denominator) public onlyAdmin returns (uint96) {
-        // Adjust the royalty cuts to match the new denominator value by recalculating their basis points with the old and new denominators.
-        require(_denominator > 0, "kNFT: denominator must be > 0");
-
-        // If the new denominator is the same as the current one, no need to change
-        if (_denominator == denominator) {
-            return denominator;
-        }
-
-        // Recalculate the royalty cuts based on the new denominator
-        uint96 _manufacturerCutBP = (manufacturerCutBP * _denominator) / denominator;
-        uint96 _partnerCutBP = (partnerCutBP * _denominator) / denominator;
-        uint96 _creatorCutBP = (creatorCutBP * _denominator) / denominator;
-        // Ensure the total royalty cuts match 100% with the provided denominator
-        require(
-            (_manufacturerCutBP + _partnerCutBP + _creatorCutBP) == _denominator,
-            "kNFT: total royalty cuts must match denominator"
-        );
-
-        // Update the royalty cuts
-        manufacturerCutBP = _manufacturerCutBP;
-        partnerCutBP = _partnerCutBP;
-        creatorCutBP = _creatorCutBP;
-
-        // Update the denominator
-        denominator = _denominator;
-        
-        emit DenominatorChanged(denominator);
-        return denominator;
-    }
-
-    /**
      * @notice Updates whether minting is free.
      * @dev This function can only be called by an admin, ensuring that only authorized users can change the minting state.
      *      It emits a FreeMintingChanged event upon updating the state.
@@ -326,8 +348,100 @@ contract KonduxImplementation is
      *      e.g. 1e15 = 0.001 ETH. Setting it to 0 means no royalty for that token.
      */
     function setTokenRoyaltyEth(uint256 tokenId, uint256 ethAmountWei) external {
-        require(royaltyOwnerOf[tokenId] == msg.sender, "Not the token's royalty owner");
-        royaltyETHWei[tokenId] = ethAmountWei; // if set to 0 => no royalty
+        address caller = msg.sender;
+        require(
+            hasRole(DEFAULT_ADMIN_ROLE, caller) || royaltyOwnerOf[tokenId] == caller,
+            "kNFT: only admin or royalty owner"
+        );
+        _setTokenCreatorRoyalty(tokenId, ethAmountWei);
+    }
+
+    function adminSetTokenRoyalties(
+        uint256 tokenId,
+        uint256 creatorWei,
+        uint256 manufacturerWei,
+        uint256 partnerWei
+    ) external onlyAdmin {
+        _setTokenRoyalties(tokenId, creatorWei, manufacturerWei, partnerWei);
+    }
+
+    function setTokenManufacturerRoyalty(uint256 tokenId, uint256 amountWei) external onlyAdmin {
+        RoyaltyBreakdown storage breakdown = _tokenRoyalties[tokenId];
+        if (breakdown.creatorWei == 0 && breakdown.manufacturerWei == 0 && breakdown.partnerWei == 0) {
+            uint256 legacyTotal = royaltyETHWei[tokenId];
+            if (legacyTotal > 0) {
+                breakdown.creatorWei = legacyTotal;
+            }
+        }
+
+        uint256 currentCreator = breakdown.creatorWei;
+        uint256 currentPartner = breakdown.partnerWei;
+        _setTokenRoyalties(tokenId, currentCreator, amountWei, currentPartner);
+    }
+
+    function setTokenPartnerRoyalty(uint256 tokenId, uint256 amountWei) external onlyAdmin {
+        RoyaltyBreakdown storage breakdown = _tokenRoyalties[tokenId];
+        if (breakdown.creatorWei == 0 && breakdown.manufacturerWei == 0 && breakdown.partnerWei == 0) {
+            uint256 legacyTotal = royaltyETHWei[tokenId];
+            if (legacyTotal > 0) {
+                breakdown.creatorWei = legacyTotal;
+            }
+        }
+
+        uint256 currentCreator = breakdown.creatorWei;
+        uint256 currentManufacturer = breakdown.manufacturerWei;
+        _setTokenRoyalties(tokenId, currentCreator, currentManufacturer, amountWei);
+    }
+
+    function getTokenRoyalty(uint256 tokenId)
+        external
+        view
+        returns (uint256 creatorWei, uint256 manufacturerWei, uint256 partnerWei)
+    {
+        RoyaltyBreakdown memory breakdown = _tokenRoyalties[tokenId];
+        if (breakdown.creatorWei == 0 && breakdown.manufacturerWei == 0 && breakdown.partnerWei == 0) {
+            return (royaltyETHWei[tokenId], 0, 0);
+        }
+        return (breakdown.creatorWei, breakdown.manufacturerWei, breakdown.partnerWei);
+    }
+
+    function _setTokenCreatorRoyalty(uint256 tokenId, uint256 creatorWei) internal {
+        require(creatorWei <= globalCreatorRoyaltyCap, "kNFT: creator royalty exceeds cap");
+
+        RoyaltyBreakdown storage breakdown = _tokenRoyalties[tokenId];
+        if (breakdown.creatorWei == 0 && breakdown.manufacturerWei == 0 && breakdown.partnerWei == 0) {
+            uint256 legacyTotal = royaltyETHWei[tokenId];
+            if (legacyTotal > 0) {
+                breakdown.creatorWei = legacyTotal;
+            }
+        }
+        breakdown.creatorWei = creatorWei;
+
+        uint256 total = creatorWei + breakdown.manufacturerWei + breakdown.partnerWei;
+        royaltyETHWei[tokenId] = total;
+
+        emit TokenRoyaltyUpdated(tokenId, breakdown.creatorWei, breakdown.manufacturerWei, breakdown.partnerWei);
+    }
+
+    function _setTokenRoyalties(
+        uint256 tokenId,
+        uint256 creatorWei,
+        uint256 manufacturerWei,
+        uint256 partnerWei
+    ) internal {
+        require(creatorWei <= globalCreatorRoyaltyCap, "kNFT: creator royalty exceeds cap");
+        require(manufacturerWei <= globalManufacturerRoyaltyCap, "kNFT: manufacturer royalty exceeds cap");
+        require(partnerWei <= globalPartnerRoyaltyCap, "kNFT: partner royalty exceeds cap");
+
+        RoyaltyBreakdown storage breakdown = _tokenRoyalties[tokenId];
+        breakdown.creatorWei = creatorWei;
+        breakdown.manufacturerWei = manufacturerWei;
+        breakdown.partnerWei = partnerWei;
+
+        uint256 total = creatorWei + manufacturerWei + partnerWei;
+        royaltyETHWei[tokenId] = total;
+
+        emit TokenRoyaltyUpdated(tokenId, creatorWei, manufacturerWei, partnerWei);
     }
 
     // -------------------- Minting & DNA -------------------- //
@@ -378,9 +492,8 @@ contract KonduxImplementation is
         _setDna(tokenId, dna);
 
         // The newly minted NFT's "royalty owner" is the minter (the `to` address).
-        // Default is 0.001 ETH => 1e15 wei
         royaltyOwnerOf[tokenId] = to;
-        royaltyETHWei[tokenId] = 1e15; // 0.001 ETH
+        _setTokenRoyalties(tokenId, defaultCreatorRoyaltyWei, defaultManufacturerRoyaltyWei, defaultPartnerRoyaltyWei);
 
         _safeMint(to, tokenId);
         return tokenId;
@@ -581,50 +694,84 @@ contract KonduxImplementation is
      * - The ERC20 transferFrom calls for royalty payments (and treasury cut if enabled) must succeed.
      */
     function _enforceRoyalty(address from, uint256 tokenId) internal {
-        uint256 ethRoyalty = royaltyETHWei[tokenId];
-        if (ethRoyalty == 0) return;
+        RoyaltyBreakdown memory breakdown = _tokenRoyalties[tokenId];
+        if (breakdown.creatorWei == 0 && breakdown.manufacturerWei == 0 && breakdown.partnerWei == 0) {
+            uint256 legacyTotal = royaltyETHWei[tokenId];
+            if (legacyTotal == 0) {
+                return;
+            }
+            breakdown.creatorWei = legacyTotal;
+        }
 
-        bool isMinterExempt  = (mintedOwnerExemptEnabled && from == royaltyOwnerOf[tokenId]);
-        bool isFounderExempt = (founderPassExemptEnabled && foundersPass.balanceOf(from) > 0);
-        if (isMinterExempt || isFounderExempt) return;
+        if (!creatorRoyaltyEnabled) {
+            breakdown.creatorWei = 0;
+        }
+        if (!(manufacturerRoyaltyEnabled && treasuryFeeEnabled)) {
+            breakdown.manufacturerWei = 0;
+        }
+        if (!partnerRoyaltyEnabled) {
+            breakdown.partnerWei = 0;
+        }
 
-        uint256 requiredKndx = getKndxForEth(ethRoyalty);
-        require(requiredKndx > 0, "Royalty calc failed");
+        uint256 totalWei = breakdown.creatorWei + breakdown.manufacturerWei + breakdown.partnerWei;
+        if (totalWei == 0) {
+            return;
+        }
+
+        if (
+            (mintedOwnerExemptEnabled && from == royaltyOwnerOf[tokenId]) ||
+            (founderPassExemptEnabled && foundersPass.balanceOf(from) > 0)
+        ) {
+            return;
+        }
+
+        (uint112 reserveWETH, uint112 reserveKNDX) = _getReserves();
+
+        if (breakdown.creatorWei > 0) {
+            breakdown.creatorWei = (breakdown.creatorWei * reserveKNDX) / reserveWETH;
+        }
+        if (breakdown.manufacturerWei > 0) {
+            breakdown.manufacturerWei = (breakdown.manufacturerWei * reserveKNDX) / reserveWETH;
+        }
+        if (breakdown.partnerWei > 0) {
+            breakdown.partnerWei = (breakdown.partnerWei * reserveKNDX) / reserveWETH;
+        }
+
+        uint256 requiredKndx = breakdown.creatorWei + breakdown.manufacturerWei + breakdown.partnerWei;
+        if (requiredKndx == 0) {
+            return;
+        }
 
         IERC20 kndxToken = IERC20(KNDX);
-
-        // partner wallet (falls back to creator if unset)
-        address _partner = (partnerWallet != address(0))
-            ? partnerWallet
-            : royaltyOwnerOf[tokenId];
-
-        // compute splits
-        uint256 amountManufacturer = treasuryFeeEnabled
-            ? (requiredKndx * manufacturerCutBP) / denominator
-            : 0;
-        uint256 amountPartner = (requiredKndx * partnerCutBP) / denominator;
-        uint256 amountCreator = requiredKndx - amountManufacturer - amountPartner;
 
         require(
             kndxToken.allowance(from, address(this)) >= requiredKndx,
             "Insufficient allowance for royalty transfer"
         );
 
-        // transfers
-        if (amountManufacturer > 0) {
+        if (breakdown.manufacturerWei > 0) {
             require(
-                kndxToken.transferFrom(from, konduxTreasury, amountManufacturer),
+                kndxToken.transferFrom(from, konduxTreasury, breakdown.manufacturerWei),
                 "Royalty: manufacturer"
             );
         }
-        require(
-            kndxToken.transferFrom(from, _partner, amountPartner),
-            "Royalty: partner"
-        );
-        require(
-            kndxToken.transferFrom(from, royaltyOwnerOf[tokenId], amountCreator),
-            "Royalty: creator"
-        );
+
+        if (breakdown.partnerWei > 0) {
+            address partnerRecipient = partnerWallet != address(0)
+                ? partnerWallet
+                : royaltyOwnerOf[tokenId];
+            require(
+                kndxToken.transferFrom(from, partnerRecipient, breakdown.partnerWei),
+                "Royalty: partner"
+            );
+        }
+
+        if (breakdown.creatorWei > 0) {
+            require(
+                kndxToken.transferFrom(from, royaltyOwnerOf[tokenId], breakdown.creatorWei),
+                "Royalty: creator"
+            );
+        }
     }
 
 

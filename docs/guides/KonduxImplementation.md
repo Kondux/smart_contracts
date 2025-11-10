@@ -38,7 +38,7 @@ The **KonduxImplementation** contract is a feature‑rich, upgrade‑ready ERC�
 | **Marketplace‑level royalty enforcement** | `_enforceRoyalty` hook in `_update` blocks transfers when royalties are unpaid, guaranteeing creator & treasury revenues without relying on off‑chain marketplaces.                   |                                                                                                                    |
 | **Toggle‑driven feature flags**           | `royaltyEnforcementEnabled`, `founderPassExemptEnabled`, `mintedOwnerExemptEnabled`, `treasuryFeeEnabled`, `eip4907Enabled`, `freeMinting` allow collections to evolve post‑launch.   |                                                                                                                    |
 | **Leasing (EIP‑4907)**                    | `setUser`, `userOf`, `userExpires`, `eip4907Enabled`                                                                                                                                  | Time‑boxed assignment of a “user” distinct from owner, enabling rentals, subscriptions, and delegation.            |
-| **Treasury & partner routing**            | `setAddresses`, `setRoyaltySplits`, `setPartnerWallet`                                                                                                                                | Route liquidity & royalty flows to Kondux treasury, partners, founders, or creators.                               |
+| **Treasury & partner routing**            | `setAddresses`, `setGlobalRoyaltyDefaults`, `adminSetTokenRoyalties`, `setPartnerWallet`                                                                                               | Route liquidity & royalty flows to Kondux treasury, partners, founders, or creators.                               |
 | **Emergency administration**              | `emergencyWithdrawToken`, `emergencyWithdrawNFT`                                                                                                                                      | Safety valves for stuck funds/assets.                                                                              |
 | **On‑chain price oracle**                 | `getKndxForEth` + `_getReserves`                                                                                                                                                      | Instant ETH→KNDX conversion based on live Uni‑V2 pool—used for pricing royalties and can be repurposed for mints.  |
 
@@ -147,7 +147,6 @@ graph TB
 | **KonduxImplementation**               |             |             |
 | `initialize(..)`                       | **357 341** |      \$0.26 |
 | `safeMint()`                           |     208 039 |      \$0.15 |
-| `changeDenominator()`                  |      50 194 |      \$0.04 |
 | `writeGen()`                           |      52 313 |      \$0.04 |
 | `safeTransferFrom()`<br>(royalty path) |     126 808 |      \$0.09 |
 | **KonduxBeaconFactory**                |             |             |
@@ -305,10 +304,9 @@ await collection.grantRole(await collection.MINTER_ROLE(), bot1);
 | Add / remove minters          | Delegate bots or launchpad wallets          | `setRole(MINTER_ROLE, addr, true/false)`    |
 | Add DNA editors               | Artist pipeline                             | `setRole(DNA_MODIFIER_ROLE, addr, true)`    |
 | Per‑token royalty (ETH)       | Adjust beyond the default 0.001 ETH         | `setTokenRoyaltyEth(id, 1 ether / 1000)`    |
-| Global royalty splits         | New partner/manufacturer deal               | `setRoyaltySplits(4500, 2500, 3000)`        |
+| Global royalty defaults       | New partner/manufacturer deal               | `setGlobalRoyaltyDefaults(cWei, mWei, pWei)`|
 | Switch treasury fee on/off    | Promo period with zero platform fee         | `setTreasuryFeeEnabled(false)`              |
 | Toggle royalty enforcement    | Testing on non‑royalty marketplaces         | `setRoyaltyEnforcement(false)`              |
-| Change denominator            | Finer‐grained basis points (e.g. 1 000 000) | `changeDenominator(1_000_000)`              |
 | Update partner wallet         | Redirect partner share to new multisig      | `setPartnerWallet(newAddr)`                 |
 | Update external addresses     | Treasury / token migration                  | `setAddresses(pair, weth, kndx, fp, treas)` |
 
@@ -355,7 +353,7 @@ A Kondux kNFT proxy exposes a rich set of inexpensive **`view`** calls that let 
 | **DNA / trait blob (256 bits)**                 | `getDna(tokenId) → uint256`<br>`readGen(tokenId, start, end) → int256`                           | Use `readGen` to pull specific byte ranges (e.g. gene 5‑7).                        |
 | **Leasing status (EIP‑4907)**                   | `userOf(tokenId) → address`<br>`userExpires(tokenId) → uint256`                                  | Returns `0x0` if rental expired or feature disabled.                               |
 | **Whether a feature is toggled on**             | Public booleans:<br>`royaltyEnforcementEnabled`<br>`freeMinting`<br>`eip4907Enabled`, etc.       | Surfaces collection governance decisions in real time.                             |
-| **Royalty split percentages**                   | `manufacturerCutBP`, `partnerCutBP`, `creatorCutBP`, `denominator`                               | Display a pie‑chart of how transfer fees are routed.                               |
+| **Royalty breakdown (wei)**                     | `getTokenRoyalty(tokenId) → (creator, manufacturer, partner)`<br>`default{Creator,Manufacturer,Partner}RoyaltyWei` | Show current token amounts and fall back to collection defaults.                    |
 | **Partner wallet (if set)**                     | `partnerWallet → address`                                                                        | Falls back to `royaltyOwnerOf(tokenId)` on‑chain if `0x0`.                         |
 | **Current supply stats**                        | `totalSupply()` (from ERC‑721 Enumerable)<br>`maxSupply`                                         | Useful for mint progress bars.                                                     |
 | **Interface support probe**                     | `supportsInterface(0xad092b5c)` → leasing?<br>`supportsInterface(0x49064906)` → metadata update? | Allows dynamic feature detection across clones.                                    |
