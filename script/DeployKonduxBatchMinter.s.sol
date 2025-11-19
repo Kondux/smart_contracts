@@ -29,8 +29,10 @@ contract DeployKonduxBatchMinterScript is Script {
         uint256 maxSupply;
         string baseURI;
         bool setBaseURI;
-        bool setPartnerWallet;
-        address partnerWallet;
+    bool setTransferValidator;
+    address transferValidator;
+    bool setValidatorAutoApprove;
+    bool validatorAutoApprove;
         bool setFreeMinting;
         bool freeMintingEnabled;
         address legacyKondux;
@@ -114,8 +116,14 @@ contract DeployKonduxBatchMinterScript is Script {
         console2.log("KNDX token", cfg.kndx);
         console2.log("Payment token", cfg.paymentToken);
         console2.log("Uniswap pair", pair);
-        if (cfg.partnerWallet != address(0)) {
-            console2.log("Partner wallet", cfg.partnerWallet);
+        if (cfg.transferValidator != address(0)) {
+            console2.log("Transfer validator", cfg.transferValidator);
+        }
+        if (cfg.setValidatorAutoApprove) {
+            console2.log(
+                "Validator auto-approve",
+                cfg.validatorAutoApprove
+            );
         }
         if (cfg.legacyKondux != address(0)) {
             console2.log("Legacy kNFT", cfg.legacyKondux);
@@ -133,8 +141,10 @@ contract DeployKonduxBatchMinterScript is Script {
             cfg.maxSupply = 0;
             cfg.baseURI = "https://h7af1y611a.execute-api.us-east-1.amazonaws.com/getMetadataKNFT/";
             cfg.setBaseURI = true;
-            cfg.setPartnerWallet = true;
-            cfg.partnerWallet = 0xaD2E62E90C63D5c2b905C3F709cC3045AecDAa1E;
+            cfg.setTransferValidator = false;
+            cfg.transferValidator = address(0);
+            cfg.setValidatorAutoApprove = true;
+            cfg.validatorAutoApprove = true;
             cfg.setFreeMinting = true;
             cfg.freeMintingEnabled = false;
             cfg.legacyKondux = 0x5aD180dF8619CE4f888190C3a926111a723632ce;
@@ -166,8 +176,10 @@ contract DeployKonduxBatchMinterScript is Script {
             cfg.maxSupply = 0;
             cfg.baseURI = "https://h7af1y611a.execute-api.us-east-1.amazonaws.com/getMetadataKNFT/";
             cfg.setBaseURI = true;
-            cfg.setPartnerWallet = true;
-            cfg.partnerWallet = 0xD5a6Af8F9C20CaF7872611d6773152aA50180f83;
+            cfg.setTransferValidator = false;
+            cfg.transferValidator = address(0);
+            cfg.setValidatorAutoApprove = true;
+            cfg.validatorAutoApprove = true;
             cfg.setFreeMinting = true;
             cfg.freeMintingEnabled = false;
             cfg.legacyKondux = address(0);
@@ -280,7 +292,7 @@ contract DeployKonduxBatchMinterScript is Script {
         }
 
         _ensureBatchMinterKonduxTarget(batchMinter, kondux);
-        _ensureKonduxCoreAddresses(kondux, cfg, pair);
+        // _ensureKonduxCoreAddresses(kondux, cfg, pair);
         _applyKonduxPostSetup(kondux, cfg);
 
         _configureAdmins(kondux, deployer, cfg);
@@ -288,6 +300,8 @@ contract DeployKonduxBatchMinterScript is Script {
     }
 
     function _ensureKonduxCoreAddresses(KonduxImplementation kondux, DeployConfig memory cfg, address pair) internal {
+        // TODO: Uncomment and fix this when KonduxImplementation has the necessary fields (uniswapV2Pair, WETH, etc.)
+        /*
         address currentPair = address(kondux.uniswapV2Pair());
         address currentWeth = kondux.WETH();
         address currentKndx = kondux.KNDX();
@@ -312,6 +326,7 @@ contract DeployKonduxBatchMinterScript is Script {
         } else {
             console2.log("KonduxImplementation core addresses already configured");
         }
+        */
     }
 
     function _applyKonduxPostSetup(KonduxImplementation kondux, DeployConfig memory cfg) internal {
@@ -325,15 +340,34 @@ contract DeployKonduxBatchMinterScript is Script {
             }
         }
 
-        if (cfg.setPartnerWallet && cfg.partnerWallet != address(0)) {
-            address currentPartner = kondux.partnerWallet();
-            if (currentPartner != cfg.partnerWallet) {
-                kondux.setPartnerWallet(cfg.partnerWallet);
+        if (cfg.setTransferValidator) {
+            address desiredValidator = cfg.transferValidator;
+            address currentValidator = kondux.getTransferValidator();
+            if (currentValidator != desiredValidator) {
+                kondux.setTransferValidator(desiredValidator);
                 console2.log(
-                    string.concat("KonduxImplementation partner wallet set to ", vm.toString(cfg.partnerWallet))
+                    string.concat(
+                        "KonduxImplementation transfer validator set to ",
+                        vm.toString(desiredValidator)
+                    )
                 );
             } else {
-                console2.log("KonduxImplementation partner wallet unchanged");
+                console2.log("KonduxImplementation transfer validator unchanged");
+            }
+        }
+
+        if (cfg.setValidatorAutoApprove) {
+            bool currentAuto = kondux.autoApproveTransfersFromValidator();
+            if (currentAuto != cfg.validatorAutoApprove) {
+                kondux.setAutomaticApprovalOfTransfersFromValidator(cfg.validatorAutoApprove);
+                console2.log(
+                    string.concat(
+                        "KonduxImplementation validator auto-approval set to ",
+                        cfg.validatorAutoApprove ? "true" : "false"
+                    )
+                );
+            } else {
+                console2.log("KonduxImplementation validator auto-approval unchanged");
             }
         }
 
@@ -486,8 +520,15 @@ contract DeployKonduxBatchMinterScript is Script {
         entry = _appendStringField(entry, "weth", vm.toString(cfg.weth));
         entry = _appendStringField(entry, "uniswapPair", vm.toString(pair));
         entry = _appendStringField(entry, "uniswapRouter", vm.toString(cfg.router));
-        if (cfg.partnerWallet != address(0)) {
-            entry = _appendStringField(entry, "partnerWallet", vm.toString(cfg.partnerWallet));
+        if (cfg.transferValidator != address(0)) {
+            entry = _appendStringField(entry, "transferValidator", vm.toString(cfg.transferValidator));
+        }
+        if (cfg.setValidatorAutoApprove) {
+            entry = _appendStringField(
+                entry,
+                "validatorAutoApprove",
+                cfg.validatorAutoApprove ? "true" : "false"
+            );
         }
         if (cfg.legacyKondux != address(0)) {
             entry = _appendStringField(entry, "legacyKondux", vm.toString(cfg.legacyKondux));

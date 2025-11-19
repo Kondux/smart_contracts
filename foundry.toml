@@ -6,6 +6,7 @@ libs = ["lib", "node_modules"]
 auto_detect_solc = true
 optimizer = true
 optimizer_runs = 800
+via_ir = true
 remappings = [
     "@openzeppelin/=node_modules/@openzeppelin/",
     "@openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable/",

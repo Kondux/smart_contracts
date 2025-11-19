@@ -411,329 +411,56 @@ describe("Kondux (kNFT) - Full Test Suite", function () {
   //----------------------------------------------------------------------------
   // Royalty & Transfer Enforcement
   //----------------------------------------------------------------------------
-  describe("Royalty Enforcement & Exemptions", function () {
-    it("Minter sets default royalty (0.001 ETH in Wei) and becomes royalty owner", async function () {
-      const { kondux, minter, user1 } = await loadFixture(deployKonduxFixture);
-
-      // Mint a token => royaltyOwnerOf[tokenId] = user1 by default
-      await kondux.connect(minter).safeMint(user1.address, 1111);
-
-      expect(await kondux.royaltyOwnerOf(0)).to.equal(user1.address);
-      expect(await kondux.royaltyETHWei(0)).to.equal(ethers.parseUnits("0.001", "ether"));
+  describe("Transfer Validator Enforcement", function () {
+    it("returns the default validator before initialization", async function () {
+      const { kondux } = await loadFixture(deployKonduxFixture);
+      const fallbackValidator = await kondux.DEFAULT_TRANSFER_VALIDATOR();
+      expect(await kondux.getTransferValidator()).to.equal(fallbackValidator);
     });
 
-    it("Royalty owner can update token royalty in Wei", async function () {
-      const { kondux, minter, user1 } = await loadFixture(deployKonduxFixture);
+    it("only an admin can set the transfer validator", async function () {
+      const { kondux, admin, user1 } = await loadFixture(deployKonduxFixture);
+      const validator = await (await ethers.deployContract("MockTransferValidator")).getAddress();
 
-      await kondux.connect(minter).safeMint(user1.address, 2222);
-      // user1 is the royalty owner
-      await kondux.connect(user1).setTokenRoyaltyEth(0, ethers.parseUnits("0.002", "ether"));
-      expect(await kondux.royaltyETHWei(0)).to.equal(ethers.parseUnits("0.002", "ether"));
+      await expect(kondux.connect(user1).setTransferValidator(validator)).to.be.revertedWith("kNFT: only admin");
 
-      // Another user cannot change it
-      await expect(
-        kondux.connect(minter).setTokenRoyaltyEth(0, ethers.parseUnits("0.005", "ether"))
-      ).to.be.revertedWith("kNFT: only admin or royalty owner");
+      const previous = await kondux.getTransferValidator();
+      await expect(kondux.connect(admin).setTransferValidator(validator))
+        .to.emit(kondux, "TransferValidatorUpdated")
+        .withArgs(previous, validator);
+
+      expect(await kondux.getTransferValidator()).to.equal(validator);
     });
 
-    it("Global defaults cannot exceed their caps", async function () {
-      const { kondux, admin } = await loadFixture(deployKonduxFixture);
-
-      const cap = ethers.parseUnits("0.001", "ether");
-      await kondux
-        .connect(admin)
-        .setGlobalRoyaltyCaps(cap, cap, cap);
-
-      await expect(
-        kondux.connect(admin).setGlobalRoyaltyDefaults(cap + 1n, 0, 0)
-      ).to.be.revertedWith("kNFT: creator default exceeds cap");
-
-      await expect(
-        kondux.connect(admin).setGlobalRoyaltyDefaults(0, cap + 1n, 0)
-      ).to.be.revertedWith("kNFT: manufacturer default exceeds cap");
-
-      await expect(
-        kondux.connect(admin).setGlobalRoyaltyDefaults(0, 0, cap + 1n)
-      ).to.be.revertedWith("kNFT: partner default exceeds cap");
-    });
-
-    it("Per-token royalties revert when exceeding configured caps", async function () {
-      const { kondux, admin, minter, user1 } = await loadFixture(deployKonduxFixture);
-
-      // Allow low caps by clearing defaults first
-      await kondux.connect(admin).setGlobalRoyaltyDefaults(0, 0, 0);
-
-      const cap = ethers.parseUnits("0.0005", "ether");
-      await kondux
-        .connect(admin)
-        .setGlobalRoyaltyCaps(cap, cap, cap);
-
-      await kondux.connect(minter).safeMint(user1.address, 321);
-
-      await expect(
-        kondux
-          .connect(admin)
-          .adminSetTokenRoyalties(0, cap + 1n, 0, 0)
-      ).to.be.revertedWith("kNFT: creator royalty exceeds cap");
-
-      await expect(
-        kondux
-          .connect(admin)
-          .adminSetTokenRoyalties(0, 0, cap + 1n, 0)
-      ).to.be.revertedWith("kNFT: manufacturer royalty exceeds cap");
-
-      await expect(
-        kondux
-          .connect(admin)
-          .adminSetTokenRoyalties(0, 0, 0, cap + 1n)
-      ).to.be.revertedWith("kNFT: partner royalty exceeds cap");
-
-      await expect(
-        kondux.connect(admin).setTokenRoyaltyEth(0, cap + 1n)
-      ).to.be.revertedWith("kNFT: creator royalty exceeds cap");
-
-      // Allow a valid configuration to succeed
-      await kondux
-        .connect(admin)
-        .adminSetTokenRoyalties(0, cap, cap, cap);
-
-      const [creatorWei, manufacturerWei, partnerWei] = await kondux.getTokenRoyalty(0);
-      expect(creatorWei).to.equal(cap);
-      expect(manufacturerWei).to.equal(cap);
-      expect(partnerWei).to.equal(cap);
-    });
-
-    it("If royalty is 0, no tokens are charged on transfer", async function () {
-      const { kondux, minter, user1, user2 } = await loadFixture(deployKonduxFixture);
-
-      await kondux.connect(minter).safeMint(user1.address, 9999);
-      // user1 => set royalty to zero
-      await kondux.connect(user1).setTokenRoyaltyEth(0, 0);
-
-      // No revert, no royalty on transfer
-      await expect(kondux.connect(user1).transferFrom(user1.address, user2.address, 0)).to.not
-        .be.reverted;
-    });
-
-    it("Minted owner exemption: mintedOwnerExemptEnabled = true => minter doesn't pay royalty transferring away", async function () {
-      const { kondux, admin, minter, user1 } = await loadFixture(deployKonduxFixture);
-
-      // user1 mints => user1 is the "royalty owner"
-      await kondux.connect(minter).safeMint(user1.address, 1234);
-
-      // If user1 sends it to minter, they are the minted owner => check the code
-      // mintedOwnerExemptEnabled is true, so no royalty tokens are taken.
-      // We can verify by turning ON royalty, but we'll rely on the internal logic and ensure it doesn't revert.
-      await kondux.connect(user1).transferFrom(user1.address, minter.address, 0);
-
-      // Turn mintedOwnerExemptEnabled OFF
-      await kondux.connect(admin).setMintedOwnerExempt(false);
-      expect(await kondux.mintedOwnerExemptEnabled()).to.be.false;
-
-      // Now if user1 mints again a new token, it won't have the exemption on subsequent transfers,
-      // but let's confirm it doesn't revert if user1 doesn't have enough KNDX, etc.
-      // For a full check, you would need an ERC20 KNDX minted to user1 on a mainnet fork, or a mocked KNDX contract, etc.
-      // We'll just show the toggling test here.
-    });
-
-    it("Founder pass exemption: if user holds founder pass and founderPassExemptEnabled is true => skip royalty", async function () {
-      const { kondux, admin, minter, user1, user2, founderPassHolder, FOUNDERSPASS_ADDRESS, tokenHolderSigner, paymentToken } = await loadFixture(
-        deployKonduxFixture
+    it("cannot register a validator without code", async function () {
+      const { kondux, admin, user1 } = await loadFixture(deployKonduxFixture);
+      await expect(kondux.connect(admin).setTransferValidator(user1.address)).to.be.revertedWithCustomError(
+        kondux,
+        "Kondux__InvalidTransferValidatorContract"
       );
-
-      // user1 mints token #0
-      await kondux.connect(minter).safeMint(user1.address, 555);
-      // Set a non-zero royalty
-      await kondux.connect(user1).setTokenRoyaltyEth(0, ethers.parseUnits("0.001", "ether"));
-
-      // Transfer from user2 => wait, user2 doesn't own token #0 yet. Let's have user1 transfer to user2
-      // This first transfer is from user1 => user2. user1 does not hold the founder pass,
-      // but user1 is the minted owner => they're also exempt by mintedOwnerExempt => no KNDX required
-      await kondux.connect(user1).transferFrom(user1.address, user2.address, 0);
-
-      // Now user2 holds the founder pass it gets from the Founder pass holder wallet, but first get its token ID      
-      const foundersPass = await ethers.getContractAt("KonduxFounders", FOUNDERSPASS_ADDRESS, founderPassHolder);
-      const tokenId = await foundersPass.tokenOfOwnerByIndex(founderPassHolder.address, 0);
-      expect(tokenId).to.equal(13);
-
-      // check founder pass holder kndx erc20 token balance
-      const kndx = await ethers.getContractAt("KNDX", await kondux.KNDX());
-      // const founderPassHolderBalance = await kndx.balanceOf(founderPassHolder.address);
-      // console.log("Founder pass holder KNDX balance:", founderPassHolderBalance.toString());
-      // console.log("Founder ETH Balance (using ethers):", ethers.formatEther(await ethers.provider.getBalance(founderPassHolder.address)));
-
-      // fund founder pass holder with ETH from user1
-      await user1.sendTransaction({
-        to: await founderPassHolder.getAddress(),
-        value: ethers.parseEther("3.0"),
-      });
-
-      await foundersPass.connect(founderPassHolder).transferFrom(founderPassHolder.address, user2.address, tokenId);
-
-      // test user1 and user2 KNDX balance
-      // console.log("User1 KNDX balance:", (await kndx.balanceOf(await user1.getAddress())).toString());
-      // console.log("User2 KNDX balance:", (await kndx.balanceOf(await user2.getAddress())).toString());
-      expect(await kndx.balanceOf(await user1.getAddress())).to.equal(0);
-      expect(await kndx.balanceOf(await user2.getAddress())).to.equal(0);
-
-      // test if user2 has the founder pass
-      expect(await foundersPass.ownerOf(tokenId)).to.equal(await user2.getAddress());
-
-      // test if user2 owns the knft
-      expect(await kondux.ownerOf(0)).to.equal(user2.address);
-
-      // now check if user1 don't have the founder pass and the knft
-      expect(await foundersPass.ownerOf(tokenId)).to.not.equal(user1.address);
-      expect(await kondux.ownerOf(0)).to.not.equal(user1.address);
-
-      // Now user2 tries to send to user1. user2 DOES hold the founder pass => also exempt from royalty
-      await kondux.connect(user2).transferFrom(user2.address, user1.address, 0);
-      expect(await kondux.ownerOf(0)).to.equal(user1.address);
-
-      // Let's temporarily disable founder pass exemption:
-      await kondux.connect(admin).setFounderPassExempt(false);
-      expect(await kondux.founderPassExemptEnabled()).to.be.false;
-      
-      // Now if user2 -> user1, it will require KNDX. In a real test with KNDX on fork,
-      // you'd check the KNDX balance or do a revert check. We'll demonstrate the revert:
-      // first, print the error message of the revert
-      await kondux.connect(user1).transferFrom(user1.address, user2.address, 0);
-      expect(await kondux.ownerOf(0)).to.equal(user2.address);
-      await expect(
-        kondux.connect(user2).transferFrom(user2.address, user1.address, 0)
-      ).to.be.revertedWith("Insufficient allowance for royalty transfer");
-      // give allowance to user2
-      await kndx.connect(user2).approve(await kondux.getAddress(), ethers.parseUnits("100000", 9));
-      expect(await kndx.allowance(user2.address, await kondux.getAddress())).to.equal(ethers.parseUnits("100000", 9));
-      // now user2 -> user1
-      await expect(
-        kondux.connect(user2).transferFrom(user2.address, user1.address, 0)
-      ).to.be.reverted;
-      
-      // console.log("tokenHolderSigner address:", await tokenHolderSigner.getAddress());
-      // console.log of the founder pass holder balance with KNDX 9 decimals
-      // console.log("tokenHolderSigner KNDX balance: ", ethers.formatUnits(await kndx.balanceOf( await tokenHolderSigner.getAddress()), 9));
-
-      // // impersonate the token holder to transfer KNDX to user2
-      await network.provider.request({
-        method: "hardhat_impersonateAccount",
-        params: [await tokenHolderSigner.getAddress()],
-      });
-
-      // now user2 receives KNDX from token holder
-      await paymentToken.transfer(user2.address, ethers.parseUnits("10", 9));
-      expect(await kndx.balanceOf(user2.address)).to.equal(ethers.parseUnits("10", 9));
-
-      await expect(
-        kondux.connect(user2).transferFrom(user2.address, user1.address, 0)
-      ).to.be.reverted; 
-      
-      // now user2 have enough KNDX to transfer the knft to user1
-      await paymentToken.transfer(user2.address, ethers.parseUnits("100000", 9));
-      expect(await kndx.balanceOf(user2.address)).to.equal(ethers.parseUnits("100010", 9));
-
-      // user1 royalty balance before
-      const user1RoyaltyBalanceBefore = await kndx.balanceOf(user1.address);
-
-      // treasury balance before
-      const treasuryBalanceBefore = await kndx.balanceOf(await kondux.konduxTreasury());
-
-      // user2 => user1
-      await kondux.connect(user2).transferFrom(user2.address, user1.address, 0);
-      expect(await kondux.ownerOf(0)).to.equal(user1.address);
-
-
-      const treasuryBalanceAfter = await kndx.balanceOf(await kondux.konduxTreasury());
-      expect(treasuryBalanceAfter).to.be.above(treasuryBalanceBefore);
-
-      const user1RoyaltyBalanceAfter = await kndx.balanceOf(user1.address);
-      expect(user1RoyaltyBalanceAfter).to.be.above(user1RoyaltyBalanceBefore);
     });
 
-    it("Treasury fee splits 1% to treasury, 99% to royalty owner when enabled", async function () {
-      const { kondux, admin, minter, user1, user2, treasurySigner, tokenHolderSigner, KNDX } = await loadFixture(
-        deployKonduxFixture
-      );
-
-      // For this test to fully pass on a fork, user2 must have enough KNDX to cover the royalty.
-      // We'll just demonstrate the calls. If you're on a fork, make sure user2 has KNDX or a mock.
-
-      await kondux.connect(minter).safeMint(user1.address, 888);
-      // Set some royalty, e.g. 0.001 ETH
-      await kondux.connect(user1).setTokenRoyaltyEth(0, ethers.parseUnits("0.001", "ether"));
-
-      // user1 => user2 (mintedOwnerExempt, no fee)
-      await kondux.connect(user1).transferFrom(user1.address, user2.address, 0);
-      
-      // check KNDXERC20 balance of user2. get the KNDX contract and check balance      
-      const kndx = await ethers.getContractAt("KNDX", KNDX);
-      const balanceUser2 = await kndx.balanceOf(user2.address);
-      expect(balanceUser2).to.equal(0);
-
-      // impersonate the token holder to transfer KNDX to user2
-      await network.provider.request({
-        method: "hardhat_impersonateAccount",
-        params: [tokenHolderSigner.address],
-      });
-
-      // // fund user2 with KNDX
-      // await kndx.transfer(user2.address, ethers.parseUnits("100000", 9));
-      // console.log("User2 KNDX balance after:", balanceUser2.toString());
-      // expect(await kndx.balanceOf(user2.address)).to.equal(ethers.parseUnits("100000", 9));
-
-      // reverts if user2 doesn't have enough KNDX approved
-      await expect(
-        kondux.connect(user2).transferFrom(user2.address, user1.address, 0)
-      ).to.be.revertedWith("Insufficient allowance for royalty transfer");
-
-      // user2 give allowance to the kondux contract      
-      await kndx.connect(user2).approve(await kondux.getAddress(), ethers.parseUnits("100000", 9));    
-      expect(await kndx.allowance(user2.address, await kondux.getAddress())).to.equal(ethers.parseUnits("100000", 9));
-
-      // user2 => user1 (now user2 must pay if they are not founder pass exempt)
-      // We check that treasuryFeeEnabled is on by default => 1% to treasury, 99% to user1
-      // This will revert if user2 doesn't have enough KNDX. 
-      // On a real fork, either user2 must have enough KNDX or you can remove the revert check:
-      await expect(
-        kondux.connect(user2).transferFrom(user2.address, user1.address, 0)
-      ).to.be.reverted; // Revert if user2 doesn't have enough KNDX
-
-      // We can turn off treasury fee:
-      await kondux.connect(admin).setTreasuryFeeEnabled(false);
-      expect(await kondux.treasuryFeeEnabled()).to.be.false;
-
-      // Now user2 => user1 would send the entire royalty to user1, skipping the treasury cut.
-      // But it will still revert if user2 lacks KNDX. 
-      await expect(
-        kondux.connect(user2).transferFrom(user2.address, user1.address, 0)
-      ).to.be.reverted;
-
-      // Now enable treasury fee again
-      await kondux.connect(admin).setTreasuryFeeEnabled(true);
-      expect(await kondux.treasuryFeeEnabled()).to.be.true;
-
-      // fund user2 with KNDX from the token holder
-      await kndx.connect(tokenHolderSigner).transfer(user2.address, ethers.parseUnits("100000", 9));
-      expect(await kndx.balanceOf(user2.address)).to.equal(ethers.parseUnits("100000", 9));
-
-      // user2 => user1 (now user2 must pay if they are not founder pass exempt)
-      const tx = await kondux.connect(user2).transferFrom(user2.address, user1.address, 0);
-      await expect(tx).to.emit(kondux, "Transfer").withArgs(user2.address, user1.address, 0);
-
-    });
-
-    it("Admin can disable royaltyEnforcementEnabled => no KNDX checks on transfers", async function () {
+    it("secondary transfers invoke the configured validator", async function () {
       const { kondux, admin, minter, user1, user2 } = await loadFixture(deployKonduxFixture);
+      const validator = await ethers.deployContract("MockTransferValidator");
 
-      await kondux.connect(minter).safeMint(user1.address, 777);
-      await kondux.connect(user1).setTokenRoyaltyEth(0, ethers.parseUnits("0.005", "ether"));
+      await kondux.connect(admin).setTransferValidator(await validator.getAddress());
 
-      // Turn off enforcement
-      await kondux.connect(admin).setRoyaltyEnforcement(false);
-      expect(await kondux.royaltyEnforcementEnabled()).to.be.false;
+      // Mint token to user1 (validator should not be called during mint)
+      await validator.setShouldRevert(true);
+      await expect(kondux.connect(minter).safeMint(user1.address, 1234)).to.not.be.reverted;
 
-      // user1 => user2 => no royalty check, should pass even if user2 has no KNDX
-      await kondux.connect(user1).transferFrom(user1.address, user2.address, 0);
+      // Enable validator checks and set expectation
+      await validator.setShouldRevert(false);
+      await validator.setExpectation(user1.address, user1.address, user2.address, 0);
+
+      await expect(kondux.connect(user1).transferFrom(user1.address, user2.address, 0)).to.not.be.reverted;
+
+      // Reset expectation so that mismatch reverts
+      await validator.setShouldRevert(true);
+      await expect(
+        kondux.connect(user2).transferFrom(user2.address, user1.address, 0)
+      ).to.be.revertedWithCustomError(validator, "MockTransferValidator__Rejected");
     });
   });
 

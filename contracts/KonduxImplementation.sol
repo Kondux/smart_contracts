@@ -1,36 +1,51 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-// --------------------- OpenZeppelin (upgradeable) --------------------- //
+// -----------------------------------------------------------------------------
+// OpenZeppelin (upgradeable) imports
+// -----------------------------------------------------------------------------
 import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721BurnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721RoyaltyUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/token/common/ERC2981Upgradeable.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
+
+// -----------------------------------------------------------------------------
+// Limit Break Creator Token Standards imports
+// -----------------------------------------------------------------------------
+import "contracts/vendor/limitbreak/interfaces/ITransferValidator.sol";
+import "contracts/vendor/limitbreak/interfaces/ICreatorToken.sol";
+import "contracts/vendor/limitbreak/interfaces/ICreatorTokenLegacy.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+
 import "@openzeppelin/contracts/interfaces/IERC4906.sol";
 
 import "./interfaces/IERC4907.sol";
-import "./interfaces/IUniswapV2Pair.sol";
+import "./interfaces/ICreatorTokenTransferValidator.sol";
 
 /**
  * @title KonduxImplementation
- * @notice Implementation logic for Kondux kNFT collections.
- *         Deploy **once**, then clone via EIP‑1167 minimal proxies.
+ * @notice Implementation logic for Kondux kNFT collections supporting the
+ *         ERC721C creator token standard.  This contract is designed to be
+ *         deployed once and cloned via EIP‑1167 minimal proxies.  Each
+ *         clone maintains its own royalty configuration and transfer
+ *         validator settings independent of the original implementation.
  */
 contract KonduxImplementation is
     Initializable,
     ERC721Upgradeable,
     ERC721EnumerableUpgradeable,
     ERC721BurnableUpgradeable,
-    ERC721RoyaltyUpgradeable,
-    AccessControlUpgradeable,
+    ERC2981Upgradeable,
+    AccessControlEnumerableUpgradeable,
     IERC4906,
-    IERC4907
+    IERC4907,
+    ICreatorToken
 {
     /*----------------------------------------------------------------------*/
     /*                               Roles                                  */
@@ -41,63 +56,57 @@ contract KonduxImplementation is
     /*----------------------------------------------------------------------*/
     /*                                State                                 */
     /*----------------------------------------------------------------------*/
-    // ─── External refs ────────────────────────────────────────────────────
-    address         public WETH;
-    address         public KNDX;
-    IERC721         public foundersPass;
-    address         public konduxTreasury;
-    IUniswapV2Pair  public uniswapV2Pair;
-
-    // ─── Toggles ─────────────────────────────────────────────────────────
-    bool public royaltyEnforcementEnabled;
-    bool public founderPassExemptEnabled;
-    bool public mintedOwnerExemptEnabled;
-    bool public treasuryFeeEnabled;
+    // ─── Toggle for EIP‑4907 functionality ────────────────────────────────
     bool public eip4907Enabled;
 
-    // ─── Collection config ───────────────────────────────────────────────
+    // ─── Collection configuration ─────────────────────────────────────────
     uint256 public maxSupply;
     string  public baseURI;
     bool    public freeMinting;
     uint256 private _tokenIdCounter;
 
-    // ─── DNA ─────────────────────────────────────────────────────────────
+    // ─── DNA management ───────────────────────────────────────────────────
     mapping(uint256 => uint256) public indexDna;
 
-    // ─── Per‑token royalty bookkeeping ───────────────────────────────────
-    mapping(uint256 => address) public royaltyOwnerOf;
-    mapping(uint256 => uint256) public royaltyETHWei;
-
-    struct RoyaltyBreakdown {
-        uint256 creatorWei;
-        uint256 manufacturerWei;
-        uint256 partnerWei;
-    }
-
-    mapping(uint256 => RoyaltyBreakdown) private _tokenRoyalties;
-
-    uint256 public globalCreatorRoyaltyCap;
-    uint256 public globalManufacturerRoyaltyCap;
-    uint256 public globalPartnerRoyaltyCap;
-
-    uint256 public defaultCreatorRoyaltyWei;
-    uint256 public defaultManufacturerRoyaltyWei;
-    uint256 public defaultPartnerRoyaltyWei;
-
-    bool public creatorRoyaltyEnabled;
-    bool public manufacturerRoyaltyEnabled;
-    bool public partnerRoyaltyEnabled;
-
-    uint8 private constant CATEGORY_CREATOR = 0;
-    uint8 private constant CATEGORY_MANUFACTURER = 1;
-    uint8 private constant CATEGORY_PARTNER = 2;
-
-    // ─── EIP‑4907 user struct ────────────────────────────────────────────
+    // ─── EIP‑4907 user information ────────────────────────────────────────
     struct UserInfo { address user; uint64 expires; }
     mapping(uint256 => UserInfo) private _users;
 
-    // ─── Partner routing ─────────────────────────────────────────────────
+    // ─── Creator token (ERC721C) state ─────────────────────────────────────
+    /// @dev Address of the collection transfer validator.  If zero and not
+    /// explicitly initialized, the default validator will be returned.
+    address private _transferValidator;
+
+    /// @dev Indicates if a transfer validator has been explicitly initialized.
+    bool private _isTransferValidatorInitialized;
+
+    /// @dev If true, the transfer validator is automatically approved to
+    /// transfer tokens on behalf of owners.
+    bool public autoApproveTransfersFromValidator;
+
+    /// @dev Default transfer validator address specified by Limit Break.
+    address public constant DEFAULT_TRANSFER_VALIDATOR =
+        0x721C008fdff27BF06E7E123956E2Fe03B63342e3;
+
+    // ─── Royalty split bookkeeping ────────────────────────────────────────
+    /// @dev Denominator used for basis point calculations.  Defaults to
+    /// 10_000 (10000 = 100%).  Can be updated per collection.
+    uint96 public denominator;
+
+    /// @dev Basis points allocated to the manufacturer.
+    uint96 public manufacturerCutBP;
+
+    /// @dev Basis points allocated to the partner.
+    uint96 public partnerCutBP;
+
+    /// @dev Basis points allocated to the creator/minter.
+    uint96 public creatorCutBP;
+
+    /// @dev Optional partner wallet used to receive royalty proceeds.
     address public partnerWallet;
+
+    /// @dev The list ID used for the validator whitelist/blacklist.
+    uint48 public listId;
 
     /*----------------------------------------------------------------------*/
     /*                                Events                                */
@@ -107,74 +116,58 @@ contract KonduxImplementation is
     event DnaModified(uint256 indexed tokenID, uint256 dna, uint256 inputVal, uint8 start, uint8 end);
     event RoleChanged(address indexed who, bytes32 role, bool enabled);
     event FreeMintingChanged(bool enabled);
+    // event TransferValidatorUpdated(address indexed oldValidator, address indexed newValidator); // Defined in ICreatorToken
+    event AutomaticApprovalOfTransferValidatorSet(bool autoApproved);
+    event RoyaltySplitsChanged(uint96 manufacturerCutBP, uint96 partnerCutBP, uint96 creatorCutBP);
     event PartnerWalletChanged(address partner);
-    event GlobalRoyaltyCapsUpdated(uint256 creatorCap, uint256 manufacturerCap, uint256 partnerCap);
-    event GlobalRoyaltyDefaultsUpdated(uint256 creatorWei, uint256 manufacturerWei, uint256 partnerWei);
-    event TokenRoyaltyUpdated(uint256 indexed tokenId, uint256 creatorWei, uint256 manufacturerWei, uint256 partnerWei);
-    event RoyaltyCategoryToggle(uint8 indexed category, bool enabled);
 
     /*----------------------------------------------------------------------*/
     /*                           Initialiser                                */
     /*----------------------------------------------------------------------*/
     /**
-     * @dev Replaces the old constructor. MUST be called exactly once on each clone.
+     * @dev Replaces the constructor.  Must be called exactly once on each clone.
+     * @param _name        Collection name
+     * @param _symbol      Collection symbol
+     * @param _maxSupply   Maximum supply of tokens (0 for unlimited)
      */
     function initialize(
         string calldata _name,
         string calldata _symbol,
-        address _uniswapPair,
-        address _weth,
-        address _kndx,
-        address _foundersPass,
-        address _treasury,
-        uint256 _maxSupply
+        uint256 _maxSupply,
+        address _initialAdmin
     ) external initializer {
-        /* ---- parent initialisers ---- */
+        // Initialize parent contracts
         __ERC721_init(_name, _symbol);
         __ERC721Enumerable_init();
         __ERC721Burnable_init();
-        __ERC721Royalty_init();
-        __AccessControl_init();
+        __ERC2981_init();
+        __AccessControlEnumerable_init();
 
-        /* ---- roles ---- */
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(MINTER_ROLE,         msg.sender);
-        _grantRole(DNA_MODIFIER_ROLE,   msg.sender);
+        // Grant roles to initial admin
+        _grantRole(DEFAULT_ADMIN_ROLE, _initialAdmin);
+        _grantRole(MINTER_ROLE,         _initialAdmin);
+        _grantRole(DNA_MODIFIER_ROLE,   _initialAdmin);
 
-        /* ---- config ---- */
-        uniswapV2Pair            = IUniswapV2Pair(_uniswapPair);
-        WETH                     = _weth;
-        KNDX                     = _kndx;
-        foundersPass             = IERC721(_foundersPass);
-        konduxTreasury           = _treasury;
-        maxSupply                = _maxSupply;
+        // Configure collection parameters
+        maxSupply   = _maxSupply;
+        eip4907Enabled = true;
+        freeMinting    = false;
 
-        /* ---- sensible defaults ---- */
-        royaltyEnforcementEnabled = true;
-        founderPassExemptEnabled  = true;
-        mintedOwnerExemptEnabled  = true;
-        treasuryFeeEnabled        = true;
-        eip4907Enabled            = true;
-        creatorRoyaltyEnabled     = true;
-        manufacturerRoyaltyEnabled = true;
-        partnerRoyaltyEnabled     = true;
+        // Initialize royalty denominator and default splits (40/30/30)
+        denominator        = 10_000;
+        manufacturerCutBP  = 4000;
+        partnerCutBP       = 3000;
+        creatorCutBP       = 3000;
 
-        freeMinting              = false;
-
-        globalCreatorRoyaltyCap      = type(uint256).max;
-        globalManufacturerRoyaltyCap = type(uint256).max;
-        globalPartnerRoyaltyCap      = type(uint256).max;
-
-        defaultCreatorRoyaltyWei      = 1e15;
-        defaultManufacturerRoyaltyWei = 0;
-        defaultPartnerRoyaltyWei      = 0;
+        // Set a sensible default royalty: receiver is initial admin, sum of splits
+        _setDefaultRoyalty(_initialAdmin, manufacturerCutBP + partnerCutBP + creatorCutBP);
     }
 
-    // -------------------- Admin: Toggle/Set Functions -------------------- //
-
+    /*----------------------------------------------------------------------*/
+    /*                      Administration Functions                         */
+    /*----------------------------------------------------------------------*/
     /**
-     * @dev Restricts access to functions using this modifier to accounts that have the admin role.
-     * Reverts with "kNFT: only admin" if the caller is not an admin.
+     * @dev Restricts access to admin-only functions.  Reverts if caller is not an admin.
      */
     modifier onlyAdmin() {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "kNFT: only admin");
@@ -182,285 +175,232 @@ contract KonduxImplementation is
     }
 
     /**
-     * @notice Sets the partner wallet address.
-     * @dev This function can only be called by an admin. It updates the partner wallet address used for royalty splits.
-     * @param _partner The new partner wallet address. If set to zero, the creator's address will be used instead.
-     */
-    function setPartnerWallet(address _partner) external onlyAdmin {
-        partnerWallet = _partner;
-    }
-
-    function setGlobalRoyaltyCaps(
-        uint256 creatorCap,
-        uint256 manufacturerCap,
-        uint256 partnerCap
-    ) external onlyAdmin {
-        require(creatorCap >= defaultCreatorRoyaltyWei, "kNFT: creator cap < default");
-        require(manufacturerCap >= defaultManufacturerRoyaltyWei, "kNFT: manufacturer cap < default");
-        require(partnerCap >= defaultPartnerRoyaltyWei, "kNFT: partner cap < default");
-
-        globalCreatorRoyaltyCap = creatorCap;
-        globalManufacturerRoyaltyCap = manufacturerCap;
-        globalPartnerRoyaltyCap = partnerCap;
-
-        emit GlobalRoyaltyCapsUpdated(creatorCap, manufacturerCap, partnerCap);
-    }
-
-    function setGlobalRoyaltyDefaults(
-        uint256 creatorWei,
-        uint256 manufacturerWei,
-        uint256 partnerWei
-    ) external onlyAdmin {
-        require(creatorWei <= globalCreatorRoyaltyCap, "kNFT: creator default exceeds cap");
-        require(manufacturerWei <= globalManufacturerRoyaltyCap, "kNFT: manufacturer default exceeds cap");
-        require(partnerWei <= globalPartnerRoyaltyCap, "kNFT: partner default exceeds cap");
-
-        defaultCreatorRoyaltyWei = creatorWei;
-        defaultManufacturerRoyaltyWei = manufacturerWei;
-        defaultPartnerRoyaltyWei = partnerWei;
-
-        emit GlobalRoyaltyDefaultsUpdated(creatorWei, manufacturerWei, partnerWei);
-    }
-
-    function setCreatorRoyaltyEnabled(bool enabled) external onlyAdmin {
-        creatorRoyaltyEnabled = enabled;
-        emit RoyaltyCategoryToggle(CATEGORY_CREATOR, enabled);
-    }
-
-    function setPartnerRoyaltyEnabled(bool enabled) external onlyAdmin {
-        partnerRoyaltyEnabled = enabled;
-        emit RoyaltyCategoryToggle(CATEGORY_PARTNER, enabled);
-    }
-
-    function setManufacturerRoyaltyEnabled(bool enabled) public onlyAdmin {
-        _setManufacturerRoyaltyEnabled(enabled);
-    }
-
-    function _setManufacturerRoyaltyEnabled(bool enabled) internal {
-        treasuryFeeEnabled = enabled;
-        manufacturerRoyaltyEnabled = enabled;
-        emit RoyaltyCategoryToggle(CATEGORY_MANUFACTURER, enabled);
-    }
-
-    /**
-     * @notice Sets the royalty recipient for a specific token.
-     * @dev This function can only be called by an admin or the token owner. It updates the royalty owner for the specified token ID.
-     * @param tokenId The identifier of the token whose royalty owner is being set.
-     * @param royaltyOwner The address that will receive royalties for this token.
-     */
-    function setRoyaltyOwner(uint256 tokenId, address royaltyOwner) external {
-        // Allow only the admin or the current royalty owner to set a new royalty owner
-        require(
-            hasRole(DEFAULT_ADMIN_ROLE, msg.sender) || 
-            royaltyOwnerOf[tokenId] == msg.sender, 
-            "kNFT: only admin or royalty owner"
-        );
-
-        require(royaltyOwner != address(0), "kNFT: invalid royalty owner");
-
-        // Set the new royalty owner
-        royaltyOwnerOf[tokenId] = royaltyOwner;
-    } 
-
-    /**
-     * @notice Enables or disables the enforcement of royalty settings.
-     * @dev This function can only be called by an administrator. It updates the state variable that controls whether royalties are enforced.
-     * @param _enabled A boolean flag indicating if royalty enforcement should be enabled (true) or disabled (false).
-     */
-    function setRoyaltyEnforcement(bool _enabled) external onlyAdmin {
-        royaltyEnforcementEnabled = _enabled;
-    }
-
-    /**
-     * @notice Enables or disables the founder pass exemption.
-     * @dev Can only be called by an admin.
-     * @param _enabled A boolean value indicating whether to enable (true) or disable (false) the exemption.
-     */
-    function setFounderPassExempt(bool _enabled) external onlyAdmin {
-        founderPassExemptEnabled = _enabled;
-    }
-
-    /**
-     * @notice Enable or disable the exemption for minted owners.
-     * @dev This function allows an admin to change the state of the minted owner exemption feature.
-     * @param _enabled A boolean flag indicating whether the minted owner exemption is enabled (true) or disabled (false).
-     */
-    function setMintedOwnerExempt(bool _enabled) external onlyAdmin {
-        mintedOwnerExemptEnabled = _enabled;
-    }
-
-    /**
-     * @notice Enables or disables the treasury fee.
-     * @dev This function can only be called by an admin due to the onlyAdmin modifier.
-     * @param _enabled A boolean value indicating whether the treasury fee should be enabled (true) or disabled (false).
-     */
-    function setTreasuryFeeEnabled(bool _enabled) external onlyAdmin {
-        _setManufacturerRoyaltyEnabled(_enabled);
-    }
-
-    /**
-     * @notice Enables or disables the EIP-4907 functionality. EIP-4907 allows for temporary user assignments to NFTs.
-     * @dev This function can only be called by an admin. If disabled, it will revert calls to setUser and return default values for userOf and userExpires.
-     * @param enabled A boolean value indicating whether EIP-4907 functionality should be enabled (true) or disabled (false).
+     * @notice Enables or disables the EIP‑4907 functionality.  When disabled,
+     *         calls to setUser() will revert and userOf() will return address(0).
+     * @param enabled  Whether to enable (true) or disable (false) the rental API.
      */
     function setEip4907Enabled(bool enabled) external onlyAdmin {
         eip4907Enabled = enabled;
     }
 
     /**
-     * @notice Sets the contract addresses for the Uniswap router, WETH, KNDX, founders pass NFT, and treasury.
-     * @dev Can only be called by an address with admin privileges (onlyAdmin modifier).
-     * @param _uniswapV2Pair The address of the Uniswap V2 pair contract.
-     * @param _weth The address of the Wrapped Ether (WETH) contract.
-     * @param _kndx The address of the KNDX token contract.
-     * @param _foundersPass The address of the founders pass NFT contract.
-     * @param _treasury The address of the treasury contract.
+     * @notice Updates whether minting is free.  When free minting is disabled,
+     *         only addresses with the MINTER_ROLE may mint tokens.
+     * @param _freeMinting  True to enable free minting, false to restrict minting.
      */
-    function setAddresses(
-        address _uniswapV2Pair,
-        address _weth,
-        address _kndx,
-        address _foundersPass,
-        address _treasury
-    ) external onlyAdmin {
-        uniswapV2Pair = IUniswapV2Pair(_uniswapV2Pair);
-        WETH = _weth;
-        KNDX = _kndx;
-        foundersPass = IERC721(_foundersPass);
-        konduxTreasury = _treasury;
-    }
-
-    /**
-     * @notice Updates whether minting is free.
-     * @dev This function can only be called by an admin, ensuring that only authorized users can change the minting state.
-     *      It emits a FreeMintingChanged event upon updating the state.
-     * @param _freeMinting The new state for free minting; true to enable, false to disable.
-     */
-    function setFreeMinting(bool _freeMinting) public onlyAdmin {
+    function setFreeMinting(bool _freeMinting) external onlyAdmin {
         freeMinting = _freeMinting;
         emit FreeMintingChanged(_freeMinting);
     }
 
-    // -------------------- Per-Token Royalty (ETH) Management -------------------- //
+    /**
+     * @notice Sets the collection's transfer validator.  A zero address
+     *         removes any custom validator and falls back to the default.
+     * @param validator  Address of the transfer validator contract.
+     */
+    function setTransferValidator(address validator) external override(ICreatorToken) onlyAdmin {
+        address oldValidator = getTransferValidator();
+        _transferValidator = validator;
+        _isTransferValidatorInitialized = true;
+        emit TransferValidatorUpdated(oldValidator, validator);
+    }
 
     /**
-     * @dev The royaltyOwnerOf[tokenId] can set or update the royalty in wei.
-     *      e.g. 1e15 = 0.001 ETH. Setting it to 0 means no royalty for that token.
+     * @notice Returns the address of the transfer validator in use by this collection.
+     *         If no validator has been explicitly set, the default validator is returned.
      */
-    function setTokenRoyaltyEth(uint256 tokenId, uint256 ethAmountWei) external {
-        address caller = msg.sender;
+    function getTransferValidator() public view override(ICreatorToken) returns (address validator) {
+        validator = _transferValidator;
+        if (validator == address(0)) {
+            if (!_isTransferValidatorInitialized) {
+                validator = DEFAULT_TRANSFER_VALIDATOR;
+            }
+        }
+    }
+
+    /**
+     * @notice Returns the function selector and view flag for the validator's
+     *         validateTransfer function.  This allows off‑chain simulation of
+     *         the validator when integrating with external tools.
+     */
+    function getTransferValidationFunction() external pure override returns (bytes4 functionSignature, bool isViewFunction) {
+        functionSignature = bytes4(keccak256("validateTransfer(address,address,address,uint256)"));
+        isViewFunction = true;
+    }
+
+    /**
+     * @notice Enables or disables automatic approval of the transfer validator.
+     *         When enabled, the validator will be automatically approved as an
+     *         operator for all token holders.
+     * @param autoApprove  True to enable automatic approval, false to disable.
+     */
+    function setAutomaticApprovalOfTransfersFromValidator(bool autoApprove) external onlyAdmin {
+        autoApproveTransfersFromValidator = autoApprove;
+        emit AutomaticApprovalOfTransferValidatorSet(autoApprove);
+    }
+
+    /**
+     * @notice Sets the royalty split basis points for manufacturer, partner and creator.
+     *         The sum of the provided values must equal the denominator.
+     * @param _manufacturerCutBP  Basis points allocated to the manufacturer.
+     * @param _partnerCutBP       Basis points allocated to the partner.
+     * @param _creatorCutBP       Basis points allocated to the creator/minter.
+     */
+    function setRoyaltySplits(uint96 _manufacturerCutBP, uint96 _partnerCutBP, uint96 _creatorCutBP) external onlyAdmin {
         require(
-            hasRole(DEFAULT_ADMIN_ROLE, caller) || royaltyOwnerOf[tokenId] == caller,
-            "kNFT: only admin or royalty owner"
+            _manufacturerCutBP + _partnerCutBP + _creatorCutBP <= denominator,
+            "kNFT: total royalty splits must not exceed denominator"
         );
-        _setTokenCreatorRoyalty(tokenId, ethAmountWei);
+        manufacturerCutBP = _manufacturerCutBP;
+        partnerCutBP      = _partnerCutBP;
+        creatorCutBP      = _creatorCutBP;
+        emit RoyaltySplitsChanged(_manufacturerCutBP, _partnerCutBP, _creatorCutBP);
+        // Update default royalty receiver to partnerWallet (if set) or admin,
+        // with total royalty numerator equal to the sum of splits.  This makes
+        // the ERC2981 royalty reflect the configured total share.
+        address receiver = partnerWallet != address(0) ? partnerWallet : getRoleMember(DEFAULT_ADMIN_ROLE, 0);
+        _setDefaultRoyalty(receiver, _manufacturerCutBP + _partnerCutBP + _creatorCutBP);
     }
-
-    function adminSetTokenRoyalties(
-        uint256 tokenId,
-        uint256 creatorWei,
-        uint256 manufacturerWei,
-        uint256 partnerWei
-    ) external onlyAdmin {
-        _setTokenRoyalties(tokenId, creatorWei, manufacturerWei, partnerWei);
-    }
-
-    function setTokenManufacturerRoyalty(uint256 tokenId, uint256 amountWei) external onlyAdmin {
-        RoyaltyBreakdown storage breakdown = _tokenRoyalties[tokenId];
-        if (breakdown.creatorWei == 0 && breakdown.manufacturerWei == 0 && breakdown.partnerWei == 0) {
-            uint256 legacyTotal = royaltyETHWei[tokenId];
-            if (legacyTotal > 0) {
-                breakdown.creatorWei = legacyTotal;
-            }
-        }
-
-        uint256 currentCreator = breakdown.creatorWei;
-        uint256 currentPartner = breakdown.partnerWei;
-        _setTokenRoyalties(tokenId, currentCreator, amountWei, currentPartner);
-    }
-
-    function setTokenPartnerRoyalty(uint256 tokenId, uint256 amountWei) external onlyAdmin {
-        RoyaltyBreakdown storage breakdown = _tokenRoyalties[tokenId];
-        if (breakdown.creatorWei == 0 && breakdown.manufacturerWei == 0 && breakdown.partnerWei == 0) {
-            uint256 legacyTotal = royaltyETHWei[tokenId];
-            if (legacyTotal > 0) {
-                breakdown.creatorWei = legacyTotal;
-            }
-        }
-
-        uint256 currentCreator = breakdown.creatorWei;
-        uint256 currentManufacturer = breakdown.manufacturerWei;
-        _setTokenRoyalties(tokenId, currentCreator, currentManufacturer, amountWei);
-    }
-
-    function getTokenRoyalty(uint256 tokenId)
-        external
-        view
-        returns (uint256 creatorWei, uint256 manufacturerWei, uint256 partnerWei)
-    {
-        RoyaltyBreakdown memory breakdown = _tokenRoyalties[tokenId];
-        if (breakdown.creatorWei == 0 && breakdown.manufacturerWei == 0 && breakdown.partnerWei == 0) {
-            return (royaltyETHWei[tokenId], 0, 0);
-        }
-        return (breakdown.creatorWei, breakdown.manufacturerWei, breakdown.partnerWei);
-    }
-
-    function _setTokenCreatorRoyalty(uint256 tokenId, uint256 creatorWei) internal {
-        require(creatorWei <= globalCreatorRoyaltyCap, "kNFT: creator royalty exceeds cap");
-
-        RoyaltyBreakdown storage breakdown = _tokenRoyalties[tokenId];
-        if (breakdown.creatorWei == 0 && breakdown.manufacturerWei == 0 && breakdown.partnerWei == 0) {
-            uint256 legacyTotal = royaltyETHWei[tokenId];
-            if (legacyTotal > 0) {
-                breakdown.creatorWei = legacyTotal;
-            }
-        }
-        breakdown.creatorWei = creatorWei;
-
-        uint256 total = creatorWei + breakdown.manufacturerWei + breakdown.partnerWei;
-        royaltyETHWei[tokenId] = total;
-
-        emit TokenRoyaltyUpdated(tokenId, breakdown.creatorWei, breakdown.manufacturerWei, breakdown.partnerWei);
-    }
-
-    function _setTokenRoyalties(
-        uint256 tokenId,
-        uint256 creatorWei,
-        uint256 manufacturerWei,
-        uint256 partnerWei
-    ) internal {
-        require(creatorWei <= globalCreatorRoyaltyCap, "kNFT: creator royalty exceeds cap");
-        require(manufacturerWei <= globalManufacturerRoyaltyCap, "kNFT: manufacturer royalty exceeds cap");
-        require(partnerWei <= globalPartnerRoyaltyCap, "kNFT: partner royalty exceeds cap");
-
-        RoyaltyBreakdown storage breakdown = _tokenRoyalties[tokenId];
-        breakdown.creatorWei = creatorWei;
-        breakdown.manufacturerWei = manufacturerWei;
-        breakdown.partnerWei = partnerWei;
-
-        uint256 total = creatorWei + manufacturerWei + partnerWei;
-        royaltyETHWei[tokenId] = total;
-
-        emit TokenRoyaltyUpdated(tokenId, creatorWei, manufacturerWei, partnerWei);
-    }
-
-    // -------------------- Minting & DNA -------------------- //
 
     /**
-     * @dev Modifier to restrict function access to minter accounts when free minting is disabled.
-     *
-     * When the freeMinting flag is off (false), this modifier requires the caller to
-     * possess the MINTER_ROLE. If the caller does not have the necessary role, the
-     * transaction is reverted with an error message indicating that only minter
-     * accounts can execute the function. If free minting is enabled, the role check
-     * is bypassed.
-     *
-     * Usage Example:
-     * function mintNFT(...) external onlyMinter {
-     *     // minting logic
-     * }
+     * @notice Configures the default security policy for the collection.
+     *         Creates a new whitelist, adds Seaport 1.6, applies it, and sets security level to 3.
      */
-    modifier onlyMinter() { 
+    function setToDefaultSecurityPolicy() external onlyAdmin {
+        address validator = getTransferValidator();
+        require(validator != address(0), "kNFT: validator not set");
+        
+        // Cast to extended interface
+        ICreatorTokenTransferValidator v = ICreatorTokenTransferValidator(validator);
+        
+        // Create a new list for this collection
+        listId = v.createList("Kondux Default Whitelist");
+        
+        // Add Seaport 1.6
+        address[] memory accounts = new address[](1);
+        accounts[0] = 0x0000000000000068F116a894984e2DB1123eB395; // Seaport 1.6
+        v.addAccountsToList(listId, 1, accounts); // 1 = Whitelist
+        
+        // Apply List
+        v.applyListToCollection(address(this), listId);
+        
+        // Set Level 4 (Operator Whitelist)
+        v.setRulesetOfCollection(
+            address(this), 
+            4, // Ruleset 4 (Operator Whitelist)
+            address(0), 
+            0, 
+            0
+        );
+    }
+
+    /**
+     * @notice Adds accounts to the collection's whitelist.
+     * @param accounts  Array of addresses to whitelist.
+     */
+    function addAccountsToWhitelist(address[] calldata accounts) external onlyAdmin {
+        address validator = getTransferValidator();
+        require(validator != address(0), "kNFT: validator not set");
+        require(listId != 0, "kNFT: list not initialized");
+        ICreatorTokenTransferValidator(validator).addAccountsToList(listId, 1, accounts);
+    }
+
+    /**
+     * @notice Adds accounts to the collection's blacklist.
+     * @param accounts  Array of addresses to blacklist.
+     */
+    function addAccountsToBlacklist(address[] calldata accounts) external onlyAdmin {
+        address validator = getTransferValidator();
+        require(validator != address(0), "kNFT: validator not set");
+        require(listId != 0, "kNFT: list not initialized");
+        ICreatorTokenTransferValidator(validator).addAccountsToList(listId, 0, accounts);
+    }
+
+    /**
+     * @notice Freezes accounts for this collection, preventing them from transferring or receiving tokens.
+     *         Requires account freezing mode to be enabled in the security policy.
+     * @param accounts  Array of addresses to freeze.
+     */
+    function freezeAccounts(address[] calldata accounts) external onlyAdmin {
+        address validator = getTransferValidator();
+        require(validator != address(0), "kNFT: validator not set");
+        ICreatorTokenTransferValidator(validator).freezeAccountsForCollection(address(this), accounts);
+    }
+
+    /**
+     * @notice Unfreezes accounts for this collection.
+     * @param accounts  Array of addresses to unfreeze.
+     */
+    function unfreezeAccounts(address[] calldata accounts) external onlyAdmin {
+        address validator = getTransferValidator();
+        require(validator != address(0), "kNFT: validator not set");
+        ICreatorTokenTransferValidator(validator).unfreezeAccountsForCollection(address(this), accounts);
+    }
+
+    /**
+     * @notice Sets the partner wallet used to receive partner royalties.  The
+     *         partner wallet is also used as the default receiver for ERC2981
+     *         royalties if set.
+     * @param _partner  Address of the partner wallet.  Use zero address to
+     *         disable partner wallet usage.
+     */
+    function setPartnerWallet(address _partner) external onlyAdmin {
+        partnerWallet = _partner;
+        emit PartnerWalletChanged(_partner);
+        // Update default royalty receiver when partnerWallet is changed.
+        address receiver = _partner != address(0) ? _partner : getRoleMember(DEFAULT_ADMIN_ROLE, 0);
+        _setDefaultRoyalty(receiver, manufacturerCutBP + partnerCutBP + creatorCutBP);
+    }
+
+    /**
+     * @notice Changes the denominator used for royalty calculations.  Changing
+     *         the denominator will not automatically adjust existing splits.
+     *         Call setRoyaltySplits() after changing the denominator to
+     *         reconfigure the splits.
+     * @param _denominator  New denominator value.
+     * @return              The updated denominator.
+     */
+    function changeDenominator(uint96 _denominator) external onlyAdmin returns (uint96) {
+        require(_denominator > 0, "kNFT: denominator must be > 0");
+        denominator = _denominator;
+        return denominator;
+    }
+
+    /**
+     * @notice Sets the default royalty using the ERC‑2981 standard.
+     * @dev    The sum of the royalty fee numerator must not exceed the denominator (10000 for basis points).
+     * @param receiver     Address that will receive the royalty.
+     * @param feeNumerator Royalty fee numerator (denominator defaults to 10000).
+     */
+    function setDefaultRoyalty(address receiver, uint96 feeNumerator) external onlyAdmin {
+        _setDefaultRoyalty(receiver, feeNumerator);
+    }
+
+    /**
+     * @notice Deletes the default royalty configured via ERC‑2981.
+     */
+    function deleteDefaultRoyalty() external onlyAdmin {
+        _deleteDefaultRoyalty();
+    }
+
+    /**
+     * @notice Sets a token‑specific royalty using the ERC‑2981 standard.
+     * @param tokenId      Token ID to configure.
+     * @param receiver     Address that will receive the royalty.
+     * @param feeNumerator Royalty fee numerator (denominator defaults to 10000).
+     */
+    function setTokenRoyalty(uint256 tokenId, address receiver, uint96 feeNumerator) external onlyAdmin {
+        _setTokenRoyalty(tokenId, receiver, feeNumerator);
+    }
+
+    /*----------------------------------------------------------------------*/
+    /*                      Minting & DNA Management                        */
+    /*----------------------------------------------------------------------*/
+    /**
+     * @dev Restricts access to minting functions.  When freeMinting is false,
+     *      only addresses with the MINTER_ROLE may mint.
+     */
+    modifier onlyMinter() {
         if (!freeMinting) {
             require(hasRole(MINTER_ROLE, msg.sender), "kNFT: only minter");
         }
@@ -468,8 +408,8 @@ contract KonduxImplementation is
     }
 
     /**
-     * @dev Ensures that the function can only be called by an account with the DNA_MODIFIER_ROLE.
-     * Reverts with "kNFT: only dna modifier" if the caller does not have the required role.
+     * @dev Restricts access to DNA modification functions.  Only addresses
+     *      granted the DNA_MODIFIER_ROLE may call functions with this modifier.
      */
     modifier onlyDnaModifier() {
         require(hasRole(DNA_MODIFIER_ROLE, msg.sender), "kNFT: only dna modifier");
@@ -477,42 +417,37 @@ contract KonduxImplementation is
     }
 
     /**
-     * @notice Mints a new NFT token with a default royalty.
-     * @dev Only accounts with the 'minter' role can call this function. The function increments the internal token ID counter,
-     * sets the token's DNA, assigns the recipient address as the royalty owner, and sets the default royalty to 0.001 ETH (1e15 wei).
-     * @param to The address that will receive the newly minted token.
-     * @param dna The unique DNA value associated with the token.
-     * @return tokenId The identifier of the minted token.
+     * @notice Mints a new token with the specified DNA.  If maxSupply is
+     *         non‑zero, ensures the supply cap is not exceeded.  Sets the
+     *         default royalty for the newly minted token equal to the current
+     *         default royalty configuration.  Assigns the specified DNA to
+     *         the minted token.
+     * @param to   Address to receive the minted token.
+     * @param dna  Unique DNA value associated with the token.
+     * @return     The minted token ID.
      */
     function safeMint(address to, uint256 dna) public onlyMinter returns (uint256) {
-        // If maxSupply is set (non-zero), enforce it
         require(maxSupply == 0 || _tokenIdCounter < maxSupply, "Max supply reached");
-
         uint256 tokenId = _tokenIdCounter++;
         _setDna(tokenId, dna);
-
-        // The newly minted NFT's "royalty owner" is the minter (the `to` address).
-        royaltyOwnerOf[tokenId] = to;
-        _setTokenRoyalties(tokenId, defaultCreatorRoyaltyWei, defaultManufacturerRoyaltyWei, defaultPartnerRoyaltyWei);
-
         _safeMint(to, tokenId);
         return tokenId;
     }
 
     /**
-     * @notice Sets the DNA for a specific token.
-     * @dev Only accounts with the designated DNA modifier role can call this function.
-     * @param _tokenID The unique identifier of the token to update.
-     * @param _dna The new DNA value to assign to the token.
+     * @notice Assigns a new DNA value to the specified token.
+     * @param _tokenID  Token ID to update.
+     * @param _dna      New DNA value.
      */
-    function setDna(uint256 _tokenID, uint256 _dna) public onlyDnaModifier {
+    function setDna(uint256 _tokenID, uint256 _dna) external onlyDnaModifier {
         _setDna(_tokenID, _dna);
     }
 
     /**
-     * @notice Batch update DNA for multiple tokens in a gas-optimized manner.
-     * @param tokenIDs The array of token IDs to update.
-     * @param dnas The corresponding array of DNA values to set.
+     * @notice Batch assigns new DNA values for multiple tokens.  Both arrays
+     *         must be of equal length.
+     * @param tokenIDs  Array of token IDs to update.
+     * @param dnas      Array of DNA values corresponding to each token.
      */
     function batchSetDna(uint256[] calldata tokenIDs, uint256[] calldata dnas) external onlyDnaModifier {
         uint256 len = tokenIDs.length;
@@ -528,11 +463,7 @@ contract KonduxImplementation is
     }
 
     /**
-     * @notice Updates the DNA of the specified token.
-     * @dev This internal function assigns the new DNA value to the token identified by _tokenID
-     *      and emits the DnaChanged and MetadataUpdate events to signal the update.
-     * @param _tokenID The unique identifier of the token whose DNA is being updated.
-     * @param _dna The new DNA value to be assigned to the token.
+     * @dev Internal helper to set DNA and emit the associated events.
      */
     function _setDna(uint256 _tokenID, uint256 _dna) internal {
         indexDna[_tokenID] = _dna;
@@ -541,40 +472,28 @@ contract KonduxImplementation is
     }
 
     /**
-     * @notice Retrieves the DNA value associated with a given token ID.
-     * @param _tokenID The identifier of the token whose DNA is requested.
-     * @return The DNA of the specified token represented as a uint256.
+     * @notice Retrieves the DNA associated with the specified token ID.
      */
-    function getDna(uint256 _tokenID) public view returns (uint256) {
+    function getDna(uint256 _tokenID) external view returns (uint256) {
         return indexDna[_tokenID];
     }
 
- 
     /**
-     * @dev Sets the new base URI for the NFT contract.
-     * This function updates the existing base URI to the provided value and emits
-     * a {BaseURIChanged} event indicating the change.
-     *
-     * Requirements:
-     * - The caller must have admin privileges.
-     *
-     * @param _newURI The new base URI to be set.
-     * @return The updated base URI.
+     * @notice Sets a new base URI for the collection.  Updates token metadata
+     *         for all existing tokens.
+     * @param _newURI  The new base URI.
+     * @return         The updated base URI.
      */
     function setBaseURI(string memory _newURI) external onlyAdmin returns (string memory) {
         baseURI = _newURI;
         emit BaseURIChanged(baseURI);
-        emit BatchMetadataUpdate(0, _tokenIdCounter); // update all tokens
+        emit BatchMetadataUpdate(0, _tokenIdCounter);
         return baseURI;
     }
 
     /**
-     * @notice Retrieves the URI for a given token.
-     * @dev Constructs the token URI by concatenating the base URI with the token ID converted to a string.
-     *      - Reverts if the token does not exist (i.e., if the token's owner is the zero address).
-     *      - Returns an empty string if the base URI is not set.
-     * @param tokenId The unique identifier for the token.
-     * @return string The generated token URI for the specified token ID.
+     * @notice Returns the token URI for the specified token ID.  Reverts if
+     *         the token does not exist.
      */
     function tokenURI(uint256 tokenId) public view override(ERC721Upgradeable) returns (string memory) {
         require(_ownerOf(tokenId) != address(0), "kNFT: nonexistent token");
@@ -582,75 +501,17 @@ contract KonduxImplementation is
             return "";
         }
         return string(abi.encodePacked(baseURI, Strings.toString(tokenId)));
-    }   
-
-    // -------------------- getKndxForEth (Uniswap) -------------------- //
-
-   
-    /**
-     * @notice Returns how many KNDX tokens are required for a given amount of ETH in Wei
-     *         using the direct Uniswap V2 pair reserves (WETH/KNDX).
-     * @dev Formula: 
-     *     KNDX_required = (ethAmountWei * reserveKNDX) / reserveWETH
-     * @param ethAmountWei The amount of ETH (in Wei) to convert
-     * @return The amount of KNDX tokens equivalent to `ethAmountWei` of ETH
-     */
-    function getKndxForEth(uint256 ethAmountWei) public view returns (uint256) {
-        if (ethAmountWei == 0) {
-            return 0;
-        }
-
-        // 1) Grab the direct WETH-KNDX pair reserves
-        (uint112 reserveWETH, uint112 reserveKNDX) = _getReserves();
-
-        // 2) Convert from ETH => KNDX based on the ratio: (ethAmountWei * reserveKNDX) / reserveWETH
-        //    If you want to handle safe multiplication/division, you can use OpenZeppelin's Math or a checked approach.
-        return (ethAmountWei * reserveKNDX) / reserveWETH;
     }
 
+    /*----------------------------------------------------------------------*/
+    /*                     Transfer Hook Overrides                          */
+    /*----------------------------------------------------------------------*/
     /**
-     * @notice Retrieves the current liquidity reserves for WETH and KNDX.
-     * @dev This function calls getReserves on the uniswapPair contract to obtain the reserves.
-     * It then determines the correct mapping of reserve values to WETH and KNDX based on the
-     * token order in the pair. Reverts if either reserve is zero.
-     *
-     * @return reserveWETH The liquidity reserve for the WETH token.
-     * @return reserveKNDX The liquidity reserve for the KNDX token.
-     */
-    function _getReserves() internal view returns (uint112 reserveWETH, uint112 reserveKNDX) {
-        // If your contract stores the pair address separately (e.g. `uniswapPair`), do:
-
-        (uint112 reserve0, uint112 reserve1, ) = uniswapV2Pair.getReserves(); 
-        address token0 = uniswapV2Pair.token0();  
-
-        // We assume `WETH` and `KNDX` are already stored in your contract
-        if (token0 == WETH) {
-            reserveWETH = reserve0;
-            reserveKNDX = reserve1;
-        } else {
-            reserveWETH = reserve1;
-            reserveKNDX = reserve0;
-        }
-
-        require(reserveWETH > 0 && reserveKNDX > 0, "Invalid reserves");
-    }
-
-
-    // -------------------- Transfer Hook: _update Override -------------------- //
-
-    
-    /**
-     * @notice Updates the ownership state of a token.
-     * @dev This function overrides the _update functions in both ERC721 and ERC721EnumerableUpgradeable.
-     * It determines the operation mode (mint, burn, or transfer) based on the token's current owner
-     * and the destination address. If the operation is a transfer (not a mint or burn) and royalty enforcement
-     * is enabled, it calls _enforceRoyalty to ensure compliance with royalty rules before proceeding.
-     * Finally, it calls the parent _update function to effect the state change.
-     *
-     * @param to The address of the new owner. A zero address indicates a burn operation.
-     * @param tokenId The identifier of the token being updated.
-     * @param auth The address of the caller authorized to perform the update.
-     * @return prevOwner The previous owner of the token.
+     * @notice Overrides the standard ERC721 update hook to insert transfer
+     *         validator logic prior to performing the actual transfer.  For
+     *         normal transfers (neither mint nor burn), the configured
+     *         transfer validator is invoked.  If the validator reverts,
+     *         the transfer will be prevented.
      */
     function _update(address to, uint256 tokenId, address auth)
         internal
@@ -661,17 +522,20 @@ contract KonduxImplementation is
         bool isMint = (from == address(0));
         bool isBurn = (to == address(0));
 
-        // Enforce royalty
-        if (!isMint && !isBurn && royaltyEnforcementEnabled) {
-            _enforceRoyalty(from, tokenId);
+        // Pre‑validate transfer through external validator for normal transfers
+        if (!isMint && !isBurn) {
+            address validator = getTransferValidator();
+            if (validator != address(0)) {
+                // If the validator reverts, the whole transaction will revert
+                ITransferValidator(validator).validateTransfer(msg.sender, from, to, tokenId);
+            }
         }
 
-        // Now perform the actual update
+        // Perform the actual update via parent hooks
         prevOwner = super._update(to, tokenId, auth);
 
-        // If it is a true transfer (from != to, ignoring mints/burns), clear user info
+        // If it is a normal transfer, clear any existing EIP‑4907 user info
         if (!isMint && !isBurn && from != to) {
-            // Clear EIP-4907 user info upon a normal transfer
             if (_users[tokenId].user != address(0)) {
                 delete _users[tokenId];
                 emit UpdateUser(tokenId, address(0), 0);
@@ -680,123 +544,32 @@ contract KonduxImplementation is
     }
 
     /**
-     * @notice Enforces royalty payments for a token transfer by converting ETH-based royalties to KNDX tokens.
-     * @dev Checks if the sender is exempt from paying royalties due to being the minter or holding a founder pass.
-     * If not exempt, it calculates the required amount of KNDX tokens for the ETH royalty, ensuring the conversion is successful.
-     * Depending on whether the treasury fee is enabled, it splits the royalty payment between the treasury and the royalty owner,
-     * transferring the appropriate amounts via ERC20 transferFrom calls.
-     *
-     * @param from The address initiating the token transfer.
-     * @param tokenId The identifier of the token whose royalty is being enforced.
-     *
-     * Requirements:
-     * - If a non-zero ETH royalty is set for the token, the conversion to KNDX must yield a positive value.
-     * - The ERC20 transferFrom calls for royalty payments (and treasury cut if enabled) must succeed.
+     * @notice Overrides isApprovedForAll to optionally auto‑approve the transfer
+     *         validator as an operator.  If the operator is not already
+     *         approved for all and automatic approval is enabled, returns true
+     *         for the validator address.
      */
-    function _enforceRoyalty(address from, uint256 tokenId) internal {
-        RoyaltyBreakdown memory breakdown = _tokenRoyalties[tokenId];
-        if (breakdown.creatorWei == 0 && breakdown.manufacturerWei == 0 && breakdown.partnerWei == 0) {
-            uint256 legacyTotal = royaltyETHWei[tokenId];
-            if (legacyTotal == 0) {
-                return;
+    function isApprovedForAll(address owner, address operator) public view virtual override(ERC721Upgradeable, IERC721) returns (bool) {
+        bool approved = super.isApprovedForAll(owner, operator);
+        if (!approved && autoApproveTransfersFromValidator) {
+            if (operator == getTransferValidator()) {
+                approved = true;
             }
-            breakdown.creatorWei = legacyTotal;
         }
-
-        if (!creatorRoyaltyEnabled) {
-            breakdown.creatorWei = 0;
-        }
-        if (!(manufacturerRoyaltyEnabled && treasuryFeeEnabled)) {
-            breakdown.manufacturerWei = 0;
-        }
-        if (!partnerRoyaltyEnabled) {
-            breakdown.partnerWei = 0;
-        }
-
-        uint256 totalWei = breakdown.creatorWei + breakdown.manufacturerWei + breakdown.partnerWei;
-        if (totalWei == 0) {
-            return;
-        }
-
-        if (
-            (mintedOwnerExemptEnabled && from == royaltyOwnerOf[tokenId]) ||
-            (founderPassExemptEnabled && foundersPass.balanceOf(from) > 0)
-        ) {
-            return;
-        }
-
-        (uint112 reserveWETH, uint112 reserveKNDX) = _getReserves();
-
-        if (breakdown.creatorWei > 0) {
-            breakdown.creatorWei = (breakdown.creatorWei * reserveKNDX) / reserveWETH;
-        }
-        if (breakdown.manufacturerWei > 0) {
-            breakdown.manufacturerWei = (breakdown.manufacturerWei * reserveKNDX) / reserveWETH;
-        }
-        if (breakdown.partnerWei > 0) {
-            breakdown.partnerWei = (breakdown.partnerWei * reserveKNDX) / reserveWETH;
-        }
-
-        uint256 requiredKndx = breakdown.creatorWei + breakdown.manufacturerWei + breakdown.partnerWei;
-        if (requiredKndx == 0) {
-            return;
-        }
-
-        IERC20 kndxToken = IERC20(KNDX);
-
-        require(
-            kndxToken.allowance(from, address(this)) >= requiredKndx,
-            "Insufficient allowance for royalty transfer"
-        );
-
-        if (breakdown.manufacturerWei > 0) {
-            require(
-                kndxToken.transferFrom(from, konduxTreasury, breakdown.manufacturerWei),
-                "Royalty: manufacturer"
-            );
-        }
-
-        if (breakdown.partnerWei > 0) {
-            address partnerRecipient = partnerWallet != address(0)
-                ? partnerWallet
-                : royaltyOwnerOf[tokenId];
-            require(
-                kndxToken.transferFrom(from, partnerRecipient, breakdown.partnerWei),
-                "Royalty: partner"
-            );
-        }
-
-        if (breakdown.creatorWei > 0) {
-            require(
-                kndxToken.transferFrom(from, royaltyOwnerOf[tokenId], breakdown.creatorWei),
-                "Royalty: creator"
-            );
-        }
+        return approved;
     }
 
-
-    // -------------------- DNA Gene Reading/Writing -------------------- //
-
+    /*----------------------------------------------------------------------*/
+    /*                   DNA Gene Reading and Writing                       */
+    /*----------------------------------------------------------------------*/
     /**
-     * @notice Extracts a range of bytes from the DNA of a token.
-     * @dev Reads the stored 256-bit DNA value for a given token and extracts bytes in the range 
-     *      [startIndex, endIndex] by iterating through each byte, shifting, masking, and accumulating 
-     *      them into a new integer value. The extraction is performed in a big-endian manner by 
-     *      reversing the byte index.
-     *
-     * Requirements:
-     * - `startIndex` must be less than `endIndex` and `endIndex` must be at most 32.
-     * - The token corresponding to `_tokenID` must exist (its owner must not be the zero address).
-     *
-     * @param _tokenID The unique identifier of the token.
-     * @param startIndex The starting index (inclusive) for the byte range to extract.
-     * @param endIndex The ending index (exclusive) for the byte range to extract.
-     * @return int256 The integer value compiled from the extracted byte range.
+     * @notice Extracts a big‑endian range of bytes from a token's DNA.
+     * @param _tokenID    Token ID whose DNA is being read.
+     * @param startIndex  Inclusive start index (0 ≤ startIndex < 32).
+     * @param endIndex    Exclusive end index (startIndex < endIndex ≤ 32).
+     * @return            Extracted integer value from the DNA range.
      */
-    function readGen(uint256 _tokenID, uint8 startIndex, uint8 endIndex)
-        public
-        view
-        returns (int256)
+    function readGen(uint256 _tokenID, uint8 startIndex, uint8 endIndex) external view returns (int256)
     {
         require(startIndex < endIndex && endIndex <= 32, "kNFT: Invalid range");
         require(_ownerOf(_tokenID) != address(0), "kNFT: nonexistent token");
@@ -806,19 +579,14 @@ contract KonduxImplementation is
 
         for (uint8 i = startIndex; i < endIndex; i++) {
             assembly {
-                // Big-endian byte position in the 256-bit DNA
+                // Big‑endian byte position in the 256‑bit DNA
                 let bytePos := sub(31, i)
                 let shiftAmount := mul(8, bytePos)
-                
+
                 // Extract the single byte from 'originalValue'
                 let extractedByte := and(shr(shiftAmount, originalValue), 0xff)
 
-                // If we want the extracted result to remain in big-endian order,
-                // we match the logic in _writeGen:
-                //   'i = startIndex' => highest position in the final extractedValue
-                //   'i = endIndex - 1' => lowest position
-                // So the offset within 'extractedValue' is: 
-                //   8 * ( (endIndex - 1) - i )
+                // Place bytes in big‑endian order in the result
                 let adjustedShiftAmount := mul(8, sub(sub(endIndex, 1), i))
 
                 extractedValue := or(
@@ -831,32 +599,23 @@ contract KonduxImplementation is
         return int256(extractedValue);
     }
 
-
     /**
-     * @notice Writes generation data for a specific token.
-     * @dev This function can only be called by accounts with the DNA modifier role.
-     * @param _tokenID The unique identifier of the token.
-     * @param inputValue The value representing the genetic data to write.
-     * @param startIndex The starting index of the genetic data segment.
-     * @param endIndex The ending index of the genetic data segment.
+     * @notice Assigns a segment of DNA bits from inputValue into the token's DNA.
+     * @param _tokenID    Token ID to update.
+     * @param inputValue  Data containing the new DNA segment.
+     * @param startIndex  Inclusive start index.
+     * @param endIndex    Exclusive end index.
      */
     function writeGen(uint256 _tokenID, uint256 inputValue, uint8 startIndex, uint8 endIndex)
-        public
+        external
         onlyDnaModifier
     {
         _writeGen(_tokenID, inputValue, startIndex, endIndex);
     }
 
     /**
-     * @notice Updates a segment of a token's DNA data with a new value.
-     * @dev Extracts bytes from `inputValue` covering the byte range [startIndex, endIndex) and writes them into the token's DNA.
-     *      The function first builds a mask over the specified byte range, extracts each corresponding byte from `inputValue`,
-     *      shifts it into the correct position, and then updates the token's DNA by combining the untouched bytes with the new bytes.
-     *      It requires that the token exists and that `inputValue` fits within the specified byte range.
-     * @param _tokenID The identifier of the token whose DNA is being modified.
-     * @param inputValue The value that contains the new DNA segment; must be within the bit-width for (endIndex - startIndex) bytes.
-     * @param startIndex The starting byte index (inclusive) for the DNA segment to update; must be < `endIndex`.
-     * @param endIndex The ending byte index (exclusive) for the DNA segment update; must be no greater than 32.
+     * @dev Internal helper to write generation data into a token's DNA.  Performs
+     *      range validation and bit‑wise insertion.
      */
     function _writeGen(uint256 _tokenID, uint256 inputValue, uint8 startIndex, uint8 endIndex)
         internal
@@ -872,23 +631,14 @@ contract KonduxImplementation is
         uint256 updatedValue;
 
         for (uint8 i = startIndex; i < endIndex; i++) {
-            /* 
-            * We place the updated byte in a "big-endian" location for the final 256-bit word,
-            * but read the bytes from inputValue in big-endian order as well.
-            * If endIndex - startIndex = 2 and inputValue = 0xbeef, then:
-            *  - On i = startIndex (say, 0), we shift inputValue by 8 to extract 0xbe
-            *  - On i = startIndex+1 (1), we shift by 0 to extract 0xef
-            */
             assembly {
-                // Where to place it in the 256-bit word (big-endian offset)
                 let bytePos := sub(31, i)
                 let shiftAmount := mul(8, bytePos)
 
                 // Build the mask for this byte
                 mask := or(mask, shl(shiftAmount, 0xff))
 
-                // Read the correct byte from inputValue in big-endian order
-                // Instead of sub(i, startIndex), we invert the read so 0xbe is written first, then 0xef
+                // Read the correct byte from inputValue in big‑endian order
                 let readOffset := mul(8, sub(sub(endIndex, 1), i))
                 let extractedByte := and(shr(readOffset, inputValue), 0xff)
 
@@ -899,26 +649,20 @@ contract KonduxImplementation is
 
         // Clear the old bytes in this range, then store the updated bytes
         indexDna[_tokenID] = (originalValue & ~mask) | (updatedValue & mask);
-
         emit DnaModified(_tokenID, indexDna[_tokenID], inputValue, startIndex, endIndex);
         emit MetadataUpdate(_tokenID);
     }
 
-
-    // -------------------- Access Control Adjustments -------------------- //
-
+    /*----------------------------------------------------------------------*/
+    /*                    Access Control Adjustments                        */
+    /*----------------------------------------------------------------------*/
     /**
-     * @notice Sets or revokes a role for a given address.
-     * @dev Grants the role if 'enabled' is true, otherwise revokes the role.
-     * The function emits a RoleChanged event after the operation.
-     * @param role The role identifier (bytes32) to be assigned or revoked.
-     * @param addr The address for which the role will be modified.
-     * @param enabled A boolean flag indicating whether to grant (true) or revoke (false) the role.
-     *
-     * Requirements:
-     * - The caller must be an admin (as enforced by the onlyAdmin modifier).
+     * @notice Grants or revokes a role for the specified address.
+     * @param role    The role identifier.
+     * @param addr    The address to modify.
+     * @param enabled True to grant the role, false to revoke.
      */
-    function setRole(bytes32 role, address addr, bool enabled) public onlyAdmin {
+    function setRole(bytes32 role, address addr, bool enabled) external onlyAdmin {
         if (enabled) {
             _grantRole(role, addr);
         } else {
@@ -927,35 +671,46 @@ contract KonduxImplementation is
         emit RoleChanged(addr, role, enabled);
     }
 
-    // -------------------- EIP-4906: Metadata Update Support -------------------- //
-
+    /*----------------------------------------------------------------------*/
+    /*                    Metadata Update Support                           */
+    /*----------------------------------------------------------------------*/
     /**
-     * @notice Checks if the contract implements the interface defined by `interfaceId`.
-     * @dev This implementation includes support for the EIP-4906 interface (ID: 0x49064906) in addition to
-     *      the interfaces supported by parent contracts as determined by the `super.supportsInterface(interfaceId)` calls.
-     * @param interfaceId The interface identifier, as defined in ERC-165.
-     * @return bool Returns true if the contract supports the requested interface, false otherwise.
+     * @notice Checks if the contract implements a given interface.  Includes
+     *         support for ERC‑2981, ERC‑721C (ICreatorToken), ERC‑4906 and
+     *         ERC‑4907 when enabled.
      */
     function supportsInterface(bytes4 interfaceId)
         public
         view
         virtual
-        override(ERC721Upgradeable, ERC721EnumerableUpgradeable, ERC721RoyaltyUpgradeable, AccessControlUpgradeable, IERC165)
+        override(
+            ERC721Upgradeable,
+            ERC721EnumerableUpgradeable,
+            AccessControlEnumerableUpgradeable,
+            ERC2981Upgradeable,
+            IERC165
+        )
         returns (bool)
     {
-        // EIP-4906 (metadata update) => 0x49064906
-        // EIP-4907 (rentals)         => 0xad092b5c
-        return
-            interfaceId == 0x49064906 ||
-             // Only claim 4907 support if enabled
-            (eip4907Enabled && interfaceId == 0xad092b5c) ||
-            super.supportsInterface(interfaceId);
+        // ERC‑4906 (Metadata update) => 0x49064906
+        // ERC‑4907 (Rentals)         => 0xad092b5c
+        if (interfaceId == type(ICreatorToken).interfaceId || interfaceId == type(ICreatorTokenLegacy).interfaceId) {
+            return true;
+        }
+        if (interfaceId == 0x49064906) {
+            return true;
+        }
+        if (eip4907Enabled && interfaceId == 0xad092b5c) {
+            return true;
+        }
+        return super.supportsInterface(interfaceId);
     }
 
     /**
-     * @notice Emits a MetadataUpdate event for a given token.
-     * @dev Only an admin can call this function. It validates that the token exists before emitting the event.
-     * @param tokenId The unique identifier of the token to be updated.
+     * @notice Emits a MetadataUpdate event for a specific token.  Can be
+     *         used by admins to manually notify off‑chain services of a
+     *         metadata change.
+     * @param tokenId  The token ID.
      */
     function emitMetadataUpdate(uint256 tokenId) external onlyAdmin {
         require(_ownerOf(tokenId) != address(0), "kNFT: nonexistent token");
@@ -963,46 +718,38 @@ contract KonduxImplementation is
     }
 
     /**
-     * @notice Emits a BatchMetadataUpdate event for a given range of token IDs.
-     * @dev Reverts if the starting token ID is greater than the ending token ID.
-     *      This function can only be called by an admin.
-     * @param fromTokenId The starting token ID of the range.
-     * @param toTokenId The ending token ID of the range.
+     * @notice Emits a BatchMetadataUpdate event for a range of tokens.
+     * @param fromTokenId  Starting token ID.
+     * @param toTokenId    Ending token ID.
      */
     function emitBatchMetadataUpdate(uint256 fromTokenId, uint256 toTokenId) external onlyAdmin {
         require(fromTokenId <= toTokenId, "kNFT: invalid range");
         emit BatchMetadataUpdate(fromTokenId, toTokenId);
     }
 
-    // -------------------- EIP-4907: setUser, userOf, userExpires -------------------- //
-
+    /*----------------------------------------------------------------------*/
+    /*                EIP‑4907 Rental Functionality                        */
+    /*----------------------------------------------------------------------*/
     /**
-     * @notice Set or update the user address and its expiration for a token.
-     * @dev This function is part of EIP-4907. It can be `public` or `external`.
-     *      Reverts if `tokenId` does not exist or if caller is not owner/approved.
-     * @param tokenId The token whose user data is being changed
-     * @param user The new user address (zero means no user)
-     * @param expires Unix timestamp of the expiration date for the user
+     * @notice Assigns a temporary user for a token with an expiration.
+     * @param tokenId  Token ID to set user for.
+     * @param user     Address of the new user.
+     * @param expires  Unix timestamp when the user right expires.
      */
     function setUser(uint256 tokenId, address user, uint64 expires) external override {
-        // Standard EIP-4907 pattern: owner or approved can set the user role
-        // require owner or authorized
+        require(eip4907Enabled, "ERC4907: disabled");
         address owner = _ownerOf(tokenId);
         require(owner != address(0), "ERC4907: nonexistent token");
         require(user != address(0), "ERC4907: user cannot be zero address");
-        // Check if the caller is the owner or has approval
-        // This is a common pattern in ERC721 to check ownership or approval
-        require(_ownerOf(tokenId) == msg.sender || _isAuthorized(_ownerOf(tokenId), msg.sender, tokenId), "ERC4907: not owner nor approved");
-
+        require(owner == msg.sender || _isAuthorized(owner, msg.sender, tokenId), "ERC4907: not owner nor approved");
         _users[tokenId].user = user;
         _users[tokenId].expires = expires;
         emit UpdateUser(tokenId, user, expires);
     }
 
     /**
-     * @notice Get the user address of a token (if any).
-     * @dev Returns address(0) if no user or user is expired.
-     * @param tokenId The token to query for user info.
+     * @notice Returns the user assigned to a token if the user rights have not expired.
+     * @param tokenId  Token ID to query.
      */
     function userOf(uint256 tokenId) public view override returns (address) {
         if (!eip4907Enabled) return address(0);
@@ -1013,24 +760,21 @@ contract KonduxImplementation is
     }
 
     /**
-     * @notice Get the expiration timestamp of the current user role.
-     * @dev Returns 0 if no user is set.
-     * @param tokenId The token to query for user expiration.
-    */
+     * @notice Returns the expiration timestamp of the user rights assigned to a token.
+     * @param tokenId  Token ID to query.
+     */
     function userExpires(uint256 tokenId) public view override returns (uint256) {
         return _users[tokenId].expires;
     }
 
-    // -------------------- Emergency Withdrawal -------------------- //
-
+    /*----------------------------------------------------------------------*/
+    /*                      Emergency Withdrawal                          */
+    /*----------------------------------------------------------------------*/
     /**
-     * @notice Withdraws a specified amount of tokens from the contract in an emergency scenario.
-     * @dev Can only be executed by an admin. This function attempts to transfer the specified
-     *      ERC20 tokens to the provided address using the token's transfer function.
-     * @param token The ERC20 token interface representing the token to be withdrawn.
-     * @param to The address that will receive the withdrawn tokens; must not be the zero address.
-     * @param amount The amount of tokens to withdraw.
-     * @dev Reverts if the recipient address is the zero address or if the token transfer fails.
+     * @notice Allows an admin to withdraw ERC20 tokens from the contract.
+     * @param token   ERC20 token contract.
+     * @param to      Destination address.
+     * @param amount  Amount to withdraw.
      */
     function emergencyWithdrawToken(IERC20 token, address to, uint256 amount) external onlyAdmin {
         require(to != address(0), "kNFT: withdraw to zero");
@@ -1038,27 +782,22 @@ contract KonduxImplementation is
     }
 
     /**
-     * @notice Allows an admin to extract a specific NFT from the contract.
-     * @dev Transfers the NFT identified by tokenId from the contract to the provided address.
-     *      Reverts if the destination address is the zero address.
-     * @param nft The ERC721 token interface representing the NFT to be withdrawn.
-     * @param to The recipient address for the NFT.
-     * @param tokenId The identifier for the NFT to be transferred.
+     * @notice Allows an admin to withdraw an ERC721 token from the contract.
+     * @param nft      ERC721 token contract.
+     * @param to       Destination address.
+     * @param tokenId  Token ID to withdraw.
      */
     function emergencyWithdrawNFT(IERC721 nft, address to, uint256 tokenId) external onlyAdmin {
         require(to != address(0), "kNFT: withdraw to zero");
         nft.transferFrom(address(this), to, tokenId);
     }
 
-    // -------------------- Enumerability Overrides -------------------- //
-
+    /*----------------------------------------------------------------------*/
+    /*                    Enumerability Override                           */
+    /*----------------------------------------------------------------------*/
     /**
-     * @notice Increases the balance of the specified account by the provided value.
-     * @dev This function overrides the _increaseBalance method in both ERC721 and ERC721EnumerableUpgradeable.
-     * It ensures that balance management remains consistent across inherited contracts.
-     *
-     * @param account The address whose balance will be increased.
-     * @param value The amount to add to the account's existing balance.
+     * @notice Increases the balance of an account by the specified value.
+     * @dev     Override required by multiple inheritance.
      */
     function _increaseBalance(address account, uint128 value)
         internal
@@ -1067,33 +806,30 @@ contract KonduxImplementation is
         super._increaseBalance(account, value);
     }
 
-    // ------------------ Prevent Direct ETH Transfers ------------------ //
-
+    /*----------------------------------------------------------------------*/
+    /*                  Prevent Direct ETH Transfers                       */
+    /*----------------------------------------------------------------------*/
     /**
-     * @dev Prevents the contract from receiving ETH directly.
-     * 
-     * This fallback function reverts any ETH transfers made without invoking an intended function.
-     * It safeguards against accidental direct deposits of ETH by reverting the transaction
-     * with the error message "No direct ETH deposits".
+     * @dev Reject direct ETH transfers to this contract.
      */
     receive() external payable {
         revert("No direct ETH deposits");
     }
 
     /**
-     * @notice Prevents any plain Ether transfers or unrecognized function calls.
-     * @dev The fallback function is declared as payable, but will revert any call to it.
-     * This helps ensure that all interactions with the contract use a defined function signature,
-     * avoiding unintended behavior or accidental Ether reception.
+     * @dev Reject calls to unknown functions.
      */
     fallback() external payable {
         revert("Fallback not permitted");
     }
 
-    /* -------------------- storage gap for upgrades ----------------------- */
-    uint256[50] private __gap;
+    /*----------------------------------------------------------------------*/
+    /*                  Storage gap for upgradeability                    */
+    /*----------------------------------------------------------------------*/
+    uint256[49] private __gap;
 
-    /* ----------------- lock implementation constructor ------------------- */
-    /// @dev Prevent initialisation of the implementation itself.
-    constructor() { _disableInitializers(); }
+    /// @dev Prevent initialization of the implementation itself.
+    constructor() {
+        _disableInitializers();
+    }
 }
