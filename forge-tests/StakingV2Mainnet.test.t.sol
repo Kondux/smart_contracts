@@ -136,7 +136,9 @@ contract StakingV2MainnetTest is Test {
         vm.prank(user);
         uint256 depositId = staking.deposit(stakeAmount, 0, address(kondux));
 
-        vm.warp(block.timestamp + 1 days);
+        uint256 startTimestamp = block.timestamp;
+
+        vm.warp(startTimestamp + 1 days);
         vm.prank(user);
         staking.stakeRewards(depositId);
 
@@ -146,7 +148,7 @@ contract StakingV2MainnetTest is Test {
         (uint256 originalApr, bool exists) = staking.getDepositAprSnapshot(depositId);
         assertTrue(exists, "snapshot missing");
 
-        vm.warp(block.timestamp + 1 days);
+        vm.warp(startTimestamp + 2 days);
         vm.startPrank(user);
         vm.expectRevert(
             abi.encodeWithSelector(StakingV2.APRChangedForDeposit.selector, depositId, originalApr, currentApr)
@@ -159,11 +161,13 @@ contract StakingV2MainnetTest is Test {
         vm.prank(user);
         uint256 depositId = staking.deposit(stakeAmount, 0, address(kondux));
 
-        vm.warp(block.timestamp + 1 days);
+        uint256 startTimestamp = block.timestamp;
+
+        vm.warp(startTimestamp + 1 days);
         vm.prank(user);
         staking.stakeRewards(depositId);
 
-        vm.warp(block.timestamp + 1 days);
+        vm.warp(startTimestamp + 2 days);
         vm.prank(user);
         staking.stakeRewards(depositId);
 

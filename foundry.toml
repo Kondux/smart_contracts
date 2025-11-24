@@ -16,3 +16,7 @@ fs_permissions = [
     { access = "read", path = "./" },
     { access = "write", path = "./docs/deployments/kondux-batchminter" }
 ]
+
+[rpc_endpoints]
+sepolia = "${SEPOLIA_RPC_URL}"
+mainnet = "${MAINNET_RPC_URL}"

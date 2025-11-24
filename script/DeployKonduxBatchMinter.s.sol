@@ -78,23 +78,29 @@ contract DeployKonduxBatchMinterScript is Script {
         address pair = _resolveUniswapPair(cfg);
         console2.log(string.concat("Using Uniswap pair: ", vm.toString(pair)));
 
-        KonduxImplementation implementationLogic = new KonduxImplementation();
-        bytes memory initData = abi.encodeWithSelector(
-            KonduxImplementation.initialize.selector,
-            cfg.collectionName,
-            cfg.collectionSymbol,
-            pair,
-            cfg.weth,
-            cfg.kndx,
-            cfg.foundersPass,
-            cfg.treasury,
-            cfg.maxSupply
-        );
-        ERC1967Proxy konduxProxy = new ERC1967Proxy(address(implementationLogic), initData);
-        KonduxImplementation kondux = KonduxImplementation(payable(address(konduxProxy)));
+        KonduxImplementation kondux;
+        address implementationLogicAddress;
 
-        console2.log(string.concat("KonduxImplementation logic: ", vm.toString(address(implementationLogic))));
-        console2.log(string.concat("KonduxImplementation proxy: ", vm.toString(address(kondux))));
+        if (block.chainid == 11155111) {
+            address existingProxy = 0x99e35928D46683EDA983C5D84D39004a5Ff01123;
+            kondux = KonduxImplementation(payable(existingProxy));
+            console2.log("Using existing KonduxImplementation proxy:", existingProxy);
+        } else {
+            KonduxImplementation implementationLogic = new KonduxImplementation();
+            implementationLogicAddress = address(implementationLogic);
+            bytes memory initData = abi.encodeWithSelector(
+                KonduxImplementation.initialize.selector,
+                cfg.collectionName,
+                cfg.collectionSymbol,
+                cfg.maxSupply,
+                deployer
+            );
+            ERC1967Proxy konduxProxy = new ERC1967Proxy(address(implementationLogic), initData);
+            kondux = KonduxImplementation(payable(address(konduxProxy)));
+
+            console2.log(string.concat("KonduxImplementation logic: ", vm.toString(address(implementationLogic))));
+            console2.log(string.concat("KonduxImplementation proxy: ", vm.toString(address(kondux))));
+        }
 
         KonduxBatchMinter batchMinter = new KonduxBatchMinter(address(kondux), cfg.authority);
         console2.log(string.concat("KonduxBatchMinter deployed: ", vm.toString(address(batchMinter))));
@@ -103,12 +109,12 @@ contract DeployKonduxBatchMinterScript is Script {
 
         vm.stopBroadcast();
 
-        _appendAddressBook(cfg, address(kondux), address(implementationLogic), address(batchMinter), pair, deployer);
-    _attemptVerification(cfg, address(kondux), address(implementationLogic), address(batchMinter));
+        _appendAddressBook(cfg, address(kondux), implementationLogicAddress, address(batchMinter), pair, deployer);
+        _attemptVerification(cfg, address(kondux), implementationLogicAddress, address(batchMinter));
 
         console2.log("\nDeployment summary");
         console2.log("KonduxImplementation (proxy)", address(kondux));
-        console2.log("KonduxImplementation logic", address(implementationLogic));
+        console2.log("KonduxImplementation logic", implementationLogicAddress);
         console2.log("KonduxBatchMinter", address(batchMinter));
         console2.log("Authority", cfg.authority);
         console2.log("Treasury", cfg.treasury);
@@ -651,13 +657,21 @@ contract DeployKonduxBatchMinterScript is Script {
     string memory argHex = vm.toString(constructorArgs);
 
     console2.log("Manual verification commands (sanitised API key):");
-    _emitVerifyCommand(konduxLogic, "contracts/KonduxImplementation.sol:KonduxImplementation", "");
+    if (konduxLogic != address(0)) {
+        _emitVerifyCommand(konduxLogic, "contracts/KonduxImplementation.sol:KonduxImplementation", "");
+    }
     _emitVerifyCommand(batchMinter, "contracts/KonduxBatchMinter.sol:KonduxBatchMinter", argHex);
-    _printProxyVerificationReminder(konduxProxy, konduxLogic);
+    if (konduxLogic != address(0)) {
+        _printProxyVerificationReminder(konduxProxy, konduxLogic);
+    }
 
-    _runForgeVerify(konduxLogic, "contracts/KonduxImplementation.sol:KonduxImplementation", apiKey, "");
+    if (konduxLogic != address(0)) {
+        _runForgeVerify(konduxLogic, "contracts/KonduxImplementation.sol:KonduxImplementation", apiKey, "");
+    }
     _runForgeVerify(batchMinter, "contracts/KonduxBatchMinter.sol:KonduxBatchMinter", apiKey, argHex);
-    _printProxyVerificationReminder(konduxProxy, konduxLogic);
+    if (konduxLogic != address(0)) {
+        _printProxyVerificationReminder(konduxProxy, konduxLogic);
+    }
     }
 
     function _runForgeVerify(
@@ -758,10 +772,14 @@ contract DeployKonduxBatchMinterScript is Script {
     ) internal view {
         string memory net = block.chainid == 1 ? "mainnet" : "sepolia";
         console2.log("Manual verification commands:");
-        _emitVerifyCommand(konduxLogic, "contracts/KonduxImplementation.sol:KonduxImplementation", "");
+        if (konduxLogic != address(0)) {
+            _emitVerifyCommand(konduxLogic, "contracts/KonduxImplementation.sol:KonduxImplementation", "");
+        }
         string memory manualArgs = vm.toString(abi.encode(konduxProxy, cfg.authority));
         _emitVerifyCommand(batchMinter, "contracts/KonduxBatchMinter.sol:KonduxBatchMinter", manualArgs);
-        _printProxyVerificationReminder(konduxProxy, konduxLogic);
+        if (konduxLogic != address(0)) {
+            _printProxyVerificationReminder(konduxProxy, konduxLogic);
+        }
         console2.log(string.concat("(network: ", net, ")"));
     }
 }
