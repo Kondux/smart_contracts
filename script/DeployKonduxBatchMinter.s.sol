@@ -85,6 +85,11 @@ contract DeployKonduxBatchMinterScript is Script {
             address existingProxy = 0x99e35928D46683EDA983C5D84D39004a5Ff01123;
             kondux = KonduxImplementation(payable(existingProxy));
             console2.log("Using existing KonduxImplementation proxy:", existingProxy);
+        } else if (block.chainid == 1) {
+            // Use the existing KonduxImplementation proxy deployed on mainnet
+            address existingProxy = 0x5f056911b9FC29f991039e4322b7755ccc9CbE9D;
+            kondux = KonduxImplementation(payable(existingProxy));
+            console2.log("Using existing KonduxImplementation proxy:", existingProxy);
         } else {
             KonduxImplementation implementationLogic = new KonduxImplementation();
             implementationLogicAddress = address(implementationLogic);

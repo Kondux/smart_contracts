@@ -4,5 +4,7 @@
     "solidity.remappings": ["@openzeppelin/=node_modules/@openzeppelin/"],
     "remappings": [
         "@openzeppelin/=node_modules/@openzeppelin/",
-    ]
+    ],
+    "python-envs.defaultEnvManager": "ms-python.python:system",
+    "python-envs.pythonProjects": []
 }
