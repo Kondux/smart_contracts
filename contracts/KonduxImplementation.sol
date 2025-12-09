@@ -153,13 +153,13 @@ contract KonduxImplementation is
         eip4907Enabled = true;
         freeMinting    = false;
 
-        // Initialize royalty denominator and default splits (40/30/30)
+        // Initialize royalty denominator and default splits (4/3/3 = 10% total)
         denominator        = 10_000;
-        manufacturerCutBP  = 4000;
-        partnerCutBP       = 3000;
-        creatorCutBP       = 3000;
+        manufacturerCutBP  = 400;
+        partnerCutBP       = 300;
+        creatorCutBP       = 300;
 
-        // Set a sensible default royalty: receiver is initial admin, sum of splits
+        // Set a sensible default royalty: receiver is initial admin, sum of splits (10%)
         _setDefaultRoyalty(_initialAdmin, manufacturerCutBP + partnerCutBP + creatorCutBP);
     }
 
