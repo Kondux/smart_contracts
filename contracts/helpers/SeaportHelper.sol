@@ -179,6 +179,49 @@ contract SeaportHelper {
         uint256 startTime,
         uint256 endTime
     ) external view returns (ISeaport.OrderComponents memory components) {
+        // Use the version with OpenSea fee defaulting to 0 (for non-OpenSea usage)
+        return prepareOrderForOpenSea(
+            offerer,
+            collection,
+            tokenId,
+            price,
+            royaltyReceiver,
+            royaltyAmount,
+            address(0), // No OpenSea fee recipient
+            0,          // No OpenSea fee
+            bytes32(0), // Default conduit key
+            startTime,
+            endTime
+        );
+    }
+
+    /**
+     * @notice OpenSea-compatible order preparation with platform fee support.
+     * @param offerer The seller address
+     * @param collection The NFT collection address
+     * @param tokenId The token ID to sell
+     * @param price Total sale price in wei
+     * @param royaltyReceiver ERC2981 royalty receiver
+     * @param royaltyAmount ERC2981 royalty amount
+     * @param openseaFeeRecipient OpenSea fee recipient (usually 0x0000a26b00c1F0DF003000390027140000fAa719)
+     * @param openseaFeeAmount OpenSea fee amount (usually 2.5% = price * 250 / 10000)
+     * @param conduitKey OpenSea conduit key for approvals
+     * @param startTime Order start timestamp
+     * @param endTime Order end timestamp
+     */
+    function prepareOrderForOpenSea(
+        address offerer,
+        address collection,
+        uint256 tokenId,
+        uint256 price,
+        address royaltyReceiver,
+        uint256 royaltyAmount,
+        address openseaFeeRecipient,
+        uint256 openseaFeeAmount,
+        bytes32 conduitKey,
+        uint256 startTime,
+        uint256 endTime
+    ) public view returns (ISeaport.OrderComponents memory components) {
         // Offer: 1 NFT
         ISeaport.OfferItem[] memory offer = new ISeaport.OfferItem[](1);
         offer[0] = ISeaport.OfferItem({
@@ -189,28 +232,57 @@ contract SeaportHelper {
             endAmount: 1
         });
 
-        // Consideration: Seller Amount + Royalty Amount
-        ISeaport.ConsiderationItem[] memory consideration = new ISeaport.ConsiderationItem[](2);
+        // Count consideration items (seller + optional royalty + optional opensea fee)
+        uint256 considerationCount = 1;
+        if (royaltyAmount > 0 && royaltyReceiver != address(0)) {
+            considerationCount++;
+        }
+        if (openseaFeeAmount > 0 && openseaFeeRecipient != address(0)) {
+            considerationCount++;
+        }
+
+        ISeaport.ConsiderationItem[] memory consideration = new ISeaport.ConsiderationItem[](considerationCount);
         
-        // 1. Net to Seller
-        consideration[0] = ISeaport.ConsiderationItem({
+        // Calculate seller amount (price - royalty - opensea fee)
+        uint256 sellerAmount = price - royaltyAmount - openseaFeeAmount;
+        
+        uint256 idx = 0;
+        
+        // 1. Net to Seller (always first)
+        consideration[idx] = ISeaport.ConsiderationItem({
             itemType: ISeaport.ItemType.NATIVE,
             token: address(0),
             identifierOrCriteria: 0,
-            startAmount: price - royaltyAmount,
-            endAmount: price - royaltyAmount,
+            startAmount: sellerAmount,
+            endAmount: sellerAmount,
             recipient: payable(offerer)
         });
+        idx++;
 
-        // 2. Royalty
-        consideration[1] = ISeaport.ConsiderationItem({
-            itemType: ISeaport.ItemType.NATIVE,
-            token: address(0),
-            identifierOrCriteria: 0,
-            startAmount: royaltyAmount,
-            endAmount: royaltyAmount,
-            recipient: payable(royaltyReceiver)
-        });
+        // 2. OpenSea Fee (if applicable) - OpenSea expects their fee before royalties
+        if (openseaFeeAmount > 0 && openseaFeeRecipient != address(0)) {
+            consideration[idx] = ISeaport.ConsiderationItem({
+                itemType: ISeaport.ItemType.NATIVE,
+                token: address(0),
+                identifierOrCriteria: 0,
+                startAmount: openseaFeeAmount,
+                endAmount: openseaFeeAmount,
+                recipient: payable(openseaFeeRecipient)
+            });
+            idx++;
+        }
+
+        // 3. Royalty (if applicable)
+        if (royaltyAmount > 0 && royaltyReceiver != address(0)) {
+            consideration[idx] = ISeaport.ConsiderationItem({
+                itemType: ISeaport.ItemType.NATIVE,
+                token: address(0),
+                identifierOrCriteria: 0,
+                startAmount: royaltyAmount,
+                endAmount: royaltyAmount,
+                recipient: payable(royaltyReceiver)
+            });
+        }
 
         uint256 counter = SEAPORT.getCounter(offerer);
 
@@ -223,8 +295,8 @@ contract SeaportHelper {
             startTime: startTime,
             endTime: endTime,
             zoneHash: bytes32(0),
-            salt: uint256(keccak256(abi.encodePacked(offerer, startTime))), // Random salt
-            conduitKey: bytes32(0),
+            salt: uint256(keccak256(abi.encodePacked(offerer, block.timestamp, tokenId))),
+            conduitKey: conduitKey,
             counter: counter
         });
     }
