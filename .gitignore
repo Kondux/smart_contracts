@@ -107,3 +107,5 @@ dist
 out
 
 .todo
+__pycache__
+venv
