@@ -323,39 +323,46 @@ class TestIntegration:
     
     @pytest.mark.integration
     def test_royalty_info(self, w3):
-        """Test fetching royalty info from Kondux contract."""
-        ERC721_ABI = [
+        """Test fetching royalty info from Kondux contract (ERC2981)."""
+        KONDUX_ABI = [
             {"inputs": [{"internalType": "uint256", "name": "tokenId", "type": "uint256"}, {"internalType": "uint256", "name": "salePrice", "type": "uint256"}], "name": "royaltyInfo", "outputs": [{"internalType": "address", "name": "", "type": "address"}, {"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"},
             {"inputs": [], "name": "totalSupply", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"},
         ]
         
-        contract = w3.eth.contract(address=w3.to_checksum_address(KONDUX_COLLECTION), abi=ERC721_ABI)
+        contract = w3.eth.contract(address=w3.to_checksum_address(KONDUX_COLLECTION), abi=KONDUX_ABI)
         
-        # Get total supply to find a valid token ID
-        try:
-            total_supply = contract.functions.totalSupply().call()
-            # Use token ID 0 or 1 depending on what exists
-            token_id = 0 if total_supply > 0 else 1
-        except:
-            token_id = 1
+        # Get total supply
+        total_supply = contract.functions.totalSupply().call()
+        print(f"\n📊 Total Supply: {total_supply}")
         
-        # Query royalty at 1 ETH sale price
-        sale_price = 10**18
-        receiver, royalty_amount = contract.functions.royaltyInfo(token_id, sale_price).call()
+        # Test royalty at multiple price points
+        test_prices = [
+            (10**18, "1 ETH"),
+            (10**17, "0.1 ETH"),
+            (5 * 10**18, "5 ETH"),
+        ]
         
-        # Royalty info should return valid data
-        # Note: royaltyInfo returns (receiver, amount) - amount could be 0 if not configured
-        # or could be the full price if querying non-existent token (edge case)
-        assert isinstance(royalty_amount, int)
-        assert isinstance(receiver, str)
+        for sale_price, price_label in test_prices:
+            receiver, royalty_amount = contract.functions.royaltyInfo(0, sale_price).call()
+            royalty_bps = (royalty_amount * 10000) // sale_price if sale_price > 0 else 0
+            royalty_eth = royalty_amount / 10**18
+            
+            print(f"  💰 Sale: {price_label} → Royalty: {royalty_bps/100}% ({royalty_eth:.4f} ETH) to {receiver[:10]}...")
+            
+            # Verify royalty is reasonable (max 10%)
+            assert royalty_bps <= 1000, f"Royalty {royalty_bps/100}% exceeds 10% max"
+            
+            # Verify receiver is a valid address (not zero)
+            assert receiver != "0x0000000000000000000000000000000000000000", "Royalty receiver is zero address"
         
-        # If royalty is configured, it should be reasonable (under 100%)
-        # Some contracts return full price for non-existent tokens, so we just check it's valid
-        if royalty_amount > 0 and royalty_amount < sale_price:
-            # Valid royalty percentage (between 0% and 100%)
-            royalty_percentage = (royalty_amount * 10000) // sale_price
-            print(f"Royalty: {royalty_percentage / 100}% to {receiver}")
-            assert royalty_percentage <= 1000, f"Royalty {royalty_percentage/100}% exceeds 10%"
+        # Verify royalty percentage is consistent across all test prices
+        _, royalty_1eth = contract.functions.royaltyInfo(0, 10**18).call()
+        actual_bps = (royalty_1eth * 10000) // 10**18
+        
+        print(f"\n📈 ERC2981 Royalty: {actual_bps/100}%")
+        
+        # Final sanity check: royalty should be <= 10%
+        assert actual_bps <= 1000, f"Royalty {actual_bps/100}% exceeds 10% max"
     
     @pytest.mark.integration
     def test_get_token_balance(self, w3):
@@ -500,6 +507,114 @@ class TestEIP712:
         
         # The typehash should be a 32-byte value
         assert len(typehash) == 32
+
+
+# =============================================================================
+# Mainnet Read-Only Tests (no Anvil required, queries mainnet directly)
+# =============================================================================
+
+class TestMainnetRoyalty:
+    """Direct mainnet royalty verification tests (read-only, no Anvil required)."""
+    
+    @pytest.fixture
+    def mainnet_w3(self):
+        """Create Web3 connection directly to mainnet."""
+        from web3 import Web3
+        
+        rpc_url = os.environ.get("MAINNET_RPC_URL", "https://eth-mainnet.g.alchemy.com/v2/NWbAcPvkpq7yLbeXhubWbhIRIKiH-oFf")
+        w3 = Web3(Web3.HTTPProvider(rpc_url))
+        
+        if not w3.is_connected():
+            pytest.skip("Cannot connect to mainnet RPC")
+        
+        return w3
+    
+    @pytest.mark.integration
+    def test_mainnet_royalty_configuration(self, mainnet_w3):
+        """
+        Verify mainnet royalty is correctly configured (queries mainnet directly).
+        
+        Expected configuration after fix:
+        - Receiver: 0x5c8F300781BEBDD84A0bF27B37A6c0A7D42df114
+        - Fee: 100 bps (1%)
+        """
+        KONDUX_ABI = [
+            {"inputs": [{"internalType": "uint256", "name": "tokenId", "type": "uint256"}, {"internalType": "uint256", "name": "salePrice", "type": "uint256"}], "name": "royaltyInfo", "outputs": [{"internalType": "address", "name": "", "type": "address"}, {"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"},
+            {"inputs": [], "name": "totalSupply", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"},
+        ]
+        
+        contract = mainnet_w3.eth.contract(
+            address=mainnet_w3.to_checksum_address(KONDUX_COLLECTION), 
+            abi=KONDUX_ABI
+        )
+        
+        # Test royalty at 1 ETH sale price
+        sale_price = 10**18  # 1 ETH
+        receiver, royalty_amount = contract.functions.royaltyInfo(0, sale_price).call()
+        royalty_bps = (royalty_amount * 10000) // sale_price
+        
+        print(f"\n🔍 MAINNET Royalty Check:")
+        print(f"  📍 Contract: {KONDUX_COLLECTION}")
+        print(f"  💰 Sale: 1 ETH")
+        print(f"  💎 Royalty: {royalty_bps/100}% ({royalty_amount / 10**18:.4f} ETH)")
+        print(f"  👤 Receiver: {receiver}")
+        
+        # Expected values after our fix:
+        EXPECTED_RECEIVER = "0x5c8F300781BEBDD84A0bF27B37A6c0A7D42df114"
+        EXPECTED_BPS = 100  # 1%
+        
+        # Verify receiver is correct
+        assert receiver.lower() == EXPECTED_RECEIVER.lower(), \
+            f"Wrong receiver: expected {EXPECTED_RECEIVER}, got {receiver}"
+        
+        # Verify royalty percentage is 1% (100 bps)
+        assert royalty_bps == EXPECTED_BPS, \
+            f"Wrong royalty: expected {EXPECTED_BPS/100}%, got {royalty_bps/100}%"
+        
+        # Verify royalty amount is exactly 1% of sale price
+        expected_amount = sale_price * EXPECTED_BPS // 10000
+        assert royalty_amount == expected_amount, \
+            f"Wrong amount: expected {expected_amount}, got {royalty_amount}"
+        
+        print(f"  ✅ Royalty configuration verified!")
+    
+    @pytest.mark.integration
+    def test_mainnet_royalty_at_various_prices(self, mainnet_w3):
+        """Test royalty calculation at various sale prices on mainnet."""
+        KONDUX_ABI = [
+            {"inputs": [{"internalType": "uint256", "name": "tokenId", "type": "uint256"}, {"internalType": "uint256", "name": "salePrice", "type": "uint256"}], "name": "royaltyInfo", "outputs": [{"internalType": "address", "name": "", "type": "address"}, {"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"},
+        ]
+        
+        contract = mainnet_w3.eth.contract(
+            address=mainnet_w3.to_checksum_address(KONDUX_COLLECTION), 
+            abi=KONDUX_ABI
+        )
+        
+        test_prices = [
+            (10**15, "0.001 ETH"),
+            (10**17, "0.1 ETH"),
+            (10**18, "1 ETH"),
+            (5 * 10**18, "5 ETH"),
+            (10 * 10**18, "10 ETH"),
+            (100 * 10**18, "100 ETH"),
+        ]
+        
+        print(f"\n📊 MAINNET Royalty at Various Prices:")
+        
+        for sale_price, price_label in test_prices:
+            receiver, royalty_amount = contract.functions.royaltyInfo(0, sale_price).call()
+            royalty_bps = (royalty_amount * 10000) // sale_price if sale_price > 0 else 0
+            royalty_eth = royalty_amount / 10**18
+            
+            print(f"  💰 {price_label:>10} → {royalty_bps/100:>5.2f}% = {royalty_eth:.6f} ETH")
+            
+            # All prices should return 1% royalty
+            assert royalty_bps == 100, f"Royalty should be 1% at {price_label}, got {royalty_bps/100}%"
+            
+            # Verify the math: royalty = price * 100 / 10000
+            expected_royalty = sale_price * 100 // 10000
+            assert royalty_amount == expected_royalty, \
+                f"Math error at {price_label}: expected {expected_royalty}, got {royalty_amount}"
 
 
 # =============================================================================
