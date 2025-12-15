@@ -607,6 +607,12 @@ contract KonduxImplementation is
                 // If the validator reverts, the whole transaction will revert
                 ITransferValidator(validator).validateTransfer(msg.sender, from, to, tokenId);
             }
+
+            // Register sale with splitter for atomic royalty distribution
+            // This allows the splitter to know which token is being sold when it receives ETH
+            if (royaltySplitter != address(0)) {
+                try IKonduxRoyaltySplitter(royaltySplitter).registerSale(tokenId) {} catch {}
+            }
         }
 
         // Perform the actual update via parent hooks

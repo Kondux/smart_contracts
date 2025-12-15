@@ -137,10 +137,18 @@ contract KonduxRoyaltySplitter is AccessControl, ReentrancyGuard {
     }
 
     /// @notice Receive ETH (royalty payments)
+    /// @dev If push mode is enabled and there's a pending sale, distribute immediately
     receive() external payable {
-        // ETH received from marketplace
-        // Without token context, we can't distribute immediately
-        // Funds accumulate for later distribution via sweepETH()
+        // If push mode is enabled and we have a pending sale, distribute automatically
+        if (pushModeEnabled && hasPendingSale && msg.value > 0) {
+            uint256 tokenId = lastSoldTokenId;
+            // Clear pending sale state BEFORE distribution (reentrancy protection)
+            hasPendingSale = false;
+            lastSoldTokenId = 0;
+            // Distribute immediately using push mode function
+            _distributeETHImmediate(tokenId, msg.value);
+        }
+        // Otherwise, ETH accumulates for later distribution via sweepETH()
     }
 
     /// @notice Track pending sales for atomic distribution
@@ -149,6 +157,13 @@ contract KonduxRoyaltySplitter is AccessControl, ReentrancyGuard {
     
     /// @notice Counter for generating unique sale IDs
     uint256 public saleNonce;
+
+    /// @notice Last sold token ID for automatic distribution in receive()
+    /// @dev Set during registerSale, used by receive() to know which token's royalty is being paid
+    uint256 public lastSoldTokenId;
+
+    /// @notice Whether there's a pending sale awaiting payment
+    bool public hasPendingSale;
 
     /**
      * @notice Called by the collection contract BEFORE the transfer to register a pending sale
@@ -159,6 +174,11 @@ contract KonduxRoyaltySplitter is AccessControl, ReentrancyGuard {
     function registerSale(uint256 tokenId) external onlyRole(COLLECTION_ROLE) returns (bytes32 saleId) {
         saleId = keccak256(abi.encodePacked(block.timestamp, tokenId, saleNonce++));
         pendingSales[saleId] = tokenId;
+
+        // Also set lastSoldTokenId for automatic distribution via receive()
+        lastSoldTokenId = tokenId;
+        hasPendingSale = true;
+
         emit SaleRegistered(saleId, tokenId);
     }
 
