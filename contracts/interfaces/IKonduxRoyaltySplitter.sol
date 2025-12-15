@@ -103,10 +103,10 @@ interface IKonduxRoyaltySplitter {
     /**
      * @notice Get creator info for a token
      */
-    function getCreatorInfo(uint256 tokenId) 
-        external 
-        view 
-        returns (address creator, uint96 cutBP, bool isSet);
+    function getCreatorInfo(uint256 tokenId)
+        external
+        view
+        returns (address creator, uint96 cutBP);
 
     /**
      * @notice Check if a token has creator info registered

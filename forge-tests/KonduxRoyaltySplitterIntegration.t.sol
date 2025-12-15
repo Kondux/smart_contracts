@@ -150,10 +150,9 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
 
         // Verify creator was auto-registered
         assertTrue(splitter.hasCreatorInfo(tokenId));
-        (address regCreator, uint96 cutBP, bool isFirstSale) = splitter.getCreatorInfo(tokenId);
+        (address regCreator, uint96 cutBP) = splitter.getCreatorInfo(tokenId);
         assertEq(regCreator, minter, "Minter should be registered as creator");
         assertEq(cutBP, CREATOR_CUT);
-        assertTrue(isFirstSale);
     }
 
     function test_SafeMintWithCreator_ExplicitCreator() public {
@@ -193,7 +192,7 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
         uint256 tokenId = collection.safeMintWithCreator(seller, 12345, explicitCreator, customCut);
 
         // Verify explicit creator was registered
-        (address regCreator, uint96 cutBP,) = splitter.getCreatorInfo(tokenId);
+        (address regCreator, uint96 cutBP) = splitter.getCreatorInfo(tokenId);
         assertEq(regCreator, explicitCreator);
         assertEq(cutBP, customCut);
     }
@@ -300,7 +299,7 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
         vm.prank(deployer);
         factory.registerCreatorOnSplitter(splitterAddr, tokenId, newCreator, 250);
 
-        (address regCreator, uint96 cutBP,) = splitter.getCreatorInfo(tokenId);
+        (address regCreator, uint96 cutBP) = splitter.getCreatorInfo(tokenId);
         assertEq(regCreator, newCreator);
         assertEq(cutBP, 250);
     }
@@ -334,7 +333,7 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
                     ROYALTY FLOW E2E TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function test_RoyaltyFlow_FirstSale() public {
+    function test_RoyaltyFlow_AllPartiesReceive() public {
         bytes memory initData = abi.encodeWithSelector(
             KonduxImplementation.initialize.selector,
             "TestCollection",
@@ -366,28 +365,25 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
         vm.prank(minter);
         uint256 tokenId = collection.safeMint(seller, 12345);
 
-        // Simulate first sale royalty payment (10% of 1 ETH = 0.1 ETH)
+        // Simulate royalty payment (10% of 1 ETH = 0.1 ETH)
         uint256 royaltyAmount = 0.1 ether;
-        vm.deal(address(this), royaltyAmount);
 
         uint256 manufacturerBalBefore = collectionAdmin.balance; // manufacturer is collectionAdmin
         uint256 partnerBalBefore = partner.balance;
         uint256 minterBalBefore = minter.balance; // minter is the creator
 
         // Send royalty to splitter with token context
-        // Collection already has COLLECTION_ROLE, so we can call from the collection
         vm.deal(collectionAddr, royaltyAmount);
         vm.prank(collectionAddr);
         splitter.receivePaymentForToken{value: royaltyAmount}(tokenId);
 
-        // On first sale, creator gets nothing
-        // manufacturer + partner should get all
+        // All parties should receive on ANY sale (no first/secondary distinction)
         assertGt(collectionAdmin.balance, manufacturerBalBefore, "Manufacturer should receive");
         assertGt(partner.balance, partnerBalBefore, "Partner should receive");
-        // Creator cut goes to manufacturer on first sale
+        assertGt(minter.balance, minterBalBefore, "Creator should receive on ALL sales");
     }
 
-    function test_RoyaltyFlow_SecondarySale() public {
+    function test_RoyaltyFlow_ConsecutiveSales() public {
         bytes memory initData = abi.encodeWithSelector(
             KonduxImplementation.initialize.selector,
             "TestCollection",
@@ -419,23 +415,22 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
         vm.prank(minter);
         uint256 tokenId = collection.safeMint(seller, 12345);
 
-        // First sale - call from collection which has COLLECTION_ROLE
+        // First sale
         vm.deal(collectionAddr, 1 ether);
+        uint256 minterBal1 = minter.balance;
         vm.prank(collectionAddr);
         splitter.receivePaymentForToken{value: 0.1 ether}(tokenId);
+        uint256 creatorReceived1 = minter.balance - minterBal1;
 
-        // Verify first sale marked
-        (,, bool isFirstSale) = splitter.getCreatorInfo(tokenId);
-        assertFalse(isFirstSale, "Should no longer be first sale");
-
-        // Secondary sale
-        uint256 minterBalBefore = minter.balance;
-
+        // Second sale - creator should receive same amount
+        uint256 minterBal2 = minter.balance;
         vm.prank(collectionAddr);
         splitter.receivePaymentForToken{value: 0.1 ether}(tokenId);
+        uint256 creatorReceived2 = minter.balance - minterBal2;
 
-        // Now creator (minter) should receive their share
-        assertGt(minter.balance, minterBalBefore, "Creator should receive on secondary sale");
+        // Creator receives same on all sales
+        assertEq(creatorReceived1, creatorReceived2, "Creator should receive same on all sales");
+        assertGt(creatorReceived1, 0, "Creator should receive on ALL sales");
     }
 
     /*//////////////////////////////////////////////////////////////

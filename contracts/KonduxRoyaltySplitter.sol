@@ -10,18 +10,19 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
  * @title KonduxRoyaltySplitter
  * @notice Receives royalty payments from marketplaces and distributes them according to
  *         the Kondux royalty model:
- *         
+ *
  *         - Manufacturer cut (m): Fixed %, goes to Kondux treasury
  *         - Partner cut (p): Fixed %, goes to partner/collection owner
  *         - Creator cut (c): Variable %, goes to the original minter of the NFT
- *         
+ *
+ *         Creator receives their cut on ALL sales (including first sale).
  *         OpenSea sees a CONSTANT total royalty (m + p + max_c) going to this contract.
  *         This contract then distributes based on per-token creator data.
  *
  *         Supports two modes:
  *         1. PULL MODE: Royalties accumulate, recipients withdraw later
  *         2. PUSH MODE: Atomic distribution during transfer (via onTransferWithValue)
- *         
+ *
  * @dev This contract should be set as the ERC2981 royalty receiver for the collection.
  */
 contract KonduxRoyaltySplitter is AccessControl, ReentrancyGuard {
@@ -60,9 +61,8 @@ contract KonduxRoyaltySplitter is AccessControl, ReentrancyGuard {
 
     /// @notice Per-token creator info
     struct CreatorInfo {
-        address creator;      // The original minter/creator (set on FIRST sale, receives on SECOND+)
+        address creator;      // The original minter/creator
         uint96 creatorCutBP;  // Their specific cut in basis points
-        bool isFirstSale;     // True = first sale (creator not yet set), False = secondary sale
     }
     
     mapping(uint256 => CreatorInfo) public tokenCreators;
@@ -292,12 +292,6 @@ contract KonduxRoyaltySplitter is AccessControl, ReentrancyGuard {
             _safeTransferETH(manufacturerWallet, creatorAmount);
         }
 
-        // Mark token as having completed first sale
-        // Next sale will include creator royalty
-        if (tokenCreators[tokenId].isFirstSale) {
-            tokenCreators[tokenId].isFirstSale = false;
-        }
-
         emit RoyaltyDistributed(tokenId, manufacturerAmount, partnerAmount, creatorAmount, creator);
     }
 
@@ -360,8 +354,7 @@ contract KonduxRoyaltySplitter is AccessControl, ReentrancyGuard {
 
         tokenCreators[tokenId] = CreatorInfo({
             creator: creator,
-            creatorCutBP: creatorCutBP,
-            isFirstSale: true  // Will be false after first sale completes
+            creatorCutBP: creatorCutBP
         });
 
         emit CreatorRegistered(tokenId, creator, creatorCutBP);
@@ -395,8 +388,7 @@ contract KonduxRoyaltySplitter is AccessControl, ReentrancyGuard {
 
             tokenCreators[tokenIds[i]] = CreatorInfo({
                 creator: creators[i],
-                creatorCutBP: creatorCutsBP[i],
-                isFirstSale: true  // Will be false after first sale completes
+                creatorCutBP: creatorCutsBP[i]
             });
 
             emit CreatorRegistered(tokenIds[i], creators[i], creatorCutsBP[i]);
@@ -462,7 +454,6 @@ contract KonduxRoyaltySplitter is AccessControl, ReentrancyGuard {
      * @param tokenId The token ID
      * @param creator The new creator address
      * @param creatorCutBP The creator's royalty cut in basis points
-     * @dev Preserves first sale status when overriding
      */
     function overrideCreator(
         uint256 tokenId,
@@ -481,15 +472,9 @@ contract KonduxRoyaltySplitter is AccessControl, ReentrancyGuard {
             revert InvalidCuts();
         }
 
-        // Preserve first sale status if already set
-        bool wasFirstSale = tokenCreators[tokenId].creator == address(0)
-            ? true
-            : tokenCreators[tokenId].isFirstSale;
-
         tokenCreators[tokenId] = CreatorInfo({
             creator: creator,
-            creatorCutBP: creatorCutBP,
-            isFirstSale: wasFirstSale
+            creatorCutBP: creatorCutBP
         });
 
         emit CreatorOverridden(tokenId, creator, creatorCutBP);
@@ -548,12 +533,6 @@ contract KonduxRoyaltySplitter is AccessControl, ReentrancyGuard {
             pendingETH[manufacturerWallet] += creatorAmount;
         }
 
-        // Mark token as having completed first sale
-        // Next sale will include creator royalty
-        if (tokenCreators[tokenId].isFirstSale) {
-            tokenCreators[tokenId].isFirstSale = false;
-        }
-
         emit RoyaltyDistributed(tokenId, manufacturerAmount, partnerAmount, creatorAmount, creator);
     }
 
@@ -580,52 +559,47 @@ contract KonduxRoyaltySplitter is AccessControl, ReentrancyGuard {
             pendingERC20[token][manufacturerWallet] += creatorAmount;
         }
 
-        // Mark token as having completed first sale
-        // Next sale will include creator royalty
-        if (tokenCreators[tokenId].isFirstSale) {
-            tokenCreators[tokenId].isFirstSale = false;
-        }
-
         emit RoyaltyDistributed(tokenId, manufacturerAmount, partnerAmount, creatorAmount, creator);
     }
 
     /**
      * @notice Calculate the split for a given token and amount
+     * @dev Creator receives their cut on ALL sales (no first sale distinction)
      */
-    function _calculateSplit(uint256 tokenId, uint256 amount) 
-        internal 
-        view 
+    function _calculateSplit(uint256 tokenId, uint256 amount)
+        internal
+        view
         returns (
             uint256 manufacturerAmount,
             uint256 partnerAmount,
             uint256 creatorAmount,
             address creator
-        ) 
+        )
     {
         CreatorInfo memory info = tokenCreators[tokenId];
         bool hasCreator = info.creator != address(0);
-        
+
         // Determine creator cut (use token-specific or default)
-        // On first sale, creator gets nothing - their cut goes to manufacturer
-        uint96 actualCreatorCutBP = hasCreator && !info.isFirstSale ? info.creatorCutBP : 0;
+        // Creator receives their cut on ALL sales
+        uint96 actualCreatorCutBP = hasCreator ? info.creatorCutBP : 0;
         creator = hasCreator ? info.creator : address(0);
-        
+
         // Calculate amounts
         uint256 totalBP = manufacturerCutBP + partnerCutBP + actualCreatorCutBP;
-        
+
         if (totalBP == 0) {
             // No splits configured, everything to manufacturer
             return (amount, 0, 0, address(0));
         }
-        
+
         // Proportional distribution based on the ACTUAL cuts (not max)
         // The received amount is based on MAX_TOTAL_ROYALTY_BP from OpenSea
         // We distribute based on actual cuts, remainder goes to manufacturer
-        
+
         manufacturerAmount = (amount * manufacturerCutBP) / MAX_TOTAL_ROYALTY_BP;
         partnerAmount = (amount * partnerCutBP) / MAX_TOTAL_ROYALTY_BP;
         creatorAmount = (amount * actualCreatorCutBP) / MAX_TOTAL_ROYALTY_BP;
-        
+
         // Any remainder (from tokens with lower creator cut) goes to manufacturer
         uint256 distributed = manufacturerAmount + partnerAmount + creatorAmount;
         if (distributed < amount) {
@@ -636,22 +610,21 @@ contract KonduxRoyaltySplitter is AccessControl, ReentrancyGuard {
     /**
      * @notice Get the split breakdown for a token (view function for frontends)
      */
-    function getSplit(uint256 tokenId, uint256 amount) 
-        external 
-        view 
+    function getSplit(uint256 tokenId, uint256 amount)
+        external
+        view
         returns (
             uint256 manufacturerAmount,
             uint256 partnerAmount,
             uint256 creatorAmount,
             address creator,
             uint96 creatorCutBP
-        ) 
+        )
     {
         CreatorInfo memory info = tokenCreators[tokenId];
         bool hasCreator = info.creator != address(0);
-        // Return the registered cut, but note: first sale won't actually pay creator
         creatorCutBP = hasCreator ? info.creatorCutBP : defaultCreatorCutBP;
-        
+
         (manufacturerAmount, partnerAmount, creatorAmount, creator) = _calculateSplit(tokenId, amount);
     }
 
@@ -723,13 +696,13 @@ contract KonduxRoyaltySplitter is AccessControl, ReentrancyGuard {
     /**
      * @notice Get creator info for a token
      */
-    function getCreatorInfo(uint256 tokenId) 
-        external 
-        view 
-        returns (address creator, uint96 cutBP, bool isFirstSale) 
+    function getCreatorInfo(uint256 tokenId)
+        external
+        view
+        returns (address creator, uint96 cutBP)
     {
         CreatorInfo memory info = tokenCreators[tokenId];
-        return (info.creator, info.creatorCutBP, info.isFirstSale);
+        return (info.creator, info.creatorCutBP);
     }
 
     /**

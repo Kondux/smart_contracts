@@ -96,10 +96,9 @@ contract KonduxRoyaltySplitterTest is Test {
         vm.prank(admin);
         splitter.registerCreator(tokenId, creator, CREATOR_CUT);
 
-        (address regCreator, uint96 cutBP, bool isFirstSale) = splitter.getCreatorInfo(tokenId);
+        (address regCreator, uint96 cutBP) = splitter.getCreatorInfo(tokenId);
         assertEq(regCreator, creator);
         assertEq(cutBP, CREATOR_CUT);
-        assertTrue(isFirstSale);
     }
 
     function test_RegisterCreator_ByCollection() public {
@@ -108,7 +107,7 @@ contract KonduxRoyaltySplitterTest is Test {
         vm.prank(address(collection));
         splitter.registerCreator(tokenId, creator, CREATOR_CUT);
 
-        (address regCreator,,) = splitter.getCreatorInfo(tokenId);
+        (address regCreator,) = splitter.getCreatorInfo(tokenId);
         assertEq(regCreator, creator);
     }
 
@@ -138,7 +137,7 @@ contract KonduxRoyaltySplitterTest is Test {
         vm.prank(admin);
         splitter.registerCreator(tokenId, newCreator, 200);
 
-        (address regCreator, uint96 cutBP,) = splitter.getCreatorInfo(tokenId);
+        (address regCreator, uint96 cutBP) = splitter.getCreatorInfo(tokenId);
         assertEq(regCreator, newCreator);
         assertEq(cutBP, 200);
     }
@@ -159,7 +158,7 @@ contract KonduxRoyaltySplitterTest is Test {
         vm.prank(creator);
         splitter.updateCreatorWallet(tokenId, newWallet);
 
-        (address regCreator,,) = splitter.getCreatorInfo(tokenId);
+        (address regCreator,) = splitter.getCreatorInfo(tokenId);
         assertEq(regCreator, newWallet);
     }
 
@@ -190,41 +189,31 @@ contract KonduxRoyaltySplitterTest is Test {
                         OVERRIDE CREATOR TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function test_OverrideCreator_PreservesFirstSaleStatus() public {
+    function test_OverrideCreator() public {
         uint256 tokenId = 7;
 
-        // Register and mark as not first sale
+        // Register creator
         vm.prank(admin);
         splitter.registerCreator(tokenId, creator, CREATOR_CUT);
-
-        // Simulate first sale completion by distributing
-        vm.deal(admin, 1 ether);
-        vm.prank(admin);
-        splitter.receivePaymentForToken{value: 0.1 ether}(tokenId);
-
-        // Check first sale is now false
-        (,, bool isFirstSale) = splitter.getCreatorInfo(tokenId);
-        assertFalse(isFirstSale);
 
         // Override creator
         address newCreator = address(0x77);
         vm.prank(admin);
         splitter.overrideCreator(tokenId, newCreator, 200);
 
-        // First sale status should be preserved as false
-        (address regCreator, uint96 cutBP, bool stillFirstSale) = splitter.getCreatorInfo(tokenId);
+        // Verify override worked
+        (address regCreator, uint96 cutBP) = splitter.getCreatorInfo(tokenId);
         assertEq(regCreator, newCreator);
         assertEq(cutBP, 200);
-        assertFalse(stillFirstSale, "First sale status should be preserved");
     }
 
     /*//////////////////////////////////////////////////////////////
                         ROYALTY SPLIT TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function test_CalculateSplit_FirstSale() public {
+    function test_CalculateSplit_AllPartiesReceive() public {
         uint256 tokenId = 8;
-        uint256 amount = 1 ether; // 10% of 10 ETH sale
+        uint256 amount = 1 ether; // This is the royalty amount (10% of 10 ETH sale)
 
         vm.prank(admin);
         splitter.registerCreator(tokenId, creator, CREATOR_CUT);
@@ -232,33 +221,44 @@ contract KonduxRoyaltySplitterTest is Test {
         (uint256 mAmt, uint256 pAmt, uint256 cAmt, address creatorAddr, uint96 cutBP) =
             splitter.getSplit(tokenId, amount);
 
-        // First sale: creator gets nothing
-        assertEq(cAmt, 0, "Creator should get 0 on first sale");
+        // All parties should receive their share on ANY sale
+        assertGt(cAmt, 0, "Creator should get their share");
         assertGt(mAmt, 0, "Manufacturer should get some");
         assertGt(pAmt, 0, "Partner should get some");
         assertEq(creatorAddr, creator);
         assertEq(cutBP, CREATOR_CUT);
+
+        // Verify exact split based on MAX_TOTAL_ROYALTY_BP (1000)
+        // Split is: amount * cutBP / 1000
+        // 4% of royalty -> 400/1000 * 1 ETH = 0.4 ETH
+        // 3% of royalty -> 300/1000 * 1 ETH = 0.3 ETH
+        assertEq(mAmt, 0.4 ether, "Manufacturer should get 40% of royalty");
+        assertEq(pAmt, 0.3 ether, "Partner should get 30% of royalty");
+        assertEq(cAmt, 0.3 ether, "Creator should get 30% of royalty");
     }
 
-    function test_CalculateSplit_SecondarySale() public {
+    function test_CalculateSplit_ConsecutiveSales() public {
         uint256 tokenId = 9;
         uint256 amount = 1 ether;
 
         vm.prank(admin);
         splitter.registerCreator(tokenId, creator, CREATOR_CUT);
 
-        // Simulate first sale completion
+        // First sale
+        (uint256 mAmt1, uint256 pAmt1, uint256 cAmt1,,) = splitter.getSplit(tokenId, amount);
+
+        // Simulate a sale
         vm.deal(admin, 1 ether);
         vm.prank(admin);
         splitter.receivePaymentForToken{value: 0.1 ether}(tokenId);
 
-        // Now get split for secondary sale
-        (uint256 mAmt, uint256 pAmt, uint256 cAmt,,) = splitter.getSplit(tokenId, amount);
+        // Second sale - should be same split
+        (uint256 mAmt2, uint256 pAmt2, uint256 cAmt2,,) = splitter.getSplit(tokenId, amount);
 
-        // Secondary sale: creator gets their share
-        assertGt(cAmt, 0, "Creator should get some on secondary sale");
-        assertGt(mAmt, 0, "Manufacturer should get some");
-        assertGt(pAmt, 0, "Partner should get some");
+        // All sales should have same split
+        assertEq(mAmt1, mAmt2, "Manufacturer split should be same");
+        assertEq(pAmt1, pAmt2, "Partner split should be same");
+        assertEq(cAmt1, cAmt2, "Creator split should be same");
     }
 
     function test_DefaultToManufacturer_NoPartner() public {

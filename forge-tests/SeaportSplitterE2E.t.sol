@@ -291,26 +291,25 @@ contract SeaportSplitterE2E is Test {
     }
 
     /*//////////////////////////////////////////////////////////////
-                    FIRST SALE TESTS
+                    ALL PARTIES RECEIVE TESTS
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Test first sale: creator should NOT receive royalties
-     *         Royalty split: manufacturer + partner (creator cut goes to manufacturer)
+     * @notice Test that ALL parties (manufacturer, partner, creator) receive on ANY sale
+     *         No distinction between first and secondary sales
      */
-    function test_SeaportE2E_FirstSale_CreatorGetsNothing() public {
-        console2.log("\n=== TEST: First Sale - Creator Gets Nothing ===");
+    function test_SeaportE2E_AllPartiesReceive() public {
+        console2.log("\n=== TEST: All Parties Receive on Any Sale ===");
 
         (KonduxImplementation collection, KonduxRoyaltySplitter splitter) = _deployCollectionWithSplitter();
 
         // Mint token to seller (minter becomes creator via auto-registration)
         uint256 tokenId = _mintToken(collection, seller);
 
-        // Verify creator is registered and it's first sale
-        (address regCreator, uint96 cutBP, bool isFirstSale) = splitter.getCreatorInfo(tokenId);
+        // Verify creator is registered
+        (address regCreator, uint96 cutBP) = splitter.getCreatorInfo(tokenId);
         assertEq(regCreator, minter, "Minter should be creator");
         assertEq(cutBP, CREATOR_CUT, "Creator cut should match");
-        assertTrue(isFirstSale, "Should be first sale");
 
         uint256 price = 1 ether;
         (address royaltyReceiver, uint256 royaltyAmount) = collection.royaltyInfo(tokenId, price);
@@ -347,42 +346,27 @@ contract SeaportSplitterE2E is Test {
         uint256 sellerReceived = seller.balance - sellerBalBefore;
         assertEq(sellerReceived, price - royaltyAmount, "Seller should receive price minus royalty");
 
-        // Calculate expected splits
-        // First sale: creator cut goes to manufacturer
-        uint256 expectedManufacturerAmount = (royaltyAmount * (MANUFACTURER_CUT + CREATOR_CUT)) / (MANUFACTURER_CUT + PARTNER_CUT + CREATOR_CUT);
-        uint256 expectedPartnerAmount = (royaltyAmount * PARTNER_CUT) / (MANUFACTURER_CUT + PARTNER_CUT + CREATOR_CUT);
-
-        console2.log("Expected Manufacturer:", expectedManufacturerAmount);
-        console2.log("Expected Partner:", expectedPartnerAmount);
         console2.log("Manufacturer Received:", collectionAdmin.balance - manufacturerBalBefore);
         console2.log("Partner Received:", partner.balance - partnerBalBefore);
-        console2.log("Minter (Creator) Received:", minter.balance - minterBalBefore);
+        console2.log("Creator Received:", minter.balance - minterBalBefore);
 
-        // Verify manufacturer got their cut + creator's cut (first sale)
+        // ALL parties should receive on ANY sale
         assertGt(collectionAdmin.balance - manufacturerBalBefore, 0, "Manufacturer should receive ETH");
-
-        // Verify partner received
         assertGt(partner.balance - partnerBalBefore, 0, "Partner should receive ETH");
+        assertGt(minter.balance - minterBalBefore, 0, "Creator should receive on ALL sales");
 
-        // Verify creator received NOTHING on first sale
-        assertEq(minter.balance - minterBalBefore, 0, "Creator should receive NOTHING on first sale");
-
-        // Verify first sale flag is now false
-        (,, bool stillFirstSale) = splitter.getCreatorInfo(tokenId);
-        assertFalse(stillFirstSale, "First sale flag should be false after sale");
-
-        console2.log("=== FIRST SALE TEST PASSED ===\n");
+        console2.log("=== ALL PARTIES RECEIVE TEST PASSED ===\n");
     }
 
     /*//////////////////////////////////////////////////////////////
-                    SECONDARY SALE TESTS
+                    CONSECUTIVE SALES TESTS
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Test secondary sale: creator SHOULD receive their royalty share
+     * @notice Test consecutive sales: creator receives same share on ALL sales
      */
-    function test_SeaportE2E_SecondarySale_CreatorGetsShare() public {
-        console2.log("\n=== TEST: Secondary Sale - Creator Gets Share ===");
+    function test_SeaportE2E_ConsecutiveSales_SameCreatorShare() public {
+        console2.log("\n=== TEST: Consecutive Sales - Same Creator Share ===");
 
         (KonduxImplementation collection, KonduxRoyaltySplitter splitter) = _deployCollectionWithSplitter();
 
@@ -392,7 +376,10 @@ contract SeaportSplitterE2E is Test {
         (, uint256 royaltyAmount) = collection.royaltyInfo(tokenId, price);
 
         // === FIRST SALE (seller -> buyer) ===
-        console2.log("--- First Sale: seller -> buyer ---");
+        console2.log("--- Sale 1: seller -> buyer ---");
+
+        uint256 creatorBal1 = minter.balance;
+
         _createAndFulfillSeaportOrder(
             collection,
             address(splitter),
@@ -404,57 +391,38 @@ contract SeaportSplitterE2E is Test {
             buyer
         );
 
-        assertEq(collection.ownerOf(tokenId), buyer, "Buyer should own NFT after first sale");
+        uint256 creatorReceived1 = minter.balance - creatorBal1;
+        console2.log("Sale 1 - Creator Received:", creatorReceived1);
 
-        // === SECONDARY SALE (buyer -> buyer2) ===
-        console2.log("--- Secondary Sale: buyer -> buyer2 ---");
+        assertEq(collection.ownerOf(tokenId), buyer, "Buyer should own NFT after sale 1");
+        assertGt(creatorReceived1, 0, "Creator should receive on sale 1");
 
-        // Record balances before secondary sale
-        uint256 manufacturerBalBefore = collectionAdmin.balance;
-        uint256 partnerBalBefore = partner.balance;
-        uint256 minterBalBefore = minter.balance;
+        // === SECOND SALE (buyer -> buyer2) ===
+        console2.log("--- Sale 2: buyer -> buyer2 ---");
 
-        uint256 secondPrice = 2 ether;
-        (, uint256 secondRoyaltyAmount) = collection.royaltyInfo(tokenId, secondPrice);
+        uint256 creatorBal2 = minter.balance;
 
         _createAndFulfillSeaportOrder(
             collection,
             address(splitter),
             tokenId,
-            secondPrice,
-            secondRoyaltyAmount,
+            price,  // Same price for fair comparison
+            royaltyAmount,
             buyerPk,
             buyer,
             buyer2
         );
 
-        assertEq(collection.ownerOf(tokenId), buyer2, "Buyer2 should own NFT after secondary sale");
+        uint256 creatorReceived2 = minter.balance - creatorBal2;
+        console2.log("Sale 2 - Creator Received:", creatorReceived2);
 
-        // Calculate expected splits for secondary sale (all parties get their share)
-        uint256 totalCuts = MANUFACTURER_CUT + PARTNER_CUT + CREATOR_CUT;
-        uint256 expectedManufacturer = (secondRoyaltyAmount * MANUFACTURER_CUT) / totalCuts;
-        uint256 expectedPartner = (secondRoyaltyAmount * PARTNER_CUT) / totalCuts;
-        uint256 expectedCreator = (secondRoyaltyAmount * CREATOR_CUT) / totalCuts;
+        assertEq(collection.ownerOf(tokenId), buyer2, "Buyer2 should own NFT after sale 2");
+        assertGt(creatorReceived2, 0, "Creator should receive on sale 2");
 
-        console2.log("Secondary Sale Price:", secondPrice);
-        console2.log("Secondary Royalty Amount:", secondRoyaltyAmount);
-        console2.log("Expected Manufacturer:", expectedManufacturer);
-        console2.log("Expected Partner:", expectedPartner);
-        console2.log("Expected Creator:", expectedCreator);
-        console2.log("Manufacturer Received:", collectionAdmin.balance - manufacturerBalBefore);
-        console2.log("Partner Received:", partner.balance - partnerBalBefore);
-        console2.log("Creator Received:", minter.balance - minterBalBefore);
+        // Creator should receive SAME amount on all sales (same price)
+        assertEq(creatorReceived1, creatorReceived2, "Creator should receive same on all sales");
 
-        // Verify all parties received their share
-        assertGt(collectionAdmin.balance - manufacturerBalBefore, 0, "Manufacturer should receive on secondary");
-        assertGt(partner.balance - partnerBalBefore, 0, "Partner should receive on secondary");
-        assertGt(minter.balance - minterBalBefore, 0, "Creator SHOULD receive on secondary sale");
-
-        // Note: We don't check seller proceeds here because on forked mainnet, the derived
-        // buyer address may be an existing contract that forwards ETH. The key test is that
-        // the royalty split works correctly, which is verified above.
-
-        console2.log("=== SECONDARY SALE TEST PASSED ===\n");
+        console2.log("=== CONSECUTIVE SALES TEST PASSED ===\n");
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -463,6 +431,7 @@ contract SeaportSplitterE2E is Test {
 
     /**
      * @notice Test when no partner is configured: partner cut goes to manufacturer
+     *         Creator still receives their share
      */
     function test_SeaportE2E_NoPartner_CutGoesToManufacturer() public {
         console2.log("\n=== TEST: No Partner - Cut Goes to Manufacturer ===");
@@ -478,6 +447,7 @@ contract SeaportSplitterE2E is Test {
         assertEq(splitter.partnerWallet(), address(0), "Partner should be zero address");
 
         uint256 manufacturerBalBefore = collectionAdmin.balance;
+        uint256 creatorBalBefore = minter.balance;
 
         console2.log("Price:", price);
         console2.log("Royalty Amount:", royaltyAmount);
@@ -494,17 +464,22 @@ contract SeaportSplitterE2E is Test {
             buyer
         );
 
-        // On first sale with no partner:
-        // - Creator cut (3%) -> manufacturer
-        // - Partner cut (3%) -> manufacturer
+        // With no partner:
+        // - Creator cut (3%) -> creator
+        // - Partner cut (3%) -> manufacturer (since no partner)
         // - Manufacturer cut (4%) -> manufacturer
-        // Total to manufacturer: 10%
+        // Total to manufacturer: 7%, creator: 3%
 
         uint256 manufacturerReceived = collectionAdmin.balance - manufacturerBalBefore;
-        console2.log("Manufacturer Received:", manufacturerReceived);
+        uint256 creatorReceived = minter.balance - creatorBalBefore;
 
-        // Manufacturer should get almost all of the royalty (minus dust from rounding)
-        assertGt(manufacturerReceived, royaltyAmount * 95 / 100, "Manufacturer should receive most of royalty");
+        console2.log("Manufacturer Received:", manufacturerReceived);
+        console2.log("Creator Received:", creatorReceived);
+
+        // Manufacturer should get their 4% + partner's 3% = 7%
+        assertGt(manufacturerReceived, royaltyAmount * 60 / 100, "Manufacturer should receive 7%");
+        // Creator should still receive their 3%
+        assertGt(creatorReceived, 0, "Creator should still receive their share");
 
         console2.log("=== NO PARTNER TEST PASSED ===\n");
     }
@@ -514,7 +489,7 @@ contract SeaportSplitterE2E is Test {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Test multiple consecutive sales - creator receives on all secondary sales
+     * @notice Test multiple consecutive sales - creator receives on ALL sales
      */
     function test_SeaportE2E_MultipleResales() public {
         console2.log("\n=== TEST: Multiple Resales ===");
@@ -523,8 +498,8 @@ contract SeaportSplitterE2E is Test {
 
         uint256 tokenId = _mintToken(collection, seller);
 
-        // === Sale 1: First Sale (seller -> buyer) ===
-        console2.log("--- Sale 1: seller -> buyer (FIRST SALE) ---");
+        // === Sale 1 (seller -> buyer) ===
+        console2.log("--- Sale 1: seller -> buyer ---");
         uint256 price1 = 1 ether;
         (, uint256 royalty1) = collection.royaltyInfo(tokenId, price1);
 
@@ -532,10 +507,12 @@ contract SeaportSplitterE2E is Test {
 
         _createAndFulfillSeaportOrder(collection, address(splitter), tokenId, price1, royalty1, sellerPk, seller, buyer);
 
-        assertEq(minter.balance - creatorBal0, 0, "Sale 1: Creator should get nothing");
+        uint256 creatorReceived1 = minter.balance - creatorBal0;
+        console2.log("Sale 1 Creator Received:", creatorReceived1);
+        assertGt(creatorReceived1, 0, "Sale 1: Creator SHOULD get royalty");
 
-        // === Sale 2: Secondary Sale (buyer -> buyer2) ===
-        console2.log("--- Sale 2: buyer -> buyer2 (SECONDARY) ---");
+        // === Sale 2 (buyer -> buyer2) ===
+        console2.log("--- Sale 2: buyer -> buyer2 ---");
         uint256 price2 = 1.5 ether;
         (, uint256 royalty2) = collection.royaltyInfo(tokenId, price2);
 
@@ -547,8 +524,8 @@ contract SeaportSplitterE2E is Test {
         console2.log("Sale 2 Creator Received:", creatorReceived2);
         assertGt(creatorReceived2, 0, "Sale 2: Creator SHOULD get royalty");
 
-        // === Sale 3: Third Sale (buyer2 -> seller again) ===
-        console2.log("--- Sale 3: buyer2 -> seller (TERTIARY) ---");
+        // === Sale 3 (buyer2 -> seller again) ===
+        console2.log("--- Sale 3: buyer2 -> seller ---");
         uint256 price3 = 2 ether;
         (, uint256 royalty3) = collection.royaltyInfo(tokenId, price3);
 
@@ -586,33 +563,29 @@ contract SeaportSplitterE2E is Test {
         uint256 tokenId = _mintTokenWithExplicitCreator(collection, seller, customCreator, customCut);
 
         // Verify creator registration
-        (address regCreator, uint96 cutBP,) = splitter.getCreatorInfo(tokenId);
+        (address regCreator, uint96 cutBP) = splitter.getCreatorInfo(tokenId);
         assertEq(regCreator, customCreator, "Custom creator should be registered");
         assertEq(cutBP, customCut, "Custom cut should be registered");
 
-        // First sale
+        // Sale - custom creator should receive their 2% cut
         uint256 price = 1 ether;
-        (, uint256 royalty1) = collection.royaltyInfo(tokenId, price);
+        (, uint256 royalty) = collection.royaltyInfo(tokenId, price);
 
         uint256 customCreatorBalBefore = customCreator.balance;
 
-        _createAndFulfillSeaportOrder(collection, address(splitter), tokenId, price, royalty1, sellerPk, seller, buyer);
-
-        assertEq(customCreator.balance - customCreatorBalBefore, 0, "Custom creator should get nothing on first sale");
-
-        // Secondary sale - custom creator should receive 5% of royalty
-        uint256 price2 = 2 ether;
-        (, uint256 royalty2) = collection.royaltyInfo(tokenId, price2);
-
-        customCreatorBalBefore = customCreator.balance;
-
-        _createAndFulfillSeaportOrder(collection, address(splitter), tokenId, price2, royalty2, buyerPk, buyer, buyer2);
+        _createAndFulfillSeaportOrder(collection, address(splitter), tokenId, price, royalty, sellerPk, seller, buyer);
 
         uint256 customCreatorReceived = customCreator.balance - customCreatorBalBefore;
         console2.log("Custom Creator Received:", customCreatorReceived);
 
-        // Custom creator should receive their 5% share
-        assertGt(customCreatorReceived, 0, "Custom creator should receive on secondary");
+        // Custom creator should receive their 2% share
+        assertGt(customCreatorReceived, 0, "Custom creator should receive on ANY sale");
+
+        // Splitter distributes based on MAX_TOTAL_ROYALTY_BP (1000)
+        // Custom cut 200 BP -> 200/1000 * royalty
+        uint256 expectedCreatorShare = (royalty * customCut) / 1000;
+        console2.log("Expected Creator Share:", expectedCreatorShare);
+        assertApproxEqAbs(customCreatorReceived, expectedCreatorShare, 0.001 ether, "Creator should get ~2%");
 
         console2.log("=== CUSTOM CREATOR CUT TEST PASSED ===\n");
     }
@@ -637,24 +610,18 @@ contract SeaportSplitterE2E is Test {
         // Total royalty should be 10% = 1 ETH
         assertEq(royaltyAmount, 1 ether, "Royalty should be exactly 10%");
 
-        // First sale - go through it
-        _createAndFulfillSeaportOrder(collection, address(splitter), tokenId, price, royaltyAmount, sellerPk, seller, buyer);
-
-        // Secondary sale with exact tracking
+        // Track exact amounts for the sale
         uint256 manufacturerBalBefore = collectionAdmin.balance;
         uint256 partnerBalBefore = partner.balance;
         uint256 creatorBalBefore = minter.balance;
 
-        uint256 secondPrice = 10 ether;
-        (, uint256 secondRoyalty) = collection.royaltyInfo(tokenId, secondPrice);
-
-        _createAndFulfillSeaportOrder(collection, address(splitter), tokenId, secondPrice, secondRoyalty, buyerPk, buyer, buyer2);
+        _createAndFulfillSeaportOrder(collection, address(splitter), tokenId, price, royaltyAmount, sellerPk, seller, buyer);
 
         uint256 mReceived = collectionAdmin.balance - manufacturerBalBefore;
         uint256 pReceived = partner.balance - partnerBalBefore;
         uint256 cReceived = minter.balance - creatorBalBefore;
 
-        console2.log("Royalty Total:", secondRoyalty);
+        console2.log("Royalty Total:", royaltyAmount);
         console2.log("Manufacturer (4%):", mReceived);
         console2.log("Partner (3%):", pReceived);
         console2.log("Creator (3%):", cReceived);
@@ -667,7 +634,7 @@ contract SeaportSplitterE2E is Test {
         assertApproxEqAbs(cReceived, 0.3 ether, 0.001 ether, "Creator should get ~3%");
 
         // Verify total distributed equals royalty amount (minus dust)
-        assertApproxEqAbs(mReceived + pReceived + cReceived, secondRoyalty, 0.001 ether, "Total should equal royalty");
+        assertApproxEqAbs(mReceived + pReceived + cReceived, royaltyAmount, 0.001 ether, "Total should equal royalty");
 
         console2.log("=== EXACT SPLIT AMOUNTS TEST PASSED ===\n");
     }

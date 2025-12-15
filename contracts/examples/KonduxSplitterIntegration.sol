@@ -121,12 +121,12 @@ abstract contract KonduxSplitterIntegrationExample {
 }
 
 // ============================================================================
-// 6. ADD MINTING WITH CREATOR REGISTRATION (optional, for second sales)
+// 6. ADD MINTING WITH CREATOR REGISTRATION (for per-token creator royalties)
 // ============================================================================
 
 /*
     /**
-     * @notice Mint with creator registration (for secondary sale royalties)
+     * @notice Mint with creator registration (for per-token royalty splits)
      * @param to Recipient of the NFT
      * @param dna Token DNA
      * @param creator The creator address for royalty splits
