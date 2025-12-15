@@ -27,6 +27,7 @@ import "@openzeppelin/contracts/interfaces/IERC4906.sol";
 
 import "./interfaces/IERC4907.sol";
 import "./interfaces/ICreatorTokenTransferValidator.sol";
+import "./interfaces/IKonduxRoyaltySplitter.sol";
 
 /**
  * @title KonduxImplementation
@@ -108,6 +109,9 @@ contract KonduxImplementation is
     /// @dev The list ID used for the validator whitelist/blacklist.
     uint48 public listId;
 
+    /// @dev Address of the royalty splitter contract for this collection.
+    address public royaltySplitter;
+
     /*----------------------------------------------------------------------*/
     /*                                Events                                */
     /*----------------------------------------------------------------------*/
@@ -120,6 +124,8 @@ contract KonduxImplementation is
     event AutomaticApprovalOfTransferValidatorSet(bool autoApproved);
     event RoyaltySplitsChanged(uint96 manufacturerCutBP, uint96 partnerCutBP, uint96 creatorCutBP);
     event PartnerWalletChanged(address partner);
+    event RoyaltySplitterUpdated(address indexed splitter);
+    event CreatorAutoRegistered(uint256 indexed tokenId, address indexed creator);
 
     /*----------------------------------------------------------------------*/
     /*                           Initialiser                                */
@@ -393,6 +399,30 @@ contract KonduxImplementation is
         _setTokenRoyalty(tokenId, receiver, feeNumerator);
     }
 
+    /**
+     * @notice Sets the royalty splitter contract and updates ERC2981 receiver.
+     * @dev Can be called once by anyone if not yet configured (for factory deployment),
+     *      or by admin to update/clear the splitter.
+     * @param _splitter Address of KonduxRoyaltySplitter (or zero to disable).
+     */
+    function setRoyaltySplitter(address _splitter) external {
+        // Allow one-time setup by anyone if not yet configured (for factory deployment)
+        // After that, only admins can change it
+        if (royaltySplitter != address(0)) {
+            require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "kNFT: only admin");
+        }
+
+        royaltySplitter = _splitter;
+
+        if (_splitter != address(0)) {
+            // Update ERC2981 to point to the splitter as the royalty receiver
+            uint96 totalRoyalty = manufacturerCutBP + partnerCutBP + creatorCutBP;
+            _setDefaultRoyalty(_splitter, totalRoyalty);
+        }
+
+        emit RoyaltySplitterUpdated(_splitter);
+    }
+
     /*----------------------------------------------------------------------*/
     /*                      Minting & DNA Management                        */
     /*----------------------------------------------------------------------*/
@@ -418,10 +448,8 @@ contract KonduxImplementation is
 
     /**
      * @notice Mints a new token with the specified DNA.  If maxSupply is
-     *         non‑zero, ensures the supply cap is not exceeded.  Sets the
-     *         default royalty for the newly minted token equal to the current
-     *         default royalty configuration.  Assigns the specified DNA to
-     *         the minted token.
+     *         non‑zero, ensures the supply cap is not exceeded.  Auto-registers
+     *         the minter as the creator in the royalty splitter if configured.
      * @param to   Address to receive the minted token.
      * @param dna  Unique DNA value associated with the token.
      * @return     The minted token ID.
@@ -431,6 +459,56 @@ contract KonduxImplementation is
         uint256 tokenId = _tokenIdCounter++;
         _setDna(tokenId, dna);
         _safeMint(to, tokenId);
+
+        // Auto-register minter as creator (can be overridden by admin/distributor later)
+        if (royaltySplitter != address(0)) {
+            try IKonduxRoyaltySplitter(royaltySplitter).registerCreator(
+                tokenId,
+                msg.sender,      // Minter is the creator by default
+                creatorCutBP     // Use collection's default creator cut
+            ) {
+                emit CreatorAutoRegistered(tokenId, msg.sender);
+            } catch {
+                // Silently fail if splitter rejects (e.g., already registered)
+            }
+        }
+
+        return tokenId;
+    }
+
+    /**
+     * @notice Mints a new token with explicit creator address for royalties.
+     * @param to                 Address to receive the minted token.
+     * @param dna                Unique DNA value associated with the token.
+     * @param creator            Explicit creator address for royalties.
+     * @param customCreatorCutBP Custom creator cut in basis points (0 to use default).
+     * @return                   The minted token ID.
+     */
+    function safeMintWithCreator(
+        address to,
+        uint256 dna,
+        address creator,
+        uint96 customCreatorCutBP
+    ) public onlyMinter returns (uint256) {
+        require(maxSupply == 0 || _tokenIdCounter < maxSupply, "Max supply reached");
+        uint256 tokenId = _tokenIdCounter++;
+        _setDna(tokenId, dna);
+        _safeMint(to, tokenId);
+
+        // Register explicit creator if splitter is configured
+        if (royaltySplitter != address(0) && creator != address(0)) {
+            uint96 cutToUse = customCreatorCutBP > 0 ? customCreatorCutBP : creatorCutBP;
+            try IKonduxRoyaltySplitter(royaltySplitter).registerCreator(
+                tokenId,
+                creator,
+                cutToUse
+            ) {
+                emit CreatorAutoRegistered(tokenId, creator);
+            } catch {
+                // Silently fail if splitter rejects
+            }
+        }
+
         return tokenId;
     }
 
@@ -826,7 +904,7 @@ contract KonduxImplementation is
     /*----------------------------------------------------------------------*/
     /*                  Storage gap for upgradeability                    */
     /*----------------------------------------------------------------------*/
-    uint256[49] private __gap;
+    uint256[48] private __gap;
 
     /// @dev Prevent initialization of the implementation itself.
     constructor() {
