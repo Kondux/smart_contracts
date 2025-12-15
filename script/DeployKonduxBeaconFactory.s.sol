@@ -11,12 +11,20 @@ import {KonduxBeaconFactory} from "../contracts/KonduxBeaconFactory.sol";
 /// @notice Deploys the Kondux beacon factory and (optionally) a fresh
 ///         KonduxImplementation logic contract.  The factory owns the
 ///         beacon, so it can upgrade the implementation later.
+///
+/// Environment variables:
+///   - KONDUX_IMPL: Existing implementation address (deploys new if not set)
+///   - PUBLIC_DEPLOYMENT: true/false for public clone deployment
+///   - CLONE_DEPLOYER: Address to grant CLONE_DEPLOYER_ROLE
+///   - FEE_ADMIN: Address to grant FEE_ADMIN_ROLE (for managing splitters)
+///   - DEPLOYER_PK or PROD_DEPLOYER_PK: Deployer private key
 contract DeployKonduxBeaconFactoryScript is Script {
     struct DeployConfig {
         string label; // Human readable network label
         address existingImplementation; // Reuse an already deployed logic contract (0x0 => deploy new)
         bool publicDeployment; // Whether anyone can deploy clones
         address[] cloneDeployers; // Addresses to grant CLONE_DEPLOYER_ROLE when gated
+        address[] feeAdmins; // Addresses to grant FEE_ADMIN_ROLE for splitter management
     }
 
     function run() external {
@@ -60,6 +68,14 @@ contract DeployKonduxBeaconFactoryScript is Script {
             console2.log("Granted CLONE_DEPLOYER_ROLE to deployer:", deployer);
         }
 
+        // Grant FEE_ADMIN_ROLE (deployer already has it from constructor)
+        for (uint256 i = 0; i < cfg.feeAdmins.length; ++i) {
+            if (cfg.feeAdmins[i] != deployer) {
+                factory.grantRole(factory.FEE_ADMIN_ROLE(), cfg.feeAdmins[i]);
+                console2.log("Granted FEE_ADMIN_ROLE:", cfg.feeAdmins[i]);
+            }
+        }
+
         vm.stopBroadcast();
 
         _attemptVerification(implementation, address(factory), deployedImplementation);
@@ -98,6 +114,13 @@ contract DeployKonduxBeaconFactoryScript is Script {
             address single = vm.envAddress("CLONE_DEPLOYER");
             cfg.cloneDeployers = new address[](1);
             cfg.cloneDeployers[0] = single;
+        }
+
+        // Optional FEE_ADMIN for splitter management
+        if (vm.envExists("FEE_ADMIN")) {
+            address single = vm.envAddress("FEE_ADMIN");
+            cfg.feeAdmins = new address[](1);
+            cfg.feeAdmins[0] = single;
         }
     }
 
@@ -241,5 +264,12 @@ contract DeployKonduxBeaconFactoryScript is Script {
                 console2.log("  ", cfg.cloneDeployers[i]);
             }
         }
+        if (cfg.feeAdmins.length > 0) {
+            console2.log("Fee admins (splitter management):");
+            for (uint256 i = 0; i < cfg.feeAdmins.length; ++i) {
+                console2.log("  ", cfg.feeAdmins[i]);
+            }
+        }
+        console2.log("Note: Deployer has FEE_ADMIN_ROLE by default");
     }
 }
