@@ -30,6 +30,12 @@ contract KonduxBeaconFactory is AccessControl {
     UpgradeableBeacon public immutable beacon;
     bool public publicDeployment = true;   // open by default
 
+    /// @notice Seaport 1.6 contract address (mainnet)
+    address public constant SEAPORT = 0x0000000000000068F116a894984e2DB1123eB395;
+
+    /// @notice OpenSea Conduit address (mainnet)
+    address public constant OPENSEA_CONDUIT = 0x1E0049783F008A0085193E00003D00cd54003c71;
+
     /// @notice Maps collection addresses to their deployed splitters
     mapping(address => address) public collectionToSplitter;
 
@@ -96,6 +102,8 @@ contract KonduxBeaconFactory is AccessControl {
      *      can call this function.
      * @notice The `initCalldata` is used to initialize the clone after deployment.
      *         It should be the calldata for a initialize function in the implementation contract.
+     *         Automatically configures marketplace security (whitelists Seaport & conduit,
+     *         restricts other secondary markets).
      * @param initCalldata The initialization calldata to pass to the clone.
      */
     function deployClone(bytes calldata initCalldata)
@@ -107,6 +115,10 @@ contract KonduxBeaconFactory is AccessControl {
         }
 
         proxy = address(new BeaconProxy(address(beacon), initCalldata));
+
+        // Configure marketplace security (whitelist Seaport & conduit, restrict other markets)
+        _configureMarketplaceSecurity(proxy);
+
         emit CloneDeployed(proxy, msg.sender);
     }
 
@@ -138,11 +150,14 @@ contract KonduxBeaconFactory is AccessControl {
         // 1. Deploy the NFT collection clone
         proxy = address(new BeaconProxy(address(beacon), initCalldata));
 
+        // 2. Configure marketplace security (whitelist Seaport & conduit, restrict other markets)
+        _configureMarketplaceSecurity(proxy);
+
         if (deploySplitter) {
-            // 2. Get manufacturer wallet from collection's first DEFAULT_ADMIN_ROLE member
+            // 3. Get manufacturer wallet from collection's first DEFAULT_ADMIN_ROLE member
             address manufacturerWallet = _getCollectionManufacturer(proxy);
 
-            // 3. Deploy splitter with factory as the admin
+            // 4. Deploy splitter with factory as the admin
             splitter = address(new KonduxRoyaltySplitter(
                 proxy,                      // collection
                 manufacturerWallet,         // manufacturer wallet
@@ -154,20 +169,20 @@ contract KonduxBeaconFactory is AccessControl {
                 address(this)               // Factory is initial admin
             ));
 
-            // 4. Grant COLLECTION_ROLE to the NFT contract
+            // 5. Grant COLLECTION_ROLE to the NFT contract
             IKonduxRoyaltySplitter(splitter).grantRole(
                 IKonduxRoyaltySplitter(splitter).COLLECTION_ROLE(),
                 proxy
             );
 
-            // 5. Configure the NFT collection to use the splitter
+            // 6. Configure the NFT collection to use the splitter
             // Note: This requires the collection to have setRoyaltySplitter function
             (bool success,) = proxy.call(
                 abi.encodeWithSignature("setRoyaltySplitter(address)", splitter)
             );
             require(success, "Failed to set splitter on collection");
 
-            // 6. Track the deployment
+            // 7. Track the deployment
             collectionToSplitter[proxy] = splitter;
             deployedSplitters.push(splitter);
 
@@ -175,6 +190,34 @@ contract KonduxBeaconFactory is AccessControl {
         }
 
         emit CloneDeployed(proxy, msg.sender);
+    }
+
+    /**
+     * @dev Configures default marketplace security on a newly deployed collection.
+     *      Creates a whitelist with Seaport 1.6, applies Operator Whitelist mode (level 4),
+     *      then adds the OpenSea conduit to the whitelist.
+     *      If the transfer validator is not set on the collection, this is a no-op.
+     * @param collection The collection address to configure.
+     */
+    function _configureMarketplaceSecurity(address collection) internal {
+        // 1. Set default security policy (whitelists Seaport, sets level 4)
+        // Note: This will fail silently if transfer validator is not set on the collection
+        (bool success1,) = collection.call(
+            abi.encodeWithSignature("setToDefaultSecurityPolicy()")
+        );
+
+        // 2. Only add conduit to whitelist if security policy was successfully set
+        if (success1) {
+            address[] memory conduit = new address[](1);
+            conduit[0] = OPENSEA_CONDUIT;
+            (bool success2,) = collection.call(
+                abi.encodeWithSignature("addAccountsToWhitelist(address[])", conduit)
+            );
+            // Emit event if security was configured
+            if (success2) {
+                emit MarketplaceSecurityConfigured(collection);
+            }
+        }
     }
 
     /**
@@ -243,6 +286,38 @@ contract KonduxBeaconFactory is AccessControl {
     }
 
     /**
+     * @notice Grant a role on a splitter to an account.
+     * @dev Only callable by DEFAULT_ADMIN_ROLE.
+     * @param splitter The splitter contract address.
+     * @param role The role to grant.
+     * @param account The account to receive the role.
+     */
+    function grantSplitterRole(
+        address splitter,
+        bytes32 role,
+        address account
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        IKonduxRoyaltySplitter(splitter).grantRole(role, account);
+    }
+
+    /**
+     * @notice Sweep accumulated ETH from a splitter.
+     * @dev Only callable by FEE_ADMIN_ROLE.
+     * @param splitter The splitter contract address.
+     * @param tokenId The token ID to attribute the sweep to.
+     */
+    function sweepSplitterETH(
+        address splitter,
+        uint256 tokenId
+    ) external onlyRole(FEE_ADMIN_ROLE) {
+        // This requires the factory to have ADMIN_ROLE on the splitter
+        (bool success, bytes memory data) = splitter.call(
+            abi.encodeWithSignature("sweepETH(uint256)", tokenId)
+        );
+        require(success, string(data));
+    }
+
+    /**
      * @notice Returns the number of deployed splitters.
      */
     function deployedSplittersCount() external view returns (uint256) {
@@ -256,4 +331,5 @@ contract KonduxBeaconFactory is AccessControl {
     event CloneDeployed(address proxy, address indexed creator);
     event PublicDeploymentChanged(bool open);
     event SplitterDeployed(address indexed collection, address indexed splitter, address indexed creator);
+    event MarketplaceSecurityConfigured(address indexed collection);
 }

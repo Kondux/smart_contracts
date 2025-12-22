@@ -51,6 +51,7 @@ contract DeployCollectionWithSplitterScript is Script {
         uint256 maxSupply;
         address collectionAdmin;
         address partnerWallet;
+        address defaultCreatorWallet;
         uint96 manufacturerCutBP;
         uint96 partnerCutBP;
         uint96 creatorCutBP;
@@ -109,7 +110,8 @@ contract DeployCollectionWithSplitterScript is Script {
                 cfg.partnerWallet,
                 cfg.manufacturerCutBP,
                 cfg.partnerCutBP,
-                cfg.creatorCutBP
+                cfg.creatorCutBP,
+                cfg.defaultCreatorWallet
             );
             result.collection = collectionAddr;
             result.splitter = splitterAddr;
@@ -164,6 +166,7 @@ contract DeployCollectionWithSplitterScript is Script {
         address deployer = vm.addr(deployerKey);
         cfg.collectionAdmin = vm.envOr("COLLECTION_ADMIN", deployer);
         cfg.partnerWallet = vm.envOr("PARTNER_WALLET", deployer);
+        cfg.defaultCreatorWallet = vm.envOr("DEFAULT_CREATOR_WALLET", deployer);
 
         // Royalty cuts (basis points)
         cfg.manufacturerCutBP = uint96(vm.envOr("MANUFACTURER_CUT_BP", uint256(400)));
@@ -469,6 +472,7 @@ contract DeployCollectionWithSplitterScript is Script {
         console2.log("  Max Supply:", cfg.maxSupply);
         console2.log("  Collection Admin:", cfg.collectionAdmin);
         console2.log("  Partner Wallet:", cfg.partnerWallet);
+        console2.log("  Default Creator Wallet:", cfg.defaultCreatorWallet);
         console2.log("  Deploy Splitter:", cfg.deploySplitter);
         if (cfg.deploySplitter) {
             console2.log("  Manufacturer Cut:", cfg.manufacturerCutBP, "BP");

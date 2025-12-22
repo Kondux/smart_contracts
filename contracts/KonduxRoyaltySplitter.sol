@@ -143,18 +143,29 @@ contract KonduxRoyaltySplitter is AccessControl, ReentrancyGuard {
     }
 
     /// @notice Receive ETH (royalty payments)
-    /// @dev If push mode is enabled and there's a pending sale, distribute immediately
+    /// @dev Uses bidirectional same-block matching to handle Seaport execution order
     receive() external payable {
-        // If push mode is enabled and we have a pending sale, distribute automatically
-        if (pushModeEnabled && hasPendingSale && msg.value > 0) {
-            uint256 tokenId = lastSoldTokenId;
-            // Clear pending sale state BEFORE distribution (reentrancy protection)
-            hasPendingSale = false;
-            lastSoldTokenId = 0;
-            // Distribute immediately using push mode function
-            _distributeETHImmediate(tokenId, msg.value);
+        if (!pushModeEnabled || msg.value == 0) return;
+
+        // BIDIRECTIONAL MATCHING: Check if a sale was registered in this same block
+        // Note: pendingSaleBlock != 0 indicates a pending sale exists (tokenId can be 0)
+        if (pendingSaleBlock == block.number && pendingSaleBlock != 0) {
+            // Sale was registered first in this block - distribute now
+            uint256 tokenId = pendingSaleTokenId;
+            uint256 amount = msg.value;
+
+            // Clear state BEFORE distribution (reentrancy protection)
+            _clearPendingSaleState();
+
+            _distributeETHImmediate(tokenId, amount);
+            emit SameBlockDistribution(tokenId, amount, false); // ethFirst=false, sale came first
+            return; // Exit after distribution
         }
-        // Otherwise, ETH accumulates for later distribution via sweepETH()
+
+        // No matching sale in this block yet - record ETH for later matching
+        // If registerSale() is called later in this same block, it will distribute
+        pendingETHAmount = msg.value;
+        pendingETHBlock = block.number;
     }
 
     /// @notice Track pending sales for atomic distribution
@@ -171,19 +182,70 @@ contract KonduxRoyaltySplitter is AccessControl, ReentrancyGuard {
     /// @notice Whether there's a pending sale awaiting payment
     bool public hasPendingSale;
 
+    /*//////////////////////////////////////////////////////////////
+                    BIDIRECTIONAL SAME-BLOCK MATCHING
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Pending ETH amount waiting to be matched with a sale
+    uint256 public pendingETHAmount;
+
+    /// @notice Block number when pending ETH was received
+    uint256 public pendingETHBlock;
+
+    /// @notice Token ID of pending sale waiting to be matched with ETH
+    uint256 public pendingSaleTokenId;
+
+    /// @notice Block number when pending sale was registered
+    uint256 public pendingSaleBlock;
+
+    /// @notice Emitted when ETH and sale are matched in the same block
+    event SameBlockDistribution(uint256 indexed tokenId, uint256 amount, bool ethFirst);
+
+    /// @dev Clear pending sale state after distribution
+    function _clearPendingSaleState() internal {
+        pendingSaleTokenId = 0;
+        pendingSaleBlock = 0;
+        // Also clear legacy state
+        hasPendingSale = false;
+        lastSoldTokenId = 0;
+    }
+
+    /// @dev Clear pending ETH state after distribution
+    function _clearPendingETHState() internal {
+        pendingETHAmount = 0;
+        pendingETHBlock = 0;
+    }
+
     /**
      * @notice Called by the collection contract BEFORE the transfer to register a pending sale
      * @param tokenId The token about to be sold
      * @return saleId A unique identifier for this sale (used to match with incoming payment)
-     * @dev The collection should pass this saleId to the marketplace for payment routing
+     * @dev Uses bidirectional same-block matching to handle Seaport execution order
      */
     function registerSale(uint256 tokenId) external onlyRole(COLLECTION_ROLE) returns (bytes32 saleId) {
         saleId = keccak256(abi.encodePacked(block.timestamp, tokenId, saleNonce++));
         pendingSales[saleId] = tokenId;
 
-        // Also set lastSoldTokenId for automatic distribution via receive()
-        lastSoldTokenId = tokenId;
-        hasPendingSale = true;
+        // BIDIRECTIONAL MATCHING: Check if ETH was received in this same block
+        if (pendingETHBlock == block.number && pendingETHAmount > 0) {
+            // ETH arrived first in this block - distribute now
+            uint256 amount = pendingETHAmount;
+
+            // Clear state BEFORE distribution (reentrancy protection)
+            _clearPendingETHState();
+
+            _distributeETHImmediate(tokenId, amount);
+            emit SameBlockDistribution(tokenId, amount, true); // ethFirst=true
+        } else {
+            // No matching ETH in this block yet - record sale for later matching
+            // If receive() is called later in this same block, it will distribute
+            pendingSaleTokenId = tokenId;
+            pendingSaleBlock = block.number;
+
+            // Also set legacy state for backwards compatibility
+            lastSoldTokenId = tokenId;
+            hasPendingSale = true;
+        }
 
         emit SaleRegistered(saleId, tokenId);
     }
