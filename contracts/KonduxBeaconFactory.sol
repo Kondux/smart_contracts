@@ -127,9 +127,9 @@ contract KonduxBeaconFactory is AccessControl {
      * @param initCalldata Initialization data for KonduxImplementation.
      * @param deploySplitter If true, also deploy a splitter for this collection.
      * @param partnerWallet Partner address for royalty splits (can be zero).
-     * @param manufacturerCutBP Manufacturer cut in basis points (e.g., 400 = 4%).
-     * @param partnerCutBP Partner cut in basis points (e.g., 300 = 3%).
-     * @param defaultCreatorCutBP Default creator cut in basis points (e.g., 300 = 3%).
+     * @param manufacturerCutBP Manufacturer cut in basis points (e.g., 500 = 5%).
+     * @param partnerCutBP Partner cut in basis points (e.g., 0 = 0%).
+     * @param defaultCreatorCutBP Default creator cut in basis points (e.g., 500 = 5%).
      * @param defaultCreatorWallet Fallback wallet for unregistered creators.
      * @return proxy The deployed collection proxy address.
      * @return splitter The deployed splitter address (zero if not deployed).

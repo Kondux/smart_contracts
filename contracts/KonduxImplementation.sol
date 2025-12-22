@@ -431,6 +431,18 @@ contract KonduxImplementation is
         emit RoyaltySplitterUpdated(_splitter);
     }
 
+    /**
+     * @notice Returns the creator address for a token from the royalty splitter.
+     * @param tokenId The token ID to query.
+     * @return creator The creator's address (zero if not registered or no splitter).
+     */
+    function getCreator(uint256 tokenId) external view returns (address creator) {
+        if (royaltySplitter == address(0)) {
+            return address(0);
+        }
+        (creator, ) = IKonduxRoyaltySplitter(royaltySplitter).getCreatorInfo(tokenId);
+    }
+
     /*----------------------------------------------------------------------*/
     /*                      Minting & DNA Management                        */
     /*----------------------------------------------------------------------*/
@@ -457,8 +469,8 @@ contract KonduxImplementation is
     /**
      * @notice Mints a new token with the specified DNA.  If maxSupply is
      *         non‑zero, ensures the supply cap is not exceeded.  Auto-registers
-     *         the minter as the creator in the royalty splitter if configured.
-     * @param to   Address to receive the minted token.
+     *         the recipient as the creator in the royalty splitter if configured.
+     * @param to   Address to receive the minted token (also registered as creator).
      * @param dna  Unique DNA value associated with the token.
      * @return     The minted token ID.
      */
@@ -468,14 +480,14 @@ contract KonduxImplementation is
         _setDna(tokenId, dna);
         _safeMint(to, tokenId);
 
-        // Auto-register minter as creator (can be overridden by admin/distributor later)
+        // Auto-register recipient as creator (can be overridden by admin/distributor later)
         if (royaltySplitter != address(0)) {
             try IKonduxRoyaltySplitter(royaltySplitter).registerCreator(
                 tokenId,
-                msg.sender,      // Minter is the creator by default
+                to,              // Recipient is the creator
                 creatorCutBP     // Use collection's default creator cut
             ) {
-                emit CreatorAutoRegistered(tokenId, msg.sender);
+                emit CreatorAutoRegistered(tokenId, to);
             } catch {
                 // Silently fail if splitter rejects (e.g., already registered)
             }
