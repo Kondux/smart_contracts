@@ -52,7 +52,8 @@ contract KonduxRoyaltySplitterTest is Test {
             MANUFACTURER_CUT,
             PARTNER_CUT,
             CREATOR_CUT,
-            admin
+            admin,  // default creator wallet (fallback)
+            admin   // admin
         );
 
         vm.stopPrank();
@@ -271,7 +272,8 @@ contract KonduxRoyaltySplitterTest is Test {
             MANUFACTURER_CUT,
             PARTNER_CUT,
             CREATOR_CUT,
-            admin
+            admin,  // default creator wallet (fallback)
+            admin   // admin
         );
 
         uint256 tokenId = 10;

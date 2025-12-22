@@ -55,7 +55,8 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
             partner,
             MANUFACTURER_CUT,
             PARTNER_CUT,
-            CREATOR_CUT
+            CREATOR_CUT,
+            collectionAdmin  // defaultCreatorWallet
         );
 
         // Verify collection deployed
@@ -103,7 +104,8 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
             partner,
             MANUFACTURER_CUT,
             PARTNER_CUT,
-            CREATOR_CUT
+            CREATOR_CUT,
+            collectionAdmin  // defaultCreatorWallet
         );
 
         assertEq(splitterAddr, address(0));
@@ -131,7 +133,8 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
             partner,
             MANUFACTURER_CUT,
             PARTNER_CUT,
-            CREATOR_CUT
+            CREATOR_CUT,
+            collectionAdmin  // defaultCreatorWallet
         );
 
         KonduxImplementation collection = KonduxImplementation(payable(collectionAddr));
@@ -171,7 +174,8 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
             partner,
             MANUFACTURER_CUT,
             PARTNER_CUT,
-            CREATOR_CUT
+            CREATOR_CUT,
+            collectionAdmin  // defaultCreatorWallet
         );
 
         KonduxImplementation collection = KonduxImplementation(payable(collectionAddr));
@@ -217,7 +221,8 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
             partner,
             MANUFACTURER_CUT,
             PARTNER_CUT,
-            CREATOR_CUT
+            CREATOR_CUT,
+            collectionAdmin  // defaultCreatorWallet
         );
 
         KonduxRoyaltySplitter splitter = KonduxRoyaltySplitter(payable(splitterAddr));
@@ -247,7 +252,8 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
             partner,
             MANUFACTURER_CUT,
             PARTNER_CUT,
-            CREATOR_CUT
+            CREATOR_CUT,
+            collectionAdmin  // defaultCreatorWallet
         );
 
         KonduxRoyaltySplitter splitter = KonduxRoyaltySplitter(payable(splitterAddr));
@@ -278,7 +284,8 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
             partner,
             MANUFACTURER_CUT,
             PARTNER_CUT,
-            CREATOR_CUT
+            CREATOR_CUT,
+            collectionAdmin  // defaultCreatorWallet
         );
 
         KonduxImplementation collection = KonduxImplementation(payable(collectionAddr));
@@ -320,7 +327,8 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
             partner,
             MANUFACTURER_CUT,
             PARTNER_CUT,
-            CREATOR_CUT
+            CREATOR_CUT,
+            collectionAdmin  // defaultCreatorWallet
         );
 
         // Random user cannot update cuts
@@ -349,7 +357,8 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
             partner,
             MANUFACTURER_CUT,
             PARTNER_CUT,
-            CREATOR_CUT
+            CREATOR_CUT,
+            collectionAdmin  // defaultCreatorWallet
         );
 
         KonduxImplementation collection = KonduxImplementation(payable(collectionAddr));
@@ -399,7 +408,8 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
             partner,
             MANUFACTURER_CUT,
             PARTNER_CUT,
-            CREATOR_CUT
+            CREATOR_CUT,
+            collectionAdmin  // defaultCreatorWallet
         );
 
         KonduxImplementation collection = KonduxImplementation(payable(collectionAddr));
@@ -457,10 +467,10 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
 
         vm.startPrank(deployer);
         (address col1, address splitter1) = factory.deployCloneWithSplitter(
-            initData1, true, partner, 400, 300, 300
+            initData1, true, partner, 400, 300, 300, collectionAdmin
         );
         (address col2, address splitter2) = factory.deployCloneWithSplitter(
-            initData2, true, address(0x111), 500, 200, 300
+            initData2, true, address(0x111), 500, 200, 300, buyer
         );
         vm.stopPrank();
 

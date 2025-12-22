@@ -88,7 +88,8 @@ contract SeaportSplitterE2E is Test {
             partner,
             MANUFACTURER_CUT,
             PARTNER_CUT,
-            CREATOR_CUT
+            CREATOR_CUT,
+            collectionAdmin  // defaultCreatorWallet
         );
 
         collection = KonduxImplementation(payable(collectionAddr));
@@ -118,7 +119,8 @@ contract SeaportSplitterE2E is Test {
             address(0), // No partner
             MANUFACTURER_CUT,
             PARTNER_CUT,
-            CREATOR_CUT
+            CREATOR_CUT,
+            collectionAdmin  // defaultCreatorWallet
         );
 
         collection = KonduxImplementation(payable(collectionAddr));
