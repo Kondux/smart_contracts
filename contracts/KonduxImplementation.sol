@@ -135,12 +135,15 @@ contract KonduxImplementation is
      * @param _name        Collection name
      * @param _symbol      Collection symbol
      * @param _maxSupply   Maximum supply of tokens (0 for unlimited)
+     * @param _initialAdmin Address to receive admin roles
+     * @param _factory     Optional factory address to grant temporary admin for security setup (zero to skip)
      */
     function initialize(
         string calldata _name,
         string calldata _symbol,
         uint256 _maxSupply,
-        address _initialAdmin
+        address _initialAdmin,
+        address _factory
     ) external initializer {
         // Initialize parent contracts
         __ERC721_init(_name, _symbol);
@@ -154,16 +157,21 @@ contract KonduxImplementation is
         _grantRole(MINTER_ROLE,         _initialAdmin);
         _grantRole(DNA_MODIFIER_ROLE,   _initialAdmin);
 
+        // Grant factory admin role for initial security configuration (if provided)
+        if (_factory != address(0)) {
+            _grantRole(DEFAULT_ADMIN_ROLE, _factory);
+        }
+
         // Configure collection parameters
         maxSupply   = _maxSupply;
         eip4907Enabled = true;
         freeMinting    = false;
 
-        // Initialize royalty denominator and default splits (4/3/3 = 10% total)
+        // Initialize royalty denominator and default splits (5/0/5 = 10% total)
         denominator        = 10_000;
-        manufacturerCutBP  = 400;
-        partnerCutBP       = 300;
-        creatorCutBP       = 300;
+        manufacturerCutBP  = 500;
+        partnerCutBP       = 0;
+        creatorCutBP       = 500;
 
         // Set a sensible default royalty: receiver is initial admin, sum of splits (10%)
         _setDefaultRoyalty(_initialAdmin, manufacturerCutBP + partnerCutBP + creatorCutBP);
