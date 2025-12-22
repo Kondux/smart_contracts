@@ -50,7 +50,10 @@ contract KonduxRoyaltySplitter is AccessControl, ReentrancyGuard {
     
     /// @notice Default creator cut for tokens without specific override (e.g., 300 = 3%)
     uint96 public defaultCreatorCutBP;
-    
+
+    /// @notice Default creator wallet for tokens without registered creator
+    address public defaultCreatorWallet;
+
     /// @notice Maximum total royalty (what OpenSea sees as creator_fee)
     uint96 public constant MAX_TOTAL_ROYALTY_BP = 1000; // 10%
     
@@ -93,6 +96,7 @@ contract KonduxRoyaltySplitter is AccessControl, ReentrancyGuard {
     );
     event CreatorWalletUpdated(uint256 indexed tokenId, address indexed oldWallet, address indexed newWallet);
     event CreatorOverridden(uint256 indexed tokenId, address indexed creator, uint96 cutBP);
+    event DefaultCreatorWalletUpdated(address indexed newDefaultCreator);
 
     error InvalidAddress();
     error NotCreatorOfToken();
@@ -110,6 +114,7 @@ contract KonduxRoyaltySplitter is AccessControl, ReentrancyGuard {
         uint96 _manufacturerCutBP,
         uint96 _partnerCutBP,
         uint96 _defaultCreatorCutBP,
+        address _defaultCreatorWallet,
         address _admin
     ) {
         if (_collection == address(0) || _manufacturerWallet == address(0) || _admin == address(0)) {
@@ -125,6 +130,7 @@ contract KonduxRoyaltySplitter is AccessControl, ReentrancyGuard {
         manufacturerCutBP = _manufacturerCutBP;
         partnerCutBP = _partnerCutBP;
         defaultCreatorCutBP = _defaultCreatorCutBP;
+        defaultCreatorWallet = _defaultCreatorWallet;
 
         // Enable push mode by default
         pushModeEnabled = true;
@@ -434,6 +440,19 @@ contract KonduxRoyaltySplitter is AccessControl, ReentrancyGuard {
     }
 
     /**
+     * @notice Set the default creator wallet (used when no creator is registered for a token)
+     * @param _defaultCreatorWallet The fallback creator wallet address
+     */
+    function setDefaultCreatorWallet(address _defaultCreatorWallet) external {
+        require(
+            hasRole(ADMIN_ROLE, msg.sender) || hasRole(FEE_ADMIN_ROLE, msg.sender),
+            "Not authorized"
+        );
+        defaultCreatorWallet = _defaultCreatorWallet;
+        emit DefaultCreatorWalletUpdated(_defaultCreatorWallet);
+    }
+
+    /**
      * @notice Allows a registered creator to change their own receiving wallet
      * @param tokenId The token ID for which they are the creator
      * @param newWallet The new wallet address to receive royalties
@@ -579,10 +598,17 @@ contract KonduxRoyaltySplitter is AccessControl, ReentrancyGuard {
         CreatorInfo memory info = tokenCreators[tokenId];
         bool hasCreator = info.creator != address(0);
 
-        // Determine creator cut (use token-specific or default)
-        // Creator receives their cut on ALL sales
-        uint96 actualCreatorCutBP = hasCreator ? info.creatorCutBP : 0;
-        creator = hasCreator ? info.creator : address(0);
+        // Determine creator cut and address
+        // If no creator registered, fallback to defaultCreatorWallet with defaultCreatorCutBP
+        if (hasCreator) {
+            creator = info.creator;
+        } else if (defaultCreatorWallet != address(0)) {
+            creator = defaultCreatorWallet;
+        } else {
+            creator = address(0);
+        }
+
+        uint96 actualCreatorCutBP = hasCreator ? info.creatorCutBP : defaultCreatorCutBP;
 
         // Calculate amounts
         uint256 totalBP = manufacturerCutBP + partnerCutBP + actualCreatorCutBP;

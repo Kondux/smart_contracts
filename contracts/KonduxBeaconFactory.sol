@@ -118,6 +118,7 @@ contract KonduxBeaconFactory is AccessControl {
      * @param manufacturerCutBP Manufacturer cut in basis points (e.g., 400 = 4%).
      * @param partnerCutBP Partner cut in basis points (e.g., 300 = 3%).
      * @param defaultCreatorCutBP Default creator cut in basis points (e.g., 300 = 3%).
+     * @param defaultCreatorWallet Fallback wallet for unregistered creators.
      * @return proxy The deployed collection proxy address.
      * @return splitter The deployed splitter address (zero if not deployed).
      */
@@ -127,7 +128,8 @@ contract KonduxBeaconFactory is AccessControl {
         address partnerWallet,
         uint96 manufacturerCutBP,
         uint96 partnerCutBP,
-        uint96 defaultCreatorCutBP
+        uint96 defaultCreatorCutBP,
+        address defaultCreatorWallet
     ) external returns (address proxy, address splitter) {
         if (!publicDeployment) {
             _checkRole(CLONE_DEPLOYER_ROLE, msg.sender);
@@ -148,6 +150,7 @@ contract KonduxBeaconFactory is AccessControl {
                 manufacturerCutBP,
                 partnerCutBP,
                 defaultCreatorCutBP,
+                defaultCreatorWallet,       // fallback wallet for unregistered creators
                 address(this)               // Factory is initial admin
             ));
 
