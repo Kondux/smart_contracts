@@ -1,0 +1,202 @@
+#!/bin/bash
+#
+# Kondux Smart Contracts - Main Orchestrator
+# Single entry point for all contract operations
+#
+# Usage: ./kondux <command> [args...]
+#
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+VERSION="1.0.0"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+WHITE='\033[1;37m'
+GRAY='\033[0;90m'
+NC='\033[0m'
+
+show_banner() {
+    echo ""
+    echo -e "${CYAN}╔══════════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║       ${WHITE}Kondux Smart Contracts CLI${CYAN}             ║${NC}"
+    echo -e "${CYAN}║              ${GRAY}v${VERSION}${CYAN}                          ║${NC}"
+    echo -e "${CYAN}╚══════════════════════════════════════════════╝${NC}"
+    echo ""
+}
+
+show_help() {
+    show_banner
+    echo -e "${WHITE}USAGE${NC}"
+    echo "    ./kondux <command> [subcommand] [options]"
+    echo ""
+    echo -e "${WHITE}COMMANDS${NC}"
+    echo ""
+    echo -e "  ${YELLOW}Contract Operations${NC} (via kondux-cli)"
+    echo -e "    deploy          Deploy smart contracts"
+    echo -e "    upgrade         Upgrade existing contracts"
+    echo -e "    listing         Create OpenSea/Seaport listings"
+    echo -e "    utility         Run utility operations"
+    echo -e "    info            Display contract information"
+    echo ""
+    echo -e "  ${YELLOW}Foundry Tools${NC}"
+    echo -e "    build           Build contracts (forge build)"
+    echo -e "    test            Run tests (forge test)"
+    echo -e "    coverage        Generate coverage report"
+    echo -e "    forge           Run any forge command"
+    echo -e "    cast            Run any cast command"
+    echo ""
+    echo -e "  ${YELLOW}Shell Utilities${NC} (scripts/shell/)"
+    echo -e "    check-royalty       Check ERC2981 royalty info"
+    echo -e "    check-splitter      Check splitter state"
+    echo -e "    check-upgrade       Check proxy upgrade state"
+    echo -e "    approve-conduit     Approve OpenSea conduit"
+    echo -e "    mint                Mint an NFT"
+    echo -e "    update-royalty      Update ERC2981 royalty"
+    echo -e "    update-cuts         Update splitter cuts"
+    echo -e "    list-opensea        List NFT on OpenSea"
+    echo ""
+    echo -e "  ${YELLOW}Help${NC}"
+    echo -e "    help, --help, -h    Show this help message"
+    echo -e "    version, --version  Show version"
+    echo -e "    <command> --help    Show help for a specific command"
+    echo ""
+    echo -e "${WHITE}EXAMPLES${NC}"
+    echo "    ./kondux build                         # Build contracts"
+    echo "    ./kondux test -vvv                     # Run tests verbosely"
+    echo "    ./kondux deploy collection --sepolia   # Deploy to Sepolia"
+    echo "    ./kondux check-royalty                 # Check royalty config"
+    echo "    ./kondux cast call 0x... \"totalSupply()\" --rpc-url mainnet"
+    echo ""
+    echo -e "${WHITE}NETWORKS${NC}"
+    echo "    --sepolia     Use Sepolia testnet (default)"
+    echo "    --mainnet     Use Ethereum mainnet"
+    echo "    --local       Use local Anvil node"
+    echo ""
+    echo -e "${WHITE}SAFETY${NC}"
+    echo "    Default: Sepolia network + dry-run mode"
+    echo "    Use --mainnet --broadcast for production transactions"
+    echo ""
+}
+
+# Check if command exists
+check_script() {
+    if [[ ! -f "$1" ]]; then
+        echo -e "${RED}Error: Script not found: $1${NC}" >&2
+        exit 1
+    fi
+}
+
+# Main command router
+case "${1:-}" in
+    # Help
+    help|--help|-h|"")
+        show_help
+        exit 0
+        ;;
+
+    version|--version|-v)
+        echo "kondux v${VERSION}"
+        exit 0
+        ;;
+
+    # Foundry shortcuts
+    build)
+        shift
+        "$SCRIPT_DIR/scripts/kondux-cli.sh" build compile "$@"
+        ;;
+
+    test)
+        shift
+        "$SCRIPT_DIR/scripts/kondux-cli.sh" build test "$@"
+        ;;
+
+    coverage)
+        shift
+        "$SCRIPT_DIR/scripts/kondux-cli.sh" build coverage "$@"
+        ;;
+
+    forge)
+        shift
+        cd "$SCRIPT_DIR"
+        [ -f .env ] && { set -a && source .env && set +a; }
+        export FOUNDRY_DISABLE_NIGHTLY_WARNING=1
+        forge "$@"
+        ;;
+
+    cast)
+        shift
+        cd "$SCRIPT_DIR"
+        [ -f .env ] && { set -a && source .env && set +a; }
+        export FOUNDRY_DISABLE_NIGHTLY_WARNING=1
+        cast "$@"
+        ;;
+
+    # Contract operations (forward to kondux-cli)
+    deploy|upgrade|listing|utility|info)
+        check_script "$SCRIPT_DIR/scripts/kondux-cli.sh"
+        "$SCRIPT_DIR/scripts/kondux-cli.sh" "$@"
+        ;;
+
+    # Shell utility shortcuts
+    check-royalty)
+        shift
+        check_script "$SCRIPT_DIR/scripts/shell/check-royalty.sh"
+        "$SCRIPT_DIR/scripts/shell/check-royalty.sh" "$@"
+        ;;
+
+    check-splitter)
+        shift
+        check_script "$SCRIPT_DIR/scripts/shell/check-splitter-state.sh"
+        "$SCRIPT_DIR/scripts/shell/check-splitter-state.sh" "$@"
+        ;;
+
+    check-upgrade)
+        shift
+        check_script "$SCRIPT_DIR/scripts/shell/check-upgrade-state.sh"
+        "$SCRIPT_DIR/scripts/shell/check-upgrade-state.sh" "$@"
+        ;;
+
+    approve-conduit)
+        shift
+        check_script "$SCRIPT_DIR/scripts/shell/approve-conduit.sh"
+        "$SCRIPT_DIR/scripts/shell/approve-conduit.sh" "$@"
+        ;;
+
+    mint)
+        shift
+        check_script "$SCRIPT_DIR/scripts/shell/mint-one-nft.sh"
+        "$SCRIPT_DIR/scripts/shell/mint-one-nft.sh" "$@"
+        ;;
+
+    update-royalty)
+        shift
+        check_script "$SCRIPT_DIR/scripts/shell/update-erc2981-royalty.sh"
+        "$SCRIPT_DIR/scripts/shell/update-erc2981-royalty.sh" "$@"
+        ;;
+
+    update-cuts)
+        shift
+        check_script "$SCRIPT_DIR/scripts/shell/update-royalty-cuts.sh"
+        "$SCRIPT_DIR/scripts/shell/update-royalty-cuts.sh" "$@"
+        ;;
+
+    list-opensea)
+        shift
+        check_script "$SCRIPT_DIR/scripts/shell/list-on-opensea.sh"
+        "$SCRIPT_DIR/scripts/shell/list-on-opensea.sh" "$@"
+        ;;
+
+    # Unknown command
+    *)
+        echo -e "${RED}Error: Unknown command '$1'${NC}" >&2
+        echo ""
+        echo "Run './kondux --help' for usage information."
+        exit 1
+        ;;
+esac

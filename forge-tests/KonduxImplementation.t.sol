@@ -41,9 +41,10 @@ contract KonduxImplementationTest is Test {
             "KonduxNFT",
             "kNFT",
             1000, // Max Supply
-            deployer // Initial Admin
+            deployer, // Initial Admin
+            address(factory) // Factory for security config
         );
-        
+
         address cloneAddr = factory.deployClone(initData);
         kondux = KonduxImplementation(payable(cloneAddr));
 

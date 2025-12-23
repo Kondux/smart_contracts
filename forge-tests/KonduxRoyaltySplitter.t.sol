@@ -19,9 +19,9 @@ contract KonduxRoyaltySplitterTest is Test {
     address buyer = address(0x5);
     address admin = address(0x6);
 
-    uint96 constant MANUFACTURER_CUT = 400; // 4%
-    uint96 constant PARTNER_CUT = 300; // 3%
-    uint96 constant CREATOR_CUT = 300; // 3%
+    uint96 constant MANUFACTURER_CUT = 500; // 5%
+    uint96 constant PARTNER_CUT = 0; // 0%
+    uint96 constant CREATOR_CUT = 500; // 5%
 
     function setUp() public {
         string memory rpcUrl = vm.envOr("MAINNET_RPC_URL", string("https://eth.merkle.io"));
@@ -39,7 +39,8 @@ contract KonduxRoyaltySplitterTest is Test {
             "TestCollection",
             "TEST",
             1000, // maxSupply
-            admin // initialAdmin
+            admin, // initialAdmin
+            address(factory) // Factory for security config
         );
         address collectionAddr = factory.deployClone(initData);
         collection = KonduxImplementation(payable(collectionAddr));
@@ -222,20 +223,21 @@ contract KonduxRoyaltySplitterTest is Test {
         (uint256 mAmt, uint256 pAmt, uint256 cAmt, address creatorAddr, uint96 cutBP) =
             splitter.getSplit(tokenId, amount);
 
-        // All parties should receive their share on ANY sale
+        // Creator and manufacturer should receive their share on ANY sale
         assertGt(cAmt, 0, "Creator should get their share");
         assertGt(mAmt, 0, "Manufacturer should get some");
-        assertGt(pAmt, 0, "Partner should get some");
+        // Partner cut is 0% by default
+        assertEq(pAmt, 0, "Partner cut is 0% by default");
         assertEq(creatorAddr, creator);
         assertEq(cutBP, CREATOR_CUT);
 
         // Verify exact split based on MAX_TOTAL_ROYALTY_BP (1000)
         // Split is: amount * cutBP / 1000
-        // 4% of royalty -> 400/1000 * 1 ETH = 0.4 ETH
-        // 3% of royalty -> 300/1000 * 1 ETH = 0.3 ETH
-        assertEq(mAmt, 0.4 ether, "Manufacturer should get 40% of royalty");
-        assertEq(pAmt, 0.3 ether, "Partner should get 30% of royalty");
-        assertEq(cAmt, 0.3 ether, "Creator should get 30% of royalty");
+        // 5% of royalty -> 500/1000 * 1 ETH = 0.5 ETH
+        // 0% of royalty -> 0/1000 * 1 ETH = 0 ETH
+        assertEq(mAmt, 0.5 ether, "Manufacturer should get 50% of royalty");
+        assertEq(pAmt, 0 ether, "Partner gets 0% of royalty");
+        assertEq(cAmt, 0.5 ether, "Creator should get 50% of royalty");
     }
 
     function test_CalculateSplit_ConsecutiveSales() public {
@@ -308,7 +310,7 @@ contract KonduxRoyaltySplitterTest is Test {
         vm.deal(address(collection), 1 ether);
 
         uint256 manufacturerBalBefore = manufacturer.balance;
-        uint256 partnerBalBefore = partner.balance;
+        uint256 creatorBalBefore = creator.balance;
 
         // Collection triggers distribution
         vm.prank(address(collection));
@@ -316,7 +318,8 @@ contract KonduxRoyaltySplitterTest is Test {
 
         // Immediate transfer should have happened
         assertGt(manufacturer.balance, manufacturerBalBefore, "Manufacturer should receive ETH");
-        assertGt(partner.balance, partnerBalBefore, "Partner should receive ETH");
+        assertGt(creator.balance, creatorBalBefore, "Creator should receive ETH");
+        // Partner cut is 0% by default, so no partner assertion
     }
 
     function test_PullMode_Accumulation() public {

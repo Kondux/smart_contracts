@@ -25,24 +25,25 @@ contract KonduxBeaconFactoryTest is Test {
 
     function test_DeployClone_Public() public {
         vm.startPrank(user);
-        
+
         bytes memory initData = abi.encodeWithSelector(
             KonduxImplementation.initialize.selector,
-            "Test", "TST", 
+            "Test", "TST",
             1000,
-            user // Initial Admin
+            user, // Initial Admin
+            address(factory) // Factory for security config
         );
-        
+
         address cloneAddress = factory.deployClone(initData);
         KonduxImplementation clone = KonduxImplementation(payable(cloneAddress));
-        
+
         // Check ownership/roles
         bool userIsAdmin = clone.hasRole(clone.DEFAULT_ADMIN_ROLE(), user);
         bool factoryIsAdmin = clone.hasRole(clone.DEFAULT_ADMIN_ROLE(), address(factory));
-        
+
         assertTrue(userIsAdmin, "User should be admin");
-        assertFalse(factoryIsAdmin, "Factory should not be admin");
-        
+        assertTrue(factoryIsAdmin, "Factory should be admin for security config");
+
         vm.stopPrank();
     }
 
@@ -54,11 +55,12 @@ contract KonduxBeaconFactoryTest is Test {
         vm.startPrank(user);
         bytes memory initData = abi.encodeWithSelector(
             KonduxImplementation.initialize.selector,
-            "Test", "TST", 
+            "Test", "TST",
             1000,
-            user
+            user,
+            address(factory)
         );
-        
+
         vm.expectRevert(); // Should revert because user doesn't have CLONE_DEPLOYER_ROLE
         factory.deployClone(initData);
         vm.stopPrank();
