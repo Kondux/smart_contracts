@@ -19,18 +19,21 @@ contract MockKondux {
     mapping(uint256 => uint256) private _dna;
     mapping(uint256 => mapping(uint8 => mapping(uint8 => uint256))) private _genes;
     mapping(uint256 => uint256) private _transferDate;
+    mapping(uint256 => address) private _tokenApprovals;
     uint96 private _denominator;
 
-    constructor(
+    constructor() {
+        name = "MockKondux";
+        symbol = "MKDX";
+        maxSupply = 10000;
+    }
+
+    /// @notice Legacy constructor for backward compatibility with existing tests
+    function initialize(
         string memory _name,
         string memory _symbol,
-        address,
-        address,
-        address,
-        address,
-        address,
         uint256 _maxSupply
-    ) {
+    ) external {
         name = _name;
         symbol = _symbol;
         maxSupply = _maxSupply;
@@ -78,6 +81,8 @@ contract MockKondux {
     function burn(uint256 tokenId) external {
         address owner = _ownerOf[tokenId];
         require(owner != address(0), "Nonexistent token");
+        // Allow burn by owner or approved address
+        require(msg.sender == owner || _tokenApprovals[tokenId] == msg.sender, "Not authorized");
 
         // Clear ownership data
         _ownerOf[tokenId] = address(0);
@@ -96,6 +101,7 @@ contract MockKondux {
         delete _ownedTokensIndex[owner][tokenId];
         delete _dna[tokenId];
         delete _transferDate[tokenId];
+        delete _tokenApprovals[tokenId];
     }
 
     // ---------------- DNA helpers ----------------
@@ -142,9 +148,24 @@ contract MockKondux {
         return "";
     }
 
-    function getApproved(uint256) external pure returns (address) {
-        return address(0);
+    function approve(address to, uint256 tokenId) external {
+        address owner = _ownerOf[tokenId];
+        require(owner != address(0), "Nonexistent token");
+        require(msg.sender == owner, "Not token owner");
+        _tokenApprovals[tokenId] = to;
     }
 
-    function faucet() external {}
+    function getApproved(uint256 tokenId) external view returns (address) {
+        return _tokenApprovals[tokenId];
+    }
+
+    function faucet() external {
+        // Mint a token to the caller (for testing kBox-like behavior)
+        uint256 tokenId = _nextId++;
+        _ownerOf[tokenId] = msg.sender;
+        _balanceOf[msg.sender] += 1;
+        _ownedTokensIndex[msg.sender][tokenId] = _ownedTokens[msg.sender].length;
+        _ownedTokens[msg.sender].push(tokenId);
+        _transferDate[tokenId] = block.timestamp;
+    }
 }
