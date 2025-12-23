@@ -3,7 +3,7 @@
 
 ![image](https://avatars.githubusercontent.com/u/85846911?s=200&v=4)
 
-Kondux is a powerful and versatile smart contract system built on the Ethereum blockchain. It is designed to facilitate the creation, management, and monetization of NFTs, incorporating features such as royalties and access control. The smart contract leverages popular open-source libraries from the OpenZeppelin project and uses Hardhat for development, testing, and deployment.
+Kondux is a powerful and versatile smart contract system built on the Ethereum blockchain. It is designed to facilitate the creation, management, and monetization of NFTs, incorporating features such as royalties and access control. The smart contract leverages popular open-source libraries from the OpenZeppelin project and uses **Foundry (Forge)** for development, testing, and deployment.
 
 Staking enables users to stake tokens and earn rewards. It includes features such as time-locked staking and rewards compounding. The contract is built with Solidity and uses OpenZeppelin library for standard interfaces and utilities.
 
@@ -12,7 +12,7 @@ Staking enables users to stake tokens and earn rewards. It includes features suc
 - Extensible with ERC-721 Enumerable, Pausable, Burnable, and Royalty features
 - Customizable royalty and access control mechanisms
 - Events for tracking important contract actions
-- Integration with Hardhat for a streamlined development experience
+- Integration with Foundry (Forge) for fast testing and deployment
 ## Staking Features
 - Staking: Users can stake their tokens to participate in the rewards program.
 - Time-lock: Users can choose different time-lock durations for their stakes, which affects the rewards earned.
@@ -47,56 +47,81 @@ We are committed to fostering a welcoming and inclusive community. Please read o
 
 ### Requirements
 
-- [Node v16](https://nodejs.org/download/release/latest-v16.x/)  
+- [Foundry](https://book.getfoundry.sh/getting-started/installation) (includes `forge`, `anvil`, `cast`)
 - [Git](https://git-scm.com/downloads)
+- [Node.js v18+](https://nodejs.org/) (for helper scripts only)
 
 ### Local Setup Steps
 
 ```sh
-# Clone the repository
-git clone https://github.com/Kondux/smart_contracts.git
+# Clone the repository with submodules
+git clone --recurse-submodules https://github.com/Kondux/smart_contracts.git
+cd smart_contracts
 
-# Install dependencies
-npm install
+# Install Foundry (if not already installed)
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
 
-# Set up environment variables (keys)
-cp .env.example .env # (linux)
+# Set up environment variables
+cp .env.example .env # (linux/mac)
 copy .env.example .env # (windows)
 
-### Hardhat usage:
-## Just Compile: 
-npx hardhat compile
-
-## Deploy locally: 
-# Dry deployment: 
-npx hardhat ignition deploy [MODULE] --network [NETWORK] 
-
-# With node running:
-npx hardhat node
-
-# Connect with console:
-npx hardhat console --network localhost
-
-## Compile and Deploy to Goerli:
-npx hardhat ignition deploy [MODULE] --network Goerli 
-
-## Test: 
-npx hardhat test
-
-# Generate typescript files
-npx hardhat typechain
-
-# Clean artifacts (doesn't need to be versioned):
-npx hardhat clean
+# Install npm dependencies (optional, for Python/JS helper scripts)
+npm install
 ```
 
-### Notes for `localhost`
--   The `deployments/localhost` directory is included in the git repository,
-    so that the contract addresses remain constant. Otherwise, the frontend's
-    `constants.ts` file would need to be updated.
--   Avoid committing changes to the `deployments/localhost` files (unless you
-    are sure), as this will alter the state of the hardhat node when deployed
-    in tests.
+### Foundry Commands
+
+```sh
+# Build contracts
+forge build
+
+# Run all tests
+forge test -vv
+
+# Run specific test contract
+forge test --match-contract KonduxImplementation -vvv
+
+# Run specific test function
+forge test --match-test test_safeMint -vvv
+
+# Deploy (see scripts/solidity/deploy/ for deployment scripts)
+forge script scripts/solidity/deploy/DeployKonduxBatchMinter.s.sol --rpc-url $RPC_URL --broadcast
+```
+
+### Windows + WSL Setup
+
+On Windows, Foundry runs best through WSL. Use these commands:
+
+```powershell
+# Build
+wsl -e bash -c "cd /mnt/d/git/smart_contracts && ~/.foundry/bin/forge build"
+
+# All tests
+wsl -e bash -c "cd /mnt/d/git/smart_contracts && ~/.foundry/bin/forge test -vv"
+
+# Single test
+wsl -e bash -c "cd /mnt/d/git/smart_contracts && ~/.foundry/bin/forge test --match-contract KonduxImplementation -vvv"
+```
+
+### Project Structure
+
+```
+contracts/           # Solidity source files
+forge-tests/         # Foundry tests (*.t.sol)
+scripts/solidity/deploy/  # Forge deployment scripts (*.s.sol)
+scripts/cli/         # Python CLI utilities
+scripts/shell/       # Shell helper scripts
+test/_archived/      # Legacy Hardhat tests (archived)
+ignition/_archived_modules/  # Legacy Ignition modules (archived)
+docs/               # Documentation and guides
+```
+
+### Historical Deployments
+
+Previous deployment records (from Hardhat-deploy and Ignition) are preserved in:
+- `docs/deployments/historical-addresses.json` - Consolidated address archive
+- `docs/deployments/kondux-batchminter/address-book.json` - Active deployment tracking
 
 ## 📖 Guides
 

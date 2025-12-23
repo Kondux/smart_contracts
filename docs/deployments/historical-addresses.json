@@ -1,0 +1,130 @@
+{
+  "description": "Historical deployment addresses from Hardhat-deploy and Ignition. Archived during Forge migration (December 2025).",
+  "note": "These records are for reference only. Active deployments are tracked in kondux-batchminter/address-book.json",
+  
+  "ignition": {
+    "mainnet": {
+      "chainId": 1,
+      "MinterBundle#KBox": "0x7eD509A69F7FD93fD59A557369a9a5dCc1499685",
+      "MinterBundle#KonduxFounders": "0xD3f011f1768B38CcC0faA7B00E59B0E29920194b",
+      "MinterBundle#Treasury": "0xaD2E62E90C63D5c2b905C3F709cC3045AecDAa1E",
+      "Kondux#Kondux": "0xEBB372b6030a8107F57C853919d775fb41d62570",
+      "MinterBundle#MinterBundle": "0xd81C688adDb82794c40611a2382bDE65F679c3D8",
+      "BundleMinter#KBox": "0x7eD509A69F7FD93fD59A557369a9a5dCc1499685",
+      "BundleMinter#KonduxFounders": "0xD3f011f1768B38CcC0faA7B00E59B0E29920194b",
+      "BundleMinter#Treasury": "0xaD2E62E90C63D5c2b905C3F709cC3045AecDAa1E",
+      "BundleMinter#BundleMinter": "0x8e33AEfccC963D92a33579929AD6600b1a2f558e",
+      "Kondux_kNFT#Kondux": "0x5aD180dF8619CE4f888190C3a926111a723632ce"
+    },
+    "sepolia": {
+      "chainId": 11155111,
+      "Authority#Authority": "0xd77948D1B0fF0cF4E3F5fb7361e95251073a7823",
+      "Kondux#Kondux": "0x0a91A04b3Fed1993d700297Bc001556AF8417960",
+      "KonduxERC721Founders#KonduxERC721Founders": "0xE3D1DD82Bb9A8e8E4218701BD3b345b63FbbCB79",
+      "KBox#KBox": "0xdBfA48F881b499D47788c57aD78dCe278bf77f4F",
+      "Treasury#Treasury": "0x762528B67be8cFdaA9A645cAF9dB90Cd29f5178f",
+      "MinterBundleTestnet#MinterBundle": "0x45b65832aFA9bE3F6b47253c5824184C895C265c"
+    },
+    "goerli": {
+      "chainId": 5,
+      "Authority#Authority": "0xd18D6CB31a7c9384d8D438fC2893FcAEbca3A6b5",
+      "KBox#KonduxERC721kNFT": "0x05AeBD84F98E11Fdc89726E0a7a16aaf7D267190",
+      "Kondux#Kondux": "0xdcaFbad44dB77e12Fc4b9bfa4c0e330Fdf816093",
+      "Treasury#Treasury": "0x22a1035f519602BFEAC61A7Bd4C0Ff6D43BCEEA1",
+      "MinterBundle#MinterBundle": "0xbB33Ad8AD5d4A99458174c323f6Bb6D70f1144f8",
+      "KBox#KBox": "0xDEFb4FBe0b0aD74db0CE7Ddb24D40bbabBC7aDB7",
+      "MinterBundleTestnet#MinterBundleDemo": "0x71DE28127308b55f000CbDd3377Dc260Ce8C5d23"
+    },
+    "polygonMumbai": {
+      "chainId": 80001,
+      "MinterBundleTestnet#KBox": "0x71DE28127308b55f000CbDd3377Dc260Ce8C5d23",
+      "MinterBundleTestnet#Treasury": "0x7Ac1B87116Df992a961Be2ccdd92dd9659f834ae",
+      "Kondux#Kondux": "0x002a4F0aA6D2Ae840Ba2B9FfC0288F6FceCE0bFc",
+      "MinterBundleTestnet#MinterBundle": "0x004EDA33a9F3b3045b78D4b1c022B8054621828e",
+      "KonduxERC721Founders#KonduxERC721Founders": "0x2C9d9a71703abFc404DF4bae35A159f2a4d1E081",
+      "Kondux1155#Kondux1155": "0xA7Dc4Dbd162555C6fccFfD95B7841D4aAb92Ce14",
+      "Authority#Authority": "0x2347392360c5961efC4a92285506689fCce3f37A",
+      "KBox#KBox": "0x64840Edd5bb3a08F0Ec6c742B9f6d9bd7583a2Fe",
+      "Treasury#Treasury": "0x7F393C4c4DbBd1F3594dEdeA0333E02f76b779e7",
+      "Kondux_kNFT#MinterBundle": "0xd81C688adDb82794c40611a2382bDE65F679c3D8",
+      "Kondux_kNFT#Staking": "0x07e6f2239d6fbe2ce00747fcfb8344ebbf973bcc",
+      "Kondux_kNFT#Kondux": "0x520e83709a48CD48e60917DDE9BA455996718327",
+      "KBoxBatchMintingTestnet#KBox": "0x002a4F0aA6D2Ae840Ba2B9FfC0288F6FceCE0bFc"
+    },
+    "localhost": {
+      "chainId": 1337,
+      "Kondux#Kondux": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+      "KonduxERC721Founders#KonduxERC721Founders": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+      "MinterBundleTestnet#KBox": "0x71DE28127308b55f000CbDd3377Dc260Ce8C5d23",
+      "MinterBundleTestnet#Treasury": "0x7Ac1B87116Df992a961Be2ccdd92dd9659f834ae",
+      "MinterBundleTestnet#MinterBundle": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
+    }
+  },
+
+  "hardhat-deploy": {
+    "mainnet": {
+      "chainId": 1,
+      "Authority": "0x6A005c11217863c4e300Ce009c5Ddc7e1672150A",
+      "Helix": "deployed",
+      "Kondux": "deployed",
+      "KonduxFounders": "0xD3f011f1768B38CcC0faA7B00E59B0E29920194b",
+      "MinterFounders": "deployed",
+      "MinterPublic": "deployed",
+      "Staking": "deployed",
+      "Treasury": "0xaD2E62E90C63D5c2b905C3F709cC3045AecDAa1E"
+    },
+    "goerli": {
+      "chainId": 5,
+      "Authority": "deployed",
+      "Helix": "deployed",
+      "Kondux": "deployed",
+      "KonduxERC20": "deployed",
+      "KonduxERC721Founders": "deployed",
+      "KonduxERC721kNFT": "deployed",
+      "KonduxFounders": "deployed",
+      "MinterFounders": "deployed",
+      "MinterPublic": "deployed",
+      "Staking": "deployed",
+      "Treasury": "deployed"
+    },
+    "sepolia": {
+      "chainId": 11155111,
+      "Helix": "deployed",
+      "Kondux": "deployed",
+      "Staking": "deployed",
+      "Treasury": "deployed"
+    },
+    "polygonMumbai": {
+      "chainId": 80001,
+      "Authority": "deployed",
+      "KonduxERC20": "deployed"
+    },
+    "rinkeby": {
+      "chainId": 4,
+      "Authority": "deployed",
+      "KonduxFounders": "deployed",
+      "note": "Deprecated testnet"
+    }
+  },
+
+  "constants": {
+    "mainnet": {
+      "authority": "0x6a005c11217863c4e300ce009c5ddc7e1672150a",
+      "kndxToken": "0x7ca5af5ba3472af6049f63c1abc324475d44efc1",
+      "foundersPass": "0xD3f011f1768B38CcC0faA7B00E59B0E29920194b",
+      "kbox": "0x7eD509A69F7FD93fD59A557369a9a5dCc1499685",
+      "minterPublic": "0xDD6Dce66F11D2460B3b4A8Be8174749BC8d5e403",
+      "minterFounders": "0x0fD5576c2842bD62dd00C5256491D11CcAD84306"
+    },
+    "sepolia": {
+      "authority": "0x685a13093ca561f531c93185b942a3f33385e14e",
+      "kndxToken": "0x2fa9e338CFe579Ff4575BeD2e1Ea407e811F35bc",
+      "foundersPass": "0x434fD7FEEc752c4BfA4a59d0272c503ffD313499",
+      "kbox": "0x434fD7FEEc752c4BfA4a59d0272c503ffD313499",
+      "minterPublic": "0x2fa9e338CFe579Ff4575BeD2e1Ea407e811F35bc",
+      "minterFounders": "0x434fD7FEEc752c4BfA4a59d0272c503ffD313499"
+    }
+  },
+
+  "archivedAt": "2025-12-23T16:53:00Z"
+}
