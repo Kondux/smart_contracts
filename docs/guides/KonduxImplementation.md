@@ -1,4 +1,15 @@
-# Executive Summary of **KonduxImplementation** (kNFT) Contract
+# KonduxImplementation (kNFT) Contract
+
+> **Current System**: This document describes the beacon-based upgradeable NFT implementation. The current mainnet deployment uses **ERC721C** compliance with the Limit Break Transfer Validator for marketplace royalty enforcement.
+>
+> **Related Documentation**:
+> - [kondux-royalty-model.md](../kondux-royalty-model.md) - Royalty configuration and enforcement
+> - [KonduxBatchMinter.md](./KonduxBatchMinter.md) - Batch minting with EIP-712 signatures
+> - [nft_dna.md](./nft_dna.md) - DNA system for trait encoding
+>
+> **Legacy Reference**: See `kNFT-legacy.md` and `kNFT_Factory-legacy.md` for the previous KNDX-based royalty system documentation.
+
+---
 
 ## Table of Contents
 

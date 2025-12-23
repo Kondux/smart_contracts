@@ -1,35 +1,118 @@
 # Helix Token (HLX)
 
-Helix Token (HLX) is an ERC20 token with additional restrictions and features built on top of the Ethereum blockchain. It is designed to provide controlled token transfers and role-based access control for minting and burning. The token is suitable for projects that require more granular control over token transfers and specific actions, such as minting and burning.
+## Overview
 
-## Usage
+Helix Token (HLX) is a controlled ERC20 token that serves as a **staking receipt** in the Kondux ecosystem. When users stake KNDX tokens, they receive HELIX at a 10,000:1 ratio, representing their staked position.
 
-The Helix Token (HLX) can be used in various applications, such as decentralized finance (DeFi) platforms, digital collectibles, or any other project that requires a token with additional transfer restrictions and role-based access control.
+**Key Properties:**
+- Transfer-restricted by default (whitelisted contracts only)
+- Role-based minting and burning
+- Required for withdrawing staked KNDX
 
-## Restrictions
+---
 
-1. Direct transfers between users are not allowed by default. This means that users cannot send tokens directly to other users without involving a whitelisted contract or having the global unrestricted transfers enabled.
+## Role in Staking
 
-2. Transfers can only be initiated on behalf of users by contracts that have been explicitly whitelisted by an admin. This allows specific contracts to facilitate token transfers, such as decentralized exchanges or other DeFi protocols.
+```mermaid
+sequenceDiagram
+    participant User
+    participant Staking
+    participant Treasury
+    participant HELIX
 
-3. The unrestricted transfers feature can be enabled by an admin to allow transfers between users without restrictions. However, this feature should be used with caution, as it removes one of the primary security features of the token.
+    User->>Staking: stake(KNDX)
+    Staking->>Treasury: transfer KNDX
+    Staking->>HELIX: mint HELIX to User
+    Note over User,HELIX: User holds HELIX as receipt
 
-## Roles and Rules
+    User->>Staking: withdraw(KNDX)
+    Staking->>HELIX: burn HELIX from User
+    Staking->>Treasury: release KNDX
+    Treasury->>User: transfer KNDX
+```
 
-The Helix Token has the following roles:
+**Exchange Rate:** 10,000 HELIX per 1 KNDX staked
 
-1. **Admin**: The admin role is responsible for managing the token's settings and configurations, such as adding or removing contracts from the whitelist and toggling the unrestricted transfers feature.
+To withdraw staked KNDX, users must burn the equivalent HELIX tokens. This mechanism:
+- Prevents unauthorized withdrawals
+- Creates a verifiable on-chain staking receipt
+- Enables potential secondary market for staking positions
 
-2. **Minter**: The minter role is responsible for minting new tokens. Only addresses with the minter role can create new tokens, which can then be distributed to users or other addresses.
+---
 
-3. **Burner**: The burner role is responsible for burning tokens. Only addresses with the burner role can destroy tokens, effectively removing them from the total supply.
+## Transfer Restrictions
 
-Each role has specific rules and restrictions that must be followed to ensure the proper functioning of the token:
+HELIX implements controlled transfers to maintain staking integrity:
 
-- Only the admin can manage the whitelist of allowed contracts and enable or disable the unrestricted transfers feature.
+| Transfer Type | Default State | Notes |
+|---------------|---------------|-------|
+| User → User | **Blocked** | Prevents receipt token trading by default |
+| Whitelisted Contract → User | **Allowed** | Staking contract can mint/burn |
+| User → Whitelisted Contract | **Allowed** | Required for withdrawal |
+| Unrestricted Mode | **Disabled** | Admin can enable for special cases |
 
-- Only minters can create new tokens.
+### Whitelist Management
 
-- Only burners can destroy tokens.
+Only whitelisted contracts can facilitate HELIX transfers:
 
-These roles and rules provide a foundation for building a secure and controlled token ecosystem with Helix Token (HLX).
+```solidity
+// Admin adds staking contract to whitelist
+helixToken.setWhitelisted(stakingContractAddress, true);
+
+// Admin removes from whitelist
+helixToken.setWhitelisted(oldContract, false);
+```
+
+### Unrestricted Transfers
+
+Admins can enable unrestricted transfers (use with caution):
+
+```solidity
+// Enable free transfers between all addresses
+helixToken.setUnrestrictedTransfers(true);
+```
+
+---
+
+## Roles
+
+| Role | Permissions | Typical Holder |
+|------|-------------|----------------|
+| **Admin** | Manage whitelist, toggle restrictions | Multisig/DAO |
+| **Minter** | Create new tokens | Staking contract |
+| **Burner** | Destroy tokens | Staking contract |
+
+### Role Assignment
+
+```solidity
+// Grant minter role to staking contract
+helixToken.grantRole(MINTER_ROLE, stakingContract);
+
+// Grant burner role to staking contract
+helixToken.grantRole(BURNER_ROLE, stakingContract);
+
+// Revoke role
+helixToken.revokeRole(MINTER_ROLE, oldContract);
+```
+
+---
+
+## Security Considerations
+
+1. **Transfer Restrictions**: Prevent unauthorized trading of staking receipts
+2. **Role Separation**: Minting/burning only by authorized contracts
+3. **Admin Controls**: Emergency toggles for system maintenance
+
+### Best Practices
+
+- Keep unrestricted transfers **disabled** in production
+- Whitelist only verified, audited contracts
+- Use multisig for admin role
+- Audit whitelist periodically
+
+---
+
+## Related Documentation
+
+- [staking-system.md](./staking-system.md) - Complete staking guide with HELIX mechanics
+- [../kondux-royalty-model.md](../kondux-royalty-model.md) - KNDX token usage in royalties

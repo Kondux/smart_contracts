@@ -1,76 +1,333 @@
-# Kondux NFT DNA
+# Kondux NFT DNA System
 
-Every Kondux NFT has a DNA that is stored in the Kondux_NFT contract.
-The DNA is a uint256 variable in the Kondux_NFT contract.
-It stores the genes of the NFT. The DNA is meant to be loaded into games or applications to provide users a unique asset, owned by the user.
+## Overview
 
-The gene is a number that represents the NFT's attributes, directly or indirectly. A Kondux DNA have a undefined amount of genes, but it's always a number and always fits in a 256 bits space. For example, a Kondux DNA can have up to 256 genes of 1 bit each. Or 32 genes of 8 bits each (1 byte). Or 1 gene of 4 bytes, followed by 2 gene of 1 byte, followed by 13 gene of 2 bytes. Etc.
+Every Kondux NFT contains a **DNA** value - a 256-bit (`uint256`) on-chain data structure that encodes the NFT's unique attributes, traits, and properties. The DNA system enables:
 
-Example of DNA:
+- **On-chain trait storage** without relying on external metadata
+- **Game/application integration** with deterministic asset properties
+- **Dynamic attributes** that can be modified by authorized contracts
+- **Staking boost calculations** based on "bonus genes"
 
-table:nft_dna
+---
 
-    |----|----|----|----| (...) |----|----|----|----|
-    |  0 |  1 |  2 |  3 | (...) | 29 | 30 | 31 | 32 |    bytes
-    | 02 | 4e | 81 | aa | (...) | 3b | c2 | d8 | ee |    genes
+## Table of Contents
 
-    attributes:
-    - 0: NFT collection
-      - 02 is the collection of Alien NFT
-    - 1: Base color
-      - 4e is the base color of Grey skin tone
-    - 2: Skin base pattern
-      - 81 is the base pattern of a square
-    - 3: Avatar size
-      - aa is the size of the avatar in centimeters (aa = 170 cm)
-    (...)
-    And so on up to the last gene (byte).
+- [DNA Structure](#dna-structure)
+- [Reading DNA](#reading-dna)
+- [Writing DNA](#writing-dna)
+- [Integration Examples](#integration-examples)
+- [Use Cases](#use-cases)
+- [Technical Reference](#technical-reference)
 
+---
 
-The DNA protocol is currently in development. There's no official protocol or mapping yet.
+## DNA Structure
 
-The DNA is not meant to be human readable.
+### Byte Layout
 
-# How to Read Genes Using the `readGen` Function in Solidity
+The DNA is stored as a `uint256` (32 bytes / 256 bits) in the `indexDna[tokenId]` mapping.
 
-This guide will explain how to read genes from a token's DNA value using the `readGen` function provided in the given Solidity code snippet.
-
-## Function Signature
-
-```solidity
-function readGen(uint256 _tokenID, uint8 startIndex, uint8 endIndex) public view returns (int256)
+```
+Byte Position:  |  0 |  1 |  2 |  3 | ... | 28 | 29 | 30 | 31 |
+Hex Values:     | 02 | 4e | 81 | aa | ... | 3b | c2 | d8 | ee |
+                ↑                                              ↑
+            MSB (Most Significant Byte)              LSB (Least Significant Byte)
 ```
 
-## Parameters
+### Gene Encoding
 
-- `_tokenID`: The ID of the token you want to extract the gene information from.
-- `startIndex`: The starting index of the byte range in the DNA value you want to extract.
-- `endIndex`: The ending index of the byte range in the DNA value you want to extract.
+Genes can occupy any number of contiguous bytes:
 
-## Usage
+| Configuration | Example Use Case |
+|---------------|------------------|
+| 256 x 1-bit genes | Boolean flags (has_trait, is_unlocked) |
+| 32 x 8-bit genes | Color values, level indicators (0-255) |
+| 16 x 16-bit genes | Larger numeric values (0-65535) |
+| Mixed sizes | Collection ID (1 byte) + Stats (2 bytes each) + Bonus (1 byte) |
 
-1. First, you need to have a valid token ID for which you want to extract the gene information. The token ID should correspond to an existing token in the contract.
+### Example Gene Map
 
-2. Determine the range of bytes you want to extract from the DNA value. The `startIndex` should be less than the `endIndex`, and the `endIndex` should be less than or equal to 32 (the DNA value has 32 bytes).
-
-3. Call the `readGen` function with the token ID and the byte range you have determined. The function will return the extracted value as an `int256`.
-
-### Example
-
-Suppose you have a token with ID `12345`, and you want to extract the gene information from the bytes between positions 2 and 5 in the DNA value. You can call the `readGen` function like this:
-
-```solidity
-int256 extractedValue = readGen(12345, 2, 5);
+```
+Byte 0:     Collection ID (0x02 = Alien Collection)
+Byte 1:     Base Color (0x4e = Grey skin tone)
+Byte 2:     Pattern Type (0x81 = Square pattern)
+Byte 3:     Avatar Height (0xaa = 170 cm)
+Bytes 4-5:  Power Level (16-bit value)
+Byte 31:    Bonus Gene (used for staking boosts, 1-5%)
 ```
 
-The `extractedValue` will now contain the value extracted from the DNA value of the token with ID `12345` in the specified byte range (2 to 5).
+> **Note**: The exact gene mapping is application-specific. Each collection defines its own encoding schema.
 
-## Important Notes
+---
 
-- Make sure the range you specify with `startIndex` and `endIndex` is valid. If the range is invalid, the function will revert with an "Invalid range" error message.
+## Reading DNA
 
-- The byte positions in the DNA value are stored in big-endian, so the function reverses the index while reading the bytes. Keep this in mind when specifying the byte range.
+### Full DNA Retrieval
 
-- The extracted value will be returned as an `int256`. You may need to convert or cast it to a different type, depending on your specific use case.
+```solidity
+// Get the complete 256-bit DNA value
+function getDna(uint256 tokenId) public view returns (uint256)
+```
 
-- Remember that the function has the `view` modifier, which means it doesn't modify the contract's state and can be called without incurring any gas costs.
+```javascript
+// JavaScript example
+const dna = await kNFT.getDna(tokenId);
+console.log("DNA:", dna.toHexString()); // 0x024e81aa...
+```
+
+### Partial Gene Extraction
+
+Use `readGen` to extract specific byte ranges:
+
+```solidity
+function readGen(
+    uint256 _tokenID,
+    uint8 startIndex,
+    uint8 endIndex
+) public view returns (int256)
+```
+
+**Parameters:**
+- `_tokenID`: Token ID to query
+- `startIndex`: Starting byte position (inclusive, 0-31)
+- `endIndex`: Ending byte position (exclusive, must be > startIndex)
+
+**Returns:** Extracted value as `int256`
+
+### Reading Examples
+
+```javascript
+// Read byte 0 (Collection ID)
+const collectionId = await kNFT.readGen(tokenId, 0, 1);
+
+// Read bytes 4-5 (16-bit power level)
+const powerLevel = await kNFT.readGen(tokenId, 4, 6);
+
+// Read byte 31 (Bonus gene for staking)
+const bonusGene = await kNFT.readGen(tokenId, 31, 32);
+```
+
+```solidity
+// Solidity example
+int256 collectionId = readGen(tokenId, 0, 1);    // Returns byte 0
+int256 powerLevel = readGen(tokenId, 4, 6);      // Returns bytes 4-5 as uint16
+int256 bonusGene = readGen(tokenId, 31, 32);     // Returns byte 31
+```
+
+---
+
+## Writing DNA
+
+### Full DNA Assignment
+
+Requires `DNA_MODIFIER_ROLE`:
+
+```solidity
+function setDna(uint256 tokenId, uint256 dna) external
+```
+
+```javascript
+// Set entire DNA
+const newDna = ethers.BigNumber.from("0x024e81aa...");
+await kNFT.setDna(tokenId, newDna);
+// Emits: DnaChanged(tokenId, dna)
+```
+
+### Batch DNA Assignment
+
+Set DNA for multiple tokens efficiently:
+
+```solidity
+function batchSetDna(uint256[] calldata tokenIds, uint256[] calldata dnas) external
+```
+
+### Partial Gene Modification
+
+Use `writeGen` to modify specific bytes without affecting others:
+
+```solidity
+function writeGen(
+    uint256 _tokenID,
+    uint256 _inputValue,
+    uint8 _startIndex,
+    uint8 _endIndex
+) external
+```
+
+**Parameters:**
+- `_tokenID`: Token ID to modify
+- `_inputValue`: New value to write
+- `_startIndex`: Starting byte position
+- `_endIndex`: Ending byte position
+
+```javascript
+// Update only the power level (bytes 4-5)
+await kNFT.writeGen(tokenId, 5000, 4, 6);
+// Emits: DnaModified(tokenId, dna, inputValue, startIndex, endIndex)
+
+// Update bonus gene (byte 31)
+await kNFT.writeGen(tokenId, 5, 31, 32);
+```
+
+---
+
+## Integration Examples
+
+### Staking Boost Calculation
+
+The staking contract reads the bonus gene to calculate reward boosts:
+
+```javascript
+// Staking contract reads bonus genes from user's kNFTs
+async function calculateKNFTBoost(userAddress) {
+    const kNFTs = await getOwnedTokens(userAddress);
+    const boosts = [];
+
+    for (const tokenId of kNFTs) {
+        // Read bonus gene from byte 31
+        const bonusGene = await kNFT.readGen(tokenId, 31, 32);
+        // Bonus gene value 1-5 = 1-5% boost
+        boosts.push(Number(bonusGene));
+    }
+
+    // Sum top 5 boosts
+    return boosts.sort((a, b) => b - a).slice(0, 5).reduce((a, b) => a + b, 0);
+}
+```
+
+### Game Integration
+
+```javascript
+// Load character stats from DNA
+async function loadCharacter(tokenId) {
+    const dna = await kNFT.getDna(tokenId);
+
+    return {
+        collection: await kNFT.readGen(tokenId, 0, 1),
+        skinColor: await kNFT.readGen(tokenId, 1, 2),
+        pattern: await kNFT.readGen(tokenId, 2, 3),
+        height: await kNFT.readGen(tokenId, 3, 4),
+        powerLevel: await kNFT.readGen(tokenId, 4, 6),
+        // ... more attributes
+    };
+}
+```
+
+### Metadata Generation
+
+```javascript
+// Generate metadata from DNA for IPFS/API
+function generateMetadata(tokenId, dna) {
+    const traits = [];
+
+    // Extract and decode each gene
+    const collection = (dna >> 248n) & 0xFFn;
+    const color = (dna >> 240n) & 0xFFn;
+
+    traits.push({
+        trait_type: "Collection",
+        value: COLLECTION_NAMES[collection]
+    });
+
+    traits.push({
+        trait_type: "Skin Color",
+        value: COLOR_NAMES[color]
+    });
+
+    return {
+        name: `Kondux #${tokenId}`,
+        description: "A unique Kondux NFT",
+        attributes: traits
+    };
+}
+```
+
+---
+
+## Use Cases
+
+| Use Case | Implementation |
+|----------|----------------|
+| **Avatars** | Store appearance traits (color, pattern, size) |
+| **Gaming** | Character stats, equipment, level progression |
+| **Staking** | Bonus genes affect reward multipliers |
+| **Rarity** | Trait combinations determine rarity tiers |
+| **Evolution** | Modify DNA to unlock new traits over time |
+| **Breeding** | Combine parent DNAs to create offspring |
+
+---
+
+## Technical Reference
+
+### Events
+
+```solidity
+// Emitted when full DNA is set
+event DnaChanged(uint256 indexed tokenId, uint256 dna);
+
+// Emitted when partial DNA is modified
+event DnaModified(
+    uint256 indexed tokenId,
+    uint256 dna,
+    uint256 inputValue,
+    uint8 startIndex,
+    uint8 endIndex
+);
+
+// EIP-4906: Triggers metadata refresh
+event MetadataUpdate(uint256 indexed tokenId);
+```
+
+### Access Control
+
+| Function | Required Role |
+|----------|---------------|
+| `getDna()` | Public (view) |
+| `readGen()` | Public (view) |
+| `setDna()` | `DNA_MODIFIER_ROLE` |
+| `batchSetDna()` | `DNA_MODIFIER_ROLE` |
+| `writeGen()` | `DNA_MODIFIER_ROLE` |
+
+### Storage Layout
+
+```solidity
+// Per-token DNA storage
+mapping(uint256 => uint256) internal indexDna;
+```
+
+### Byte Order
+
+DNA uses **big-endian** storage:
+- Byte 0 is the most significant byte (leftmost)
+- Byte 31 is the least significant byte (rightmost)
+- `readGen` internally handles byte reversal for correct extraction
+
+### Gas Considerations
+
+| Operation | Approximate Gas |
+|-----------|-----------------|
+| `getDna()` | ~2,500 (view) |
+| `readGen()` | ~3,000 (view) |
+| `setDna()` | ~25,000 |
+| `writeGen()` | ~30,000 |
+| `batchSetDna(10)` | ~200,000 |
+
+---
+
+## Best Practices
+
+1. **Define gene maps upfront** - Document which bytes encode which attributes
+2. **Use consistent encoding** - Stick to standard sizes (1, 2, 4 bytes) for easier parsing
+3. **Reserve bytes** - Leave unused bytes for future expansion
+4. **Cache DNA reads** - Batch multiple `readGen` calls when possible
+5. **Validate ranges** - Always ensure `startIndex < endIndex <= 32`
+6. **Consider upgradability** - DNA interpretation can evolve without contract changes
+
+---
+
+## Related Documentation
+
+- [KonduxImplementation.md](./KonduxImplementation.md) - Full NFT contract reference
+- [staking-system.md](./staking-system.md) - How DNA affects staking rewards
+- [kondux-royalty-model.md](../kondux-royalty-model.md) - Royalty system overview
