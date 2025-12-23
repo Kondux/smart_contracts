@@ -6,8 +6,6 @@ import "./interfaces/ITreasury.sol";
 import "./interfaces/IKondux.sol";
 import "./types/AccessControlled.sol";
 
-import "hardhat/console.sol";
-
 contract MinterFounders is AccessControlled {
 
     uint256 public priceFounders020;
@@ -124,7 +122,6 @@ contract MinterFounders is AccessControlled {
     }
 
     function setRootFounders020(bytes32 _rootFounders020) public onlyGovernor {
-        console.logBytes32(_rootFounders020);
         rootFounders020 = _rootFounders020;
     }
 

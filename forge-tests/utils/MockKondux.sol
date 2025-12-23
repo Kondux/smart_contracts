@@ -22,21 +22,21 @@ contract MockKondux {
     mapping(uint256 => address) private _tokenApprovals;
     uint96 private _denominator;
 
-    constructor() {
-        name = "MockKondux";
-        symbol = "MKDX";
-        maxSupply = 10000;
-    }
-
-    /// @notice Legacy constructor for backward compatibility with existing tests
-    function initialize(
+    /// @notice Constructor that accepts optional parameters for backward compatibility
+    /// @dev Unused parameters are ignored - they exist for signature compatibility with real contract
+    constructor(
         string memory _name,
         string memory _symbol,
+        address, // ignored - originalOwner
+        address, // ignored - authority  
+        address, // ignored - konduxERC20
+        address, // ignored - konduxFounders
+        address, // ignored - vault
         uint256 _maxSupply
-    ) external {
-        name = _name;
-        symbol = _symbol;
-        maxSupply = _maxSupply;
+    ) {
+        name = bytes(_name).length > 0 ? _name : "MockKondux";
+        symbol = bytes(_symbol).length > 0 ? _symbol : "MKDX";
+        maxSupply = _maxSupply > 0 ? _maxSupply : 10000;
     }
 
     // ---------------- ERC721-lite view functions ----------------
