@@ -125,7 +125,7 @@ contract KonduxRoyaltyTest is Test {
         // Deploy Clone
         bytes memory initData = abi.encodeWithSelector(
             KonduxImplementation.initialize.selector,
-            "KonduxNFT", "kNFT", 1000, admin, address(factory)
+            "KonduxNFT", "kNFT", 1000, admin, address(factory), address(0)
         );
 
         address cloneAddr = factory.deployClone(initData);
@@ -354,7 +354,7 @@ contract KonduxRoyaltyTest is Test {
         // 1. Deploy fresh clone
         bytes memory initData = abi.encodeWithSelector(
             KonduxImplementation.initialize.selector,
-            "KonduxNFT_2", "kNFT2", 1000, admin, address(factory)
+            "KonduxNFT_2", "kNFT2", 1000, admin, address(factory), address(0)
         );
         address cloneAddr = factory.deployClone(initData);
         KonduxImplementation kondux2 = KonduxImplementation(payable(cloneAddr));
@@ -439,7 +439,7 @@ contract KonduxRoyaltyTest is Test {
         // 1. Deploy fresh clone
         bytes memory initData = abi.encodeWithSelector(
             KonduxImplementation.initialize.selector,
-            "KonduxNFT_Helper", "kNFTH", 1000, admin, address(factory)
+            "KonduxNFT_Helper", "kNFTH", 1000, admin, address(factory), address(0)
         );
         address cloneAddr = factory.deployClone(initData);
         KonduxImplementation k = KonduxImplementation(payable(cloneAddr));

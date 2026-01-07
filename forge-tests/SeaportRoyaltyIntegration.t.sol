@@ -49,7 +49,7 @@ contract SeaportRoyaltyIntegrationTest is Test {
         // Deploy Clone
         bytes memory initData = abi.encodeWithSelector(
             KonduxImplementation.initialize.selector,
-            "KonduxNFT", "kNFT", 1000, admin, address(factory)
+            "KonduxNFT", "kNFT", 1000, admin, address(factory), address(0)
         );
 
         address cloneAddr = factory.deployClone(initData);

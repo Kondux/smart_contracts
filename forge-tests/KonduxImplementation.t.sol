@@ -42,7 +42,8 @@ contract KonduxImplementationTest is Test {
             "kNFT",
             1000, // Max Supply
             deployer, // Initial Admin
-            address(factory) // Factory for security config
+            address(factory), // Factory for security config
+            address(0) // No splitter
         );
 
         address cloneAddr = factory.deployClone(initData);
