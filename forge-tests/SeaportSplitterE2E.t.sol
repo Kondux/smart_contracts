@@ -74,18 +74,12 @@ contract SeaportSplitterE2E is Test {
         KonduxImplementation collection,
         KonduxRoyaltySplitter splitter
     ) {
-        bytes memory initData = abi.encodeWithSelector(
-            KonduxImplementation.initialize.selector,
+        vm.prank(deployer);
+        (address collectionAddr, address splitterAddr) = factory.deployCloneWithSplitter(
             "TestCollection",
             "TEST",
             1000,
             collectionAdmin,
-            address(factory)
-        );
-
-        vm.prank(deployer);
-        (address collectionAddr, address splitterAddr) = factory.deployCloneWithSplitter(
-            initData,
             true,
             partner,
             MANUFACTURER_CUT,
@@ -106,18 +100,12 @@ contract SeaportSplitterE2E is Test {
         KonduxImplementation collection,
         KonduxRoyaltySplitter splitter
     ) {
-        bytes memory initData = abi.encodeWithSelector(
-            KonduxImplementation.initialize.selector,
+        vm.prank(deployer);
+        (address collectionAddr, address splitterAddr) = factory.deployCloneWithSplitter(
             "TestCollection",
             "TEST",
             1000,
             collectionAdmin,
-            address(factory)
-        );
-
-        vm.prank(deployer);
-        (address collectionAddr, address splitterAddr) = factory.deployCloneWithSplitter(
-            initData,
             true,
             address(0), // No partner
             MANUFACTURER_CUT,

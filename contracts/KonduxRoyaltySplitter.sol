@@ -34,7 +34,8 @@ contract KonduxRoyaltySplitter is AccessControl, ReentrancyGuard {
     bytes32 public constant FEE_ADMIN_ROLE = keccak256("FEE_ADMIN_ROLE");
 
     /// @notice The NFT collection this splitter serves
-    address public immutable collection;
+    /// @dev Can be set once after deployment if initially zero (for factory deployment pattern)
+    address public collection;
     
     /// @notice Manufacturer (Kondux) treasury address
     address public manufacturerWallet;
@@ -97,6 +98,7 @@ contract KonduxRoyaltySplitter is AccessControl, ReentrancyGuard {
     event CreatorWalletUpdated(uint256 indexed tokenId, address indexed oldWallet, address indexed newWallet);
     event CreatorOverridden(uint256 indexed tokenId, address indexed creator, uint96 cutBP);
     event DefaultCreatorWalletUpdated(address indexed newDefaultCreator);
+    event CollectionSet(address indexed collection);
 
     error InvalidAddress();
     error NotCreatorOfToken();
@@ -117,7 +119,8 @@ contract KonduxRoyaltySplitter is AccessControl, ReentrancyGuard {
         address _defaultCreatorWallet,
         address _admin
     ) {
-        if (_collection == address(0) || _manufacturerWallet == address(0) || _admin == address(0)) {
+        // Allow _collection to be zero for factory deployment pattern (set later via setCollection)
+        if (_manufacturerWallet == address(0) || _admin == address(0)) {
             revert InvalidAddress();
         }
         if (_manufacturerCutBP + _partnerCutBP + _defaultCreatorCutBP > MAX_TOTAL_ROYALTY_BP) {
@@ -139,7 +142,25 @@ contract KonduxRoyaltySplitter is AccessControl, ReentrancyGuard {
         _grantRole(ADMIN_ROLE, _admin);
         _grantRole(FEE_ADMIN_ROLE, _admin);
         _grantRole(DISTRIBUTOR_ROLE, _admin);
+        // Only grant COLLECTION_ROLE if collection is set
+        if (_collection != address(0)) {
+            _grantRole(COLLECTION_ROLE, _collection);
+        }
+    }
+
+    /**
+     * @notice Set the collection address (can only be called once if initially zero)
+     * @dev Used by factory to set collection after deployment in splitter-first pattern
+     * @param _collection The NFT collection address
+     */
+    function setCollection(address _collection) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (collection != address(0)) revert InvalidAddress(); // Already set
+        if (_collection == address(0)) revert InvalidAddress();
+        
+        collection = _collection;
         _grantRole(COLLECTION_ROLE, _collection);
+        
+        emit CollectionSet(_collection);
     }
 
     /// @notice Receive ETH (royalty payments)

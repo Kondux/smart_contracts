@@ -66,18 +66,12 @@ contract KonduxBatchMinterTest is Test {
         // Deploy factory with beacon
         factory = new KonduxBeaconFactory(address(impl));
 
-        // Deploy a clone via factory
-        bytes memory initData = abi.encodeWithSelector(
-            KonduxImplementation.initialize.selector,
+        // Deploy a clone via factory (no splitter for this test)
+        (address proxyAddr, ) = factory.deployCloneWithSplitter(
             "KonduxNFT",
             "kNFT",
             0, // maxSupply (unlimited)
             deployer, // initialAdmin
-            address(factory) // factory
-        );
-
-        (address proxyAddr, ) = factory.deployCloneWithSplitter(
-            initData,
             false, // no splitter for this test
             address(0), // partnerWallet
             0, // manufacturerCutBP

@@ -137,13 +137,15 @@ contract KonduxImplementation is
      * @param _maxSupply   Maximum supply of tokens (0 for unlimited)
      * @param _initialAdmin Address to receive admin roles
      * @param _factory     Optional factory address to grant temporary admin for security setup (zero to skip)
+     * @param _royaltySplitter Optional royalty splitter address to set as ERC2981 receiver (zero to use _initialAdmin)
      */
     function initialize(
         string calldata _name,
         string calldata _symbol,
         uint256 _maxSupply,
         address _initialAdmin,
-        address _factory
+        address _factory,
+        address _royaltySplitter
     ) external initializer {
         // Initialize parent contracts
         __ERC721_init(_name, _symbol);
@@ -173,8 +175,15 @@ contract KonduxImplementation is
         partnerCutBP       = 0;
         creatorCutBP       = 500;
 
-        // Set a sensible default royalty: receiver is initial admin, sum of splits (10%)
-        _setDefaultRoyalty(_initialAdmin, manufacturerCutBP + partnerCutBP + creatorCutBP);
+        // Set royalty receiver: use splitter if provided, otherwise initial admin
+        uint96 totalRoyalty = manufacturerCutBP + partnerCutBP + creatorCutBP;
+        if (_royaltySplitter != address(0)) {
+            royaltySplitter = _royaltySplitter;
+            _setDefaultRoyalty(_royaltySplitter, totalRoyalty);
+            emit RoyaltySplitterUpdated(_royaltySplitter);
+        } else {
+            _setDefaultRoyalty(_initialAdmin, totalRoyalty);
+        }
     }
 
     /*----------------------------------------------------------------------*/

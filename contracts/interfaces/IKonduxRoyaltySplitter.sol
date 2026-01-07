@@ -169,4 +169,11 @@ interface IKonduxRoyaltySplitter {
         address creator,
         uint96 creatorCutBP
     ) external;
+
+    /**
+     * @notice Set the collection address (can only be called once if initially zero)
+     * @dev Used by factory to set collection after deployment in splitter-first pattern
+     * @param _collection The NFT collection address
+     */
+    function setCollection(address _collection) external;
 }

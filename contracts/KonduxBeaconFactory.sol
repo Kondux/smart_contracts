@@ -124,7 +124,13 @@ contract KonduxBeaconFactory is AccessControl {
 
     /**
      * @notice Deploys a BeaconProxy clone with an optional KonduxRoyaltySplitter.
-     * @param initCalldata Initialization data for KonduxImplementation.
+     *         When deploySplitter is true, the splitter is deployed FIRST so its address
+     *         can be passed to the clone's initialize() function, ensuring ERC2981 royaltyInfo
+     *         correctly returns the splitter as the receiver from deployment.
+     * @param name Collection name for initialization.
+     * @param symbol Collection symbol for initialization.
+     * @param maxSupply Maximum supply of tokens (0 for unlimited).
+     * @param initialAdmin Address to receive admin roles on the collection.
      * @param deploySplitter If true, also deploy a splitter for this collection.
      * @param partnerWallet Partner address for royalty splits (can be zero).
      * @param manufacturerCutBP Manufacturer cut in basis points (e.g., 500 = 5%).
@@ -135,7 +141,10 @@ contract KonduxBeaconFactory is AccessControl {
      * @return splitter The deployed splitter address (zero if not deployed).
      */
     function deployCloneWithSplitter(
-        bytes calldata initCalldata,
+        string calldata name,
+        string calldata symbol,
+        uint256 maxSupply,
+        address initialAdmin,
         bool deploySplitter,
         address partnerWallet,
         uint96 manufacturerCutBP,
@@ -147,20 +156,20 @@ contract KonduxBeaconFactory is AccessControl {
             _checkRole(CLONE_DEPLOYER_ROLE, msg.sender);
         }
 
-        // 1. Deploy the NFT collection clone
-        proxy = address(new BeaconProxy(address(beacon), initCalldata));
-
-        // 2. Configure marketplace security (whitelist Seaport & conduit, restrict other markets)
-        _configureMarketplaceSecurity(proxy);
-
         if (deploySplitter) {
-            // 3. Get manufacturer wallet from collection's first DEFAULT_ADMIN_ROLE member
-            address manufacturerWallet = _getCollectionManufacturer(proxy);
-
-            // 4. Deploy splitter with factory as the admin
+            // 1. Deploy splitter FIRST (with placeholder collection address)
+            //    We use CREATE2-style deterministic deployment pattern:
+            //    Deploy splitter, then deploy clone with splitter address in init
+            
+            // Predict the proxy address using CREATE opcode formula
+            // proxy = keccak256(rlp([factory_address, nonce]))[12:]
+            // Since we're deploying splitter first, proxy will be deployed at nonce+1
+            
+            // For simplicity, we deploy splitter with address(0) as collection,
+            // then update it after clone deployment
             splitter = address(new KonduxRoyaltySplitter(
-                proxy,                      // collection
-                manufacturerWallet,         // manufacturer wallet
+                address(0),                 // placeholder - will be set after clone deployment
+                initialAdmin,               // manufacturer wallet (initialAdmin is the manufacturer)
                 partnerWallet,              // partner wallet
                 manufacturerCutBP,
                 partnerCutBP,
@@ -169,25 +178,48 @@ contract KonduxBeaconFactory is AccessControl {
                 address(this)               // Factory is initial admin
             ));
 
-            // 5. Grant COLLECTION_ROLE to the NFT contract
+            // 2. Deploy the NFT collection clone with splitter address in initialization
+            bytes memory initCalldata = abi.encodeWithSignature(
+                "initialize(string,string,uint256,address,address,address)",
+                name,
+                symbol,
+                maxSupply,
+                initialAdmin,
+                address(this),  // factory for security config
+                splitter        // royalty splitter - set during init so ERC2981 is correct
+            );
+            proxy = address(new BeaconProxy(address(beacon), initCalldata));
+
+            // 3. Update splitter with the actual collection address
+            IKonduxRoyaltySplitter(splitter).setCollection(proxy);
+
+            // 4. Grant COLLECTION_ROLE to the NFT contract
             IKonduxRoyaltySplitter(splitter).grantRole(
                 IKonduxRoyaltySplitter(splitter).COLLECTION_ROLE(),
                 proxy
             );
 
-            // 6. Configure the NFT collection to use the splitter
-            // Note: This requires the collection to have setRoyaltySplitter function
-            (bool success,) = proxy.call(
-                abi.encodeWithSignature("setRoyaltySplitter(address)", splitter)
-            );
-            require(success, "Failed to set splitter on collection");
-
-            // 7. Track the deployment
+            // 5. Track the deployment
             collectionToSplitter[proxy] = splitter;
             deployedSplitters.push(splitter);
 
             emit SplitterDeployed(proxy, splitter, msg.sender);
+        } else {
+            // No splitter - deploy clone with zero splitter address
+            bytes memory initCalldata = abi.encodeWithSignature(
+                "initialize(string,string,uint256,address,address,address)",
+                name,
+                symbol,
+                maxSupply,
+                initialAdmin,
+                address(this),  // factory for security config
+                address(0)      // no splitter
+            );
+            proxy = address(new BeaconProxy(address(beacon), initCalldata));
         }
+
+        // 6. Configure marketplace security (whitelist Seaport & conduit, restrict other markets)
+        _configureMarketplaceSecurity(proxy);
 
         emit CloneDeployed(proxy, msg.sender);
     }

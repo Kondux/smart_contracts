@@ -40,18 +40,12 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_DeployCloneWithSplitter() public {
-        bytes memory initData = abi.encodeWithSelector(
-            KonduxImplementation.initialize.selector,
+        vm.prank(deployer);
+        (address collectionAddr, address splitterAddr) = factory.deployCloneWithSplitter(
             "TestCollection",
             "TEST",
             1000,
             collectionAdmin,
-            address(factory)
-        );
-
-        vm.prank(deployer);
-        (address collectionAddr, address splitterAddr) = factory.deployCloneWithSplitter(
-            initData,
             true, // deploySplitter
             partner,
             MANUFACTURER_CUT,
@@ -78,7 +72,7 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
 
         // Verify ERC2981 points to splitter
         (address receiver, uint256 amount) = collection.royaltyInfo(0, 10000);
-        assertEq(receiver, splitterAddr);
+        assertEq(receiver, splitterAddr, "ERC2981 receiver should be splitter");
         assertEq(amount, MANUFACTURER_CUT + PARTNER_CUT + CREATOR_CUT);
 
         // Verify manufacturer derived from collection admin
@@ -90,18 +84,12 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
     }
 
     function test_DeployCloneWithSplitter_NoSplitter() public {
-        bytes memory initData = abi.encodeWithSelector(
-            KonduxImplementation.initialize.selector,
+        vm.prank(deployer);
+        (address collectionAddr, address splitterAddr) = factory.deployCloneWithSplitter(
             "TestCollection",
             "TEST",
             1000,
             collectionAdmin,
-            address(factory)
-        );
-
-        vm.prank(deployer);
-        (address collectionAddr, address splitterAddr) = factory.deployCloneWithSplitter(
-            initData,
             false, // No splitter
             partner,
             MANUFACTURER_CUT,
@@ -112,6 +100,11 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
 
         assertEq(splitterAddr, address(0));
         assertEq(factory.collectionToSplitter(collectionAddr), address(0));
+
+        // ERC2981 should point to admin when no splitter
+        KonduxImplementation collection = KonduxImplementation(payable(collectionAddr));
+        (address receiver,) = collection.royaltyInfo(0, 10000);
+        assertEq(receiver, collectionAdmin, "ERC2981 receiver should be admin when no splitter");
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -119,19 +112,12 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_SafeMint_AutoRegistersCreator() public {
-        // Deploy collection with splitter
-        bytes memory initData = abi.encodeWithSelector(
-            KonduxImplementation.initialize.selector,
+        vm.prank(deployer);
+        (address collectionAddr, address splitterAddr) = factory.deployCloneWithSplitter(
             "TestCollection",
             "TEST",
             1000,
             collectionAdmin,
-            address(factory)
-        );
-
-        vm.prank(deployer);
-        (address collectionAddr, address splitterAddr) = factory.deployCloneWithSplitter(
-            initData,
             true,
             partner,
             MANUFACTURER_CUT,
@@ -165,18 +151,12 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
     }
 
     function test_SafeMintWithCreator_ExplicitCreator() public {
-        bytes memory initData = abi.encodeWithSelector(
-            KonduxImplementation.initialize.selector,
+        vm.prank(deployer);
+        (address collectionAddr, address splitterAddr) = factory.deployCloneWithSplitter(
             "TestCollection",
             "TEST",
             1000,
             collectionAdmin,
-            address(factory)
-        );
-
-        vm.prank(deployer);
-        (address collectionAddr, address splitterAddr) = factory.deployCloneWithSplitter(
-            initData,
             true,
             partner,
             MANUFACTURER_CUT,
@@ -213,18 +193,12 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_FeeAdmin_UpdateCutsOnSplitter() public {
-        bytes memory initData = abi.encodeWithSelector(
-            KonduxImplementation.initialize.selector,
+        vm.prank(deployer);
+        (address collectionAddr, address splitterAddr) = factory.deployCloneWithSplitter(
             "TestCollection",
             "TEST",
             1000,
             collectionAdmin,
-            address(factory)
-        );
-
-        vm.prank(deployer);
-        (address collectionAddr, address splitterAddr) = factory.deployCloneWithSplitter(
-            initData,
             true,
             partner,
             MANUFACTURER_CUT,
@@ -245,18 +219,12 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
     }
 
     function test_FeeAdmin_UpdateWalletsOnSplitter() public {
-        bytes memory initData = abi.encodeWithSelector(
-            KonduxImplementation.initialize.selector,
+        vm.prank(deployer);
+        (address collectionAddr, address splitterAddr) = factory.deployCloneWithSplitter(
             "TestCollection",
             "TEST",
             1000,
             collectionAdmin,
-            address(factory)
-        );
-
-        vm.prank(deployer);
-        (address collectionAddr, address splitterAddr) = factory.deployCloneWithSplitter(
-            initData,
             true,
             partner,
             MANUFACTURER_CUT,
@@ -278,18 +246,12 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
     }
 
     function test_FeeAdmin_RegisterCreatorOnSplitter() public {
-        bytes memory initData = abi.encodeWithSelector(
-            KonduxImplementation.initialize.selector,
+        vm.prank(deployer);
+        (address collectionAddr, address splitterAddr) = factory.deployCloneWithSplitter(
             "TestCollection",
             "TEST",
             1000,
             collectionAdmin,
-            address(factory)
-        );
-
-        vm.prank(deployer);
-        (address collectionAddr, address splitterAddr) = factory.deployCloneWithSplitter(
-            initData,
             true,
             partner,
             MANUFACTURER_CUT,
@@ -322,18 +284,12 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
     }
 
     function test_NonFeeAdmin_CannotUpdateCuts() public {
-        bytes memory initData = abi.encodeWithSelector(
-            KonduxImplementation.initialize.selector,
+        vm.prank(deployer);
+        (address collectionAddr, address splitterAddr) = factory.deployCloneWithSplitter(
             "TestCollection",
             "TEST",
             1000,
             collectionAdmin,
-            address(factory)
-        );
-
-        vm.prank(deployer);
-        (address collectionAddr, address splitterAddr) = factory.deployCloneWithSplitter(
-            initData,
             true,
             partner,
             MANUFACTURER_CUT,
@@ -353,18 +309,12 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_RoyaltyFlow_AllPartiesReceive() public {
-        bytes memory initData = abi.encodeWithSelector(
-            KonduxImplementation.initialize.selector,
+        vm.prank(deployer);
+        (address collectionAddr, address splitterAddr) = factory.deployCloneWithSplitter(
             "TestCollection",
             "TEST",
             1000,
             collectionAdmin,
-            address(factory)
-        );
-
-        vm.prank(deployer);
-        (address collectionAddr, address splitterAddr) = factory.deployCloneWithSplitter(
-            initData,
             true,
             partner,
             MANUFACTURER_CUT,
@@ -404,18 +354,12 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
     }
 
     function test_RoyaltyFlow_ConsecutiveSales() public {
-        bytes memory initData = abi.encodeWithSelector(
-            KonduxImplementation.initialize.selector,
+        vm.prank(deployer);
+        (address collectionAddr, address splitterAddr) = factory.deployCloneWithSplitter(
             "TestCollection",
             "TEST",
             1000,
             collectionAdmin,
-            address(factory)
-        );
-
-        vm.prank(deployer);
-        (address collectionAddr, address splitterAddr) = factory.deployCloneWithSplitter(
-            initData,
             true,
             partner,
             MANUFACTURER_CUT,
@@ -460,31 +404,30 @@ contract KonduxRoyaltySplitterIntegrationTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_MultipleCollections_IndependentSplitters() public {
-        // Deploy two collections with splitters
-        bytes memory initData1 = abi.encodeWithSelector(
-            KonduxImplementation.initialize.selector,
+        vm.startPrank(deployer);
+        (address col1, address splitter1) = factory.deployCloneWithSplitter(
             "Collection1",
             "COL1",
             1000,
             collectionAdmin,
-            address(factory)
+            true,
+            partner,
+            400,
+            300,
+            300,
+            collectionAdmin
         );
-
-        bytes memory initData2 = abi.encodeWithSelector(
-            KonduxImplementation.initialize.selector,
+        (address col2, address splitter2) = factory.deployCloneWithSplitter(
             "Collection2",
             "COL2",
             1000,
             buyer, // different admin
-            address(factory)
-        );
-
-        vm.startPrank(deployer);
-        (address col1, address splitter1) = factory.deployCloneWithSplitter(
-            initData1, true, partner, 400, 300, 300, collectionAdmin
-        );
-        (address col2, address splitter2) = factory.deployCloneWithSplitter(
-            initData2, true, address(0x111), 500, 200, 300, buyer
+            true,
+            address(0x111),
+            500,
+            200,
+            300,
+            buyer
         );
         vm.stopPrank();
 

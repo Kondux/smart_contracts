@@ -95,20 +95,13 @@ contract DeployCollectionWithSplitterScript is Script {
         result.factory = address(factory);
 
         // Step 2: Deploy collection with splitter
-        // Pass factory address so it can configure security policy during deployment
-        bytes memory initData = abi.encodeWithSelector(
-            KonduxImplementation.initialize.selector,
-            cfg.collectionName,
-            cfg.collectionSymbol,
-            cfg.maxSupply,
-            cfg.collectionAdmin,
-            address(factory)  // Factory gets temporary admin to configure security
-        );
-
         if (cfg.deploySplitter) {
             (address collectionAddr, address splitterAddr) = factory.deployCloneWithSplitter(
-                initData,
-                true,
+                cfg.collectionName,
+                cfg.collectionSymbol,
+                cfg.maxSupply,
+                cfg.collectionAdmin,
+                true,  // deploySplitter
                 cfg.partnerWallet,
                 cfg.manufacturerCutBP,
                 cfg.partnerCutBP,
@@ -120,6 +113,16 @@ contract DeployCollectionWithSplitterScript is Script {
             console2.log("Deployed Collection:", collectionAddr);
             console2.log("Deployed Splitter:", splitterAddr);
         } else {
+            // Deploy without splitter using deployClone with manual initData
+            bytes memory initData = abi.encodeWithSignature(
+                "initialize(string,string,uint256,address,address,address)",
+                cfg.collectionName,
+                cfg.collectionSymbol,
+                cfg.maxSupply,
+                cfg.collectionAdmin,
+                address(factory),  // Factory gets temporary admin to configure security
+                address(0)         // No splitter
+            );
             address collectionAddr = factory.deployClone(initData);
             result.collection = collectionAddr;
             console2.log("Deployed Collection (no splitter):", collectionAddr);
