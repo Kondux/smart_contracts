@@ -359,6 +359,13 @@ contract UpgradeBeaconAndDeployFactoryScript is Script {
         
         console2.log("  Clone deployed:", clone);
         console2.log("  Splitter deployed:", splitter);
+
+        // Factory deploys splitter with manufacturer wallet = initialAdmin; update to desired wallet.
+        // Requires caller to have FEE_ADMIN_ROLE on the factory.
+        factory.setWalletsOnSplitter(splitter, manufacturerWallet, address(0));
+        console2.log("  Splitter wallets updated:");
+        console2.log("    Manufacturer Wallet:", manufacturerWallet);
+        console2.log("    Partner Wallet:", address(0));
         
         // Grant MINTER_ROLE to the admin as well (in addition to factory's temp setup)
         KonduxImplementation cloneContract = KonduxImplementation(payable(clone));
