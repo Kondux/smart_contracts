@@ -22,13 +22,13 @@ import {KonduxBeaconFactoryUpgradeable} from "contracts/KonduxBeaconFactoryUpgra
  * Usage:
  *   # Dry-run
  *   wsl -e bash -c "cd /mnt/d/git/smart_contracts && \
- *     PROD_DEPLOYER_PK=0x588ec1f77f2c8d32662bcc1f024e639af152b623182407c5f659a0b3c6ab725d \
+ *     PROD_DEPLOYER_PK=0xYOUR_PRIVATE_KEY_HERE \
  *     ~/.foundry/bin/forge script scripts/solidity/deploy/DeployUpgradeableFactoryV3.s.sol \
  *     --rpc-url 'https://eth-mainnet.g.alchemy.com/v2/NWbAcPvkpq7yLbeXhubWbhIRIKiH-oFf'"
  *
  *   # Broadcast
  *   wsl -e bash -c "cd /mnt/d/git/smart_contracts && \
- *     PROD_DEPLOYER_PK=0x588ec1f77f2c8d32662bcc1f024e639af152b623182407c5f659a0b3c6ab725d \
+ *     PROD_DEPLOYER_PK=0xYOUR_PRIVATE_KEY_HERE \
  *     ~/.foundry/bin/forge script scripts/solidity/deploy/DeployUpgradeableFactoryV3.s.sol \
  *     --rpc-url 'https://eth-mainnet.g.alchemy.com/v2/NWbAcPvkpq7yLbeXhubWbhIRIKiH-oFf' --broadcast"
  */
