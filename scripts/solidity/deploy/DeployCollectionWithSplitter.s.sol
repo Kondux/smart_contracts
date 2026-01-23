@@ -43,6 +43,11 @@ import {KonduxRoyaltySplitter} from "contracts/KonduxRoyaltySplitter.sol";
  *   forge script script/DeployCollectionWithSplitter.s.sol --rpc-url $MAINNET_RPC_URL --broadcast
  */
 contract DeployCollectionWithSplitterScript is Script {
+    // Limit Break Transfer Validator V5
+    address constant TRANSFER_VALIDATOR_V5 = 0x721C008fdff27BF06E7E123956E2Fe03B63342e3;
+    // V3 Factory Proxy Address
+    address constant FACTORY_PROXY_V3 = 0x539F8627Bd33E7c0D8320b1e7d7477d436Ffd12c;
+
     struct DeployConfig {
         string networkLabel;
         address factoryAddress;
@@ -128,6 +133,10 @@ contract DeployCollectionWithSplitterScript is Script {
             console2.log("Deployed Collection (no splitter):", collectionAddr);
         }
 
+        // Configure OpenSea security if using a new factory/implementation that requires it
+        // Note: The V3 factory does this automatically, but standalone deployments might not
+        _verifyAndConfigureSecurity(result.collection, deployer);
+
         vm.stopBroadcast();
 
         // Step 3: Run smoke tests
@@ -161,7 +170,7 @@ contract DeployCollectionWithSplitterScript is Script {
         }
 
         // Load from environment with defaults
-        cfg.factoryAddress = vm.envOr("FACTORY_ADDRESS", address(0));
+        cfg.factoryAddress = vm.envOr("FACTORY_ADDRESS", FACTORY_PROXY_V3);
         cfg.collectionName = vm.envOr("COLLECTION_NAME", string("Kondux Collection"));
         cfg.collectionSymbol = vm.envOr("COLLECTION_SYMBOL", string("KNDX"));
         cfg.maxSupply = vm.envOr("MAX_SUPPLY", uint256(10000));
@@ -458,6 +467,32 @@ contract DeployCollectionWithSplitterScript is Script {
             contractPath
         );
         return cmd;
+    }
+
+    function _verifyAndConfigureSecurity(address collection, address deployer) internal {
+        KonduxImplementation nft = KonduxImplementation(payable(collection));
+        
+        // Check if validator is set correctly
+        if (nft.getTransferValidator() != TRANSFER_VALIDATOR_V5) {
+            console2.log("WARNING: Transfer Validator mismatch. Expected V5.");
+        }
+
+        // Try to configure default security policy (safe to call even if already set)
+        // This ensures standalone deployments or older factories get configured
+        try nft.setToDefaultSecurityPolicy() {
+            console2.log("Security policy configured (Level 4 + Seaport)");
+            
+            // Add OpenSea Conduit
+            address[] memory conduit = new address[](1);
+            conduit[0] = 0x1E0049783F008A0085193E00003D00cd54003c71;
+            try nft.addAccountsToWhitelist(conduit) {
+                console2.log("OpenSea Conduit whitelisted");
+            } catch {
+                console2.log("Failed to whitelist OpenSea Conduit");
+            }
+        } catch {
+            console2.log("Security policy configuration skipped (already set or not admin)");
+        }
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -86,6 +86,8 @@ contract KonduxImplementation is
     bool public autoApproveTransfersFromValidator;
 
     /// @dev Default transfer validator address specified by Limit Break.
+    /// V5 validator with enhanced security policies and OpenSea support.
+    /// Reference: https://apptokens.com/docs/integration-guide/creator-token-standards/v5/contract-deployments
     address public constant DEFAULT_TRANSFER_VALIDATOR =
         0x721C008fdff27BF06E7E123956E2Fe03B63342e3;
 
@@ -662,8 +664,8 @@ contract KonduxImplementation is
      *         approved for all and automatic approval is enabled, returns true
      *         for the validator address.
      */
-    function isApprovedForAll(address owner, address operator) public view virtual override(ERC721Upgradeable, IERC721) returns (bool) {
-        bool approved = super.isApprovedForAll(owner, operator);
+    function isApprovedForAll(address _owner, address operator) public view virtual override(ERC721Upgradeable, IERC721) returns (bool) {
+        bool approved = super.isApprovedForAll(_owner, operator);
         if (!approved && autoApproveTransfersFromValidator) {
             if (operator == getTransferValidator()) {
                 approved = true;
@@ -851,10 +853,10 @@ contract KonduxImplementation is
      */
     function setUser(uint256 tokenId, address user, uint64 expires) external override {
         require(eip4907Enabled, "ERC4907: disabled");
-        address owner = _ownerOf(tokenId);
-        require(owner != address(0), "ERC4907: nonexistent token");
+        address tokenOwner = _ownerOf(tokenId);
+        require(tokenOwner != address(0), "ERC4907: nonexistent token");
         require(user != address(0), "ERC4907: user cannot be zero address");
-        require(owner == msg.sender || _isAuthorized(owner, msg.sender, tokenId), "ERC4907: not owner nor approved");
+        require(tokenOwner == msg.sender || _isAuthorized(tokenOwner, msg.sender, tokenId), "ERC4907: not owner nor approved");
         _users[tokenId].user = user;
         _users[tokenId].expires = expires;
         emit UpdateUser(tokenId, user, expires);
@@ -944,5 +946,13 @@ contract KonduxImplementation is
     /// @dev Prevent initialization of the implementation itself.
     constructor() {
         _disableInitializers();
+    }
+
+    /**
+     * @notice Returns the address of the current owner (admin).
+     * @dev Required for OpenSea Studio compatibility. Returns the first member of DEFAULT_ADMIN_ROLE.
+     */
+    function owner() public view returns (address) {
+        return getRoleMember(DEFAULT_ADMIN_ROLE, 0);
     }
 }

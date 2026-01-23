@@ -24,4 +24,7 @@ interface ICreatorTokenTransferValidator {
     function getCollectionSecurityPolicy(address collection) external view returns (CollectionSecurityPolicy memory);
     function freezeAccountsForCollection(address collection, address[] memory accountsToFreeze) external;
     function unfreezeAccountsForCollection(address collection, address[] memory accountsToUnfreeze) external;
+    function setTransferSecurityLevelOfCollection(address collection, uint8 level) external;
+    function isAccountInList(uint48 listId, uint8 listType, address account) external view returns (bool);
+    function listOwners(uint48 listId) external view returns (address);
 }
