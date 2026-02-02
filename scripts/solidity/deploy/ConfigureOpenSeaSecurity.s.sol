@@ -45,6 +45,8 @@ contract ConfigureOpenSeaSecurity is Script {
     // OpenSea addresses
     address constant OPENSEA_CONDUIT = 0x1E0049783F008A0085193E00003D00cd54003c71;
     address constant SEAPORT = 0x0000000000000068F116a894984e2DB1123eB395;
+    // OpenSea SignedZone (Mainnet) - required for ERC721C compliance
+    address constant SIGNED_ZONE = 0x000056F7000000EcE9003ca63978907a00FFD100;
 
     function run() external {
         uint256 deployerKey = vm.envUint("PROD_DEPLOYER_PK");
@@ -77,6 +79,18 @@ contract ConfigureOpenSeaSecurity is Script {
         // Set the default security policy
         // This calls the Transfer Validator to configure the collection
         collection.setToDefaultSecurityPolicy();
+
+        // Add SignedZone as Authorizer (for ERC721C compliance)
+        address[] memory authorizers = new address[](1);
+        authorizers[0] = SIGNED_ZONE;
+        (bool success, ) = address(collection).call(
+            abi.encodeWithSignature("addAccountsToAuthorizers(address[])", authorizers)
+        );
+        if (success) {
+            console2.log("Authorized SignedZone");
+        } else {
+            console2.log("WARNING: Failed to authorize SignedZone (function missing?)");
+        }
 
         vm.stopBroadcast();
 

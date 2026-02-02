@@ -47,6 +47,10 @@ contract DeployCollectionWithSplitterScript is Script {
     address constant TRANSFER_VALIDATOR_V5 = 0x721C008fdff27BF06E7E123956E2Fe03B63342e3;
     // V3 Factory Proxy Address
     address constant FACTORY_PROXY_V3 = 0x539F8627Bd33E7c0D8320b1e7d7477d436Ffd12c;
+    // OpenSea SignedZone (Mainnet)
+    address constant SIGNED_ZONE = 0x000056F7000000EcE9003ca63978907a00FFD100;
+    // OpenSea Conduit (Mainnet)
+    address constant OPENSEA_CONDUIT = 0x1E0049783F008A0085193E00003D00cd54003c71;
 
     struct DeployConfig {
         string networkLabel;
@@ -489,6 +493,21 @@ contract DeployCollectionWithSplitterScript is Script {
                 console2.log("OpenSea Conduit whitelisted");
             } catch {
                 console2.log("Failed to whitelist OpenSea Conduit");
+            }
+
+            // Add SignedZone as Authorizer (for ERC721C)
+            // This is required for OpenSea listings to work with the SignedZone
+            address[] memory authorizers = new address[](1);
+            authorizers[0] = SIGNED_ZONE;
+            
+            // Try to call the new function if it exists (it should on new implementations)
+            (bool success, ) = address(nft).call(
+                abi.encodeWithSignature("addAccountsToAuthorizers(address[])", authorizers)
+            );
+            if (success) {
+                console2.log("SignedZone added as Authorizer");
+            } else {
+                console2.log("WARNING: Failed to add SignedZone as Authorizer (function missing?)");
             }
         } catch {
             console2.log("Security policy configuration skipped (already set or not admin)");

@@ -46,6 +46,9 @@ contract SetOpenSeaWhitelistScript is Script {
     address public constant SEAPORT_14 = 0x00000000000001ad428e4906aE43D8F9852d0dD6;
     address public constant SEAPORT_11 = 0x00000000006c3852cbEf3e08E8dF289169EdE581;
 
+    // OpenSea SignedZone (Mainnet) - required for ERC721C compliance with Seaport orders
+    address public constant SIGNED_ZONE = 0x000056F7000000EcE9003ca63978907a00FFD100;
+
     // List type constants
     uint8 public constant LIST_TYPE_WHITELIST = 1;
 
@@ -426,7 +429,7 @@ contract AddToExistingWhitelistScript is Script {
         address listOwner = validatorContract.listOwners(listId);
         console2.log("List owner:", listOwner);
 
-        if (listOwner != deployer) {
+        if (listOwner != deployer && listOwner != target) {
             console2.log("[ERROR] Deployer does not own list", uint256(listId));
             console2.log("Only the list owner can add accounts to the whitelist.");
             revert("Not list owner");
@@ -436,7 +439,34 @@ contract AddToExistingWhitelistScript is Script {
 
         console2.log("");
         console2.log("Adding", count, "addresses to whitelist...");
-        validatorContract.addAccountsToList(listId, LIST_TYPE_WHITELIST, finalToAdd);
+        
+        if (listOwner == deployer) {
+            // Deployer owns list -> call validator directly
+            validatorContract.addAccountsToList(listId, LIST_TYPE_WHITELIST, finalToAdd);
+            
+            // Also add SignedZone as authorizer
+            address[] memory authorizers = new address[](1);
+            authorizers[0] = SIGNED_ZONE;
+            validatorContract.addAccountsToList(listId, 2, authorizers);
+            console2.log("Added SignedZone as Authorizer (via validator)");
+        } else {
+            // Collection owns list -> call collection
+            KonduxImplementation kondux = KonduxImplementation(payable(target));
+            kondux.addAccountsToWhitelist(finalToAdd);
+            
+            // Also add SignedZone as authorizer
+            address[] memory authorizers = new address[](1);
+            authorizers[0] = SIGNED_ZONE;
+            
+            (bool success, ) = address(kondux).call(
+                abi.encodeWithSignature("addAccountsToAuthorizers(address[])", authorizers)
+            );
+            if (success) {
+                console2.log("Added SignedZone as Authorizer (via collection)");
+            } else {
+                console2.log("WARNING: Failed to add SignedZone as Authorizer (function missing?)");
+            }
+        }
 
         vm.stopBroadcast();
 

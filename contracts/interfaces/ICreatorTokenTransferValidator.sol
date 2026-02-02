@@ -13,6 +13,7 @@ interface ICreatorTokenTransferValidator {
 
     function createList(string calldata name) external returns (uint48);
     function addAccountsToList(uint48 id, uint8 listType, address[] calldata accounts) external;
+    function removeAccountsFromList(uint48 id, uint8 listType, address[] calldata accounts) external;
     function applyListToCollection(address collection, uint48 id) external;
     function setRulesetOfCollection(
         address collection,

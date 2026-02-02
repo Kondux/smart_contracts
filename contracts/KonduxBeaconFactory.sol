@@ -36,6 +36,9 @@ contract KonduxBeaconFactory is AccessControl {
     /// @notice OpenSea Conduit address (mainnet)
     address public constant OPENSEA_CONDUIT = 0x1E0049783F008A0085193E00003D00cd54003c71;
 
+    /// @notice OpenSea SignedZone address (mainnet) - required for ERC721C
+    address public constant SIGNED_ZONE = 0x000056F7000000EcE9003ca63978907a00FFD100;
+
     /// @notice Maps collection addresses to their deployed splitters
     mapping(address => address) public collectionToSplitter;
 
@@ -245,8 +248,15 @@ contract KonduxBeaconFactory is AccessControl {
             (bool success2,) = collection.call(
                 abi.encodeWithSignature("addAccountsToWhitelist(address[])", conduit)
             );
-            // Emit event if security was configured
+            
+            // 3. Add SignedZone to authorizers (for ERC721C)
             if (success2) {
+                address[] memory authorizers = new address[](1);
+                authorizers[0] = SIGNED_ZONE;
+                collection.call(
+                    abi.encodeWithSignature("addAccountsToAuthorizers(address[])", authorizers)
+                );
+                
                 emit MarketplaceSecurityConfigured(collection);
             }
         }

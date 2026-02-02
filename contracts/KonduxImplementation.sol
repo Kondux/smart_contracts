@@ -331,6 +331,30 @@ contract KonduxImplementation is
     }
 
     /**
+     * @notice Adds accounts to the collection's authorizer list.
+     *         Authorizers can call beforeAuthorizedTransfer on the transfer validator
+     *         to pre-approve transfers (required by OpenSea's SignedZone for ERC721C).
+     * @param accounts  Array of addresses to authorize.
+     */
+    function addAccountsToAuthorizers(address[] calldata accounts) external onlyAdmin {
+        address validator = getTransferValidator();
+        require(validator != address(0), "kNFT: validator not set");
+        require(listId != 0, "kNFT: list not initialized");
+        ICreatorTokenTransferValidator(validator).addAccountsToList(listId, 2, accounts);
+    }
+
+    /**
+     * @notice Removes accounts from the collection's authorizer list.
+     * @param accounts  Array of addresses to deauthorize.
+     */
+    function removeAccountsFromAuthorizers(address[] calldata accounts) external onlyAdmin {
+        address validator = getTransferValidator();
+        require(validator != address(0), "kNFT: validator not set");
+        require(listId != 0, "kNFT: list not initialized");
+        ICreatorTokenTransferValidator(validator).removeAccountsFromList(listId, 2, accounts);
+    }
+
+    /**
      * @notice Adds accounts to the collection's blacklist.
      * @param accounts  Array of addresses to blacklist.
      */

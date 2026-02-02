@@ -42,6 +42,8 @@ contract DeployCloneMintAndSetup is Script {
     // OpenSea addresses (for verification logging)
     address constant OPENSEA_CONDUIT = 0x1E0049783F008A0085193E00003D00cd54003c71;
     address constant SEAPORT = 0x0000000000000068F116a894984e2DB1123eB395;
+    // OpenSea SignedZone (Mainnet) - required for ERC721C compliance
+    address constant SIGNED_ZONE = 0x000056F7000000EcE9003ca63978907a00FFD100;
 
     struct DeployResult {
         address factory;
@@ -115,6 +117,19 @@ contract DeployCloneMintAndSetup is Script {
         console2.log("  Collection deployed:", collectionAddr);
         console2.log("  Splitter deployed:", splitterAddr);
         console2.log("");
+
+        // Authorize SignedZone
+        // Required for OpenSea listings to work with the SignedZone (ERC721C)
+        address[] memory authorizers = new address[](1);
+        authorizers[0] = SIGNED_ZONE;
+        (bool success, ) = collectionAddr.call(
+            abi.encodeWithSignature("addAccountsToAuthorizers(address[])", authorizers)
+        );
+        if (success) {
+            console2.log("  SignedZone authorized");
+        } else {
+            console2.log("  WARNING: Failed to authorize SignedZone (function missing?)");
+        }
 
         // Step 2: Mint one NFT to deployer
         // Admin has MINTER_ROLE by default from initialization
