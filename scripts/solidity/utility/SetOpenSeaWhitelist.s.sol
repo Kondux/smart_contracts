@@ -357,6 +357,7 @@ contract AddToExistingWhitelistScript is Script {
     address public constant SEAPORT_15 = 0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC;
     address public constant SEAPORT_14 = 0x00000000000001ad428e4906aE43D8F9852d0dD6;
     address public constant SEAPORT_11 = 0x00000000006c3852cbEf3e08E8dF289169EdE581;
+    address public constant SIGNED_ZONE = 0x000056F7000000EcE9003ca63978907a00FFD100;
 
     uint8 public constant LIST_TYPE_WHITELIST = 1;
 
